@@ -1,3 +1,5 @@
+import { resolveMoonRenderPipelineState } from "./moon-render-pipeline.js";
+
 function scheduleDeferredNormalMapUpgrade(scene, requestRender) {
     const upgrade = () => {
         if (!scene.moonRenderer) {
@@ -46,6 +48,7 @@ export function createMoonActions({
         scene.moonRenderer = new MoonRenderer(getMoonRadius());
         scene.moonRenderer.setTextures(scene.moonMap, scene.moonDisplacementMap);
         scene.moonRenderer.setRenderSettings(scene.moonRenderSettings);
+        scene.moonRenderer.setRenderPipeline(resolveMoonRenderPipelineState());
         // Defer the synchronous generated-normal-map build off the first-frame
         // critical path. The Moon renders with three.js's runtime bumpMap
         // fallback (driven by the displacement texture) until the higher-

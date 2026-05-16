@@ -127,6 +127,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 toggleInfo: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleInfo(event),
                 setMoonRenderProfile: (profile) => getMissionRuntimeWireup().runtimeBootstrapActions.setMoonRenderProfile(profile),
                 getMoonRenderProfile: () => getMissionRuntimeWireup().runtimeBootstrapActions.getMoonRenderProfile(),
+                setMoonRenderPipeline: (pipelineState) => getMissionRuntimeWireup().runtimeBootstrapActions.setMoonRenderPipeline(pipelineState),
+                getMoonRenderPipeline: () => getMissionRuntimeWireup().runtimeBootstrapActions.getMoonRenderPipeline(),
                 initAnimation,
             },
         });

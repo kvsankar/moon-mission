@@ -8,6 +8,7 @@ function createRuntimeUiControlsActions(deps) {
         cameraActions,
         modeActions,
         moonRenderProfileActions,
+        moonRenderPipelineActions,
         burnActions,
     } = createRuntimeUiControlGroups(deps);
 
@@ -18,6 +19,7 @@ function createRuntimeUiControlsActions(deps) {
         ...cameraActions,
         ...modeActions,
         ...moonRenderProfileActions,
+        ...moonRenderPipelineActions,
         burnButtonHandler: burnActions.burnButtonHandler,
     };
 }

@@ -93,6 +93,17 @@ function createRuntimeMoonRenderProfileControlActions(deps) {
     });
 }
 
+function createRuntimeMoonRenderPipelineControlActions(deps) {
+    if (typeof deps.createMoonRenderPipelineActions !== "function") {
+        return {};
+    }
+    return deps.createMoonRenderPipelineActions({
+        animationScenes: deps.animationScenes,
+        render: deps.render,
+        globalObject: deps.globalObject,
+    });
+}
+
 function createRuntimeBurnControlActions(deps) {
     return deps.createBurnActions({
         getEventInfos: deps.getTimelineEventInfos || deps.getEventInfos,
@@ -110,6 +121,7 @@ function createRuntimeUiControlGroups(deps) {
         cameraActions: createRuntimeCameraControlActions(deps),
         modeActions: createRuntimeModeControlActions(deps),
         moonRenderProfileActions: createRuntimeMoonRenderProfileControlActions(deps),
+        moonRenderPipelineActions: createRuntimeMoonRenderPipelineControlActions(deps),
         burnActions: createRuntimeBurnControlActions(deps),
     };
 }
@@ -119,6 +131,7 @@ export {
     createRuntimeCameraControlActions,
     createRuntimeLockControlActions,
     createRuntimeModeControlActions,
+    createRuntimeMoonRenderPipelineControlActions,
     createRuntimeMoonRenderProfileControlActions,
     createRuntimeNavigationControlGroup,
     createRuntimeUiControlGroups,

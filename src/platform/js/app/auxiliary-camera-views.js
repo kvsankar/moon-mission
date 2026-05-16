@@ -2862,6 +2862,7 @@ class AuxiliaryCameraViewsManager {
         let composerLunarCratersWrap = null;
         let composerLunarCratersPill = null;
         let composerLunarCraterControls = null;
+        let composerMoonRenderPill = null;
         let composerSurfacePointsWrap = null;
         let composerSurfacePointsPill = null;
         let composerSurfacePointControls = null;
@@ -2998,6 +2999,18 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersWrap.appendChild(composerLunarCratersPill);
             composerLunarCratersWrap.appendChild(composerLunarCraterControls.panel);
             composerCraterRow.appendChild(composerLunarCratersWrap);
+
+            composerMoonRenderPill = document.createElement("button");
+            composerMoonRenderPill.type = "button";
+            composerMoonRenderPill.className = "aux-camera-view__composer-pill";
+            composerMoonRenderPill.setAttribute("aria-label", "Open Frame and Shoot Moon render controls");
+            composerMoonRenderPill.setAttribute("aria-haspopup", "dialog");
+            composerMoonRenderPill.setAttribute("aria-expanded", "false");
+            composerMoonRenderPill.setAttribute("aria-controls", "moon-render-pipeline-panel");
+            composerMoonRenderPill.dataset.moonRenderPanelTrigger = "true";
+            composerMoonRenderPill.dataset.proofId = "moon-render-toggle";
+            composerMoonRenderPill.textContent = "Moon Render";
+            composerCraterRow.appendChild(composerMoonRenderPill);
 
             composerSurfacePointsWrap = document.createElement("div");
             composerSurfacePointsWrap.className = "aux-camera-view__composer-crater-control aux-camera-view__composer-surface-point-control";
@@ -3964,6 +3977,7 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersWrap,
             composerLunarCratersPill,
             composerLunarCraterControls,
+            composerMoonRenderPill,
             composerSurfacePointsWrap,
             composerSurfacePointsPill,
             composerSurfacePointControls,

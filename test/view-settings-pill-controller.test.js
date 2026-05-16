@@ -158,6 +158,31 @@ function createHarness(options = {}) {
     const fastPill = createElement("moon-profile-pill-fast");
     const qualityPill = createElement("moon-profile-pill-quality");
     const photoModePill = createElement("photo-mode-pill");
+    const moonRenderPill = createElement("moon-render-pill");
+    const moonRenderPanel = createElement("moon-render-pipeline-panel", { hidden: true });
+    const moonRenderClose = createElement("moon-render-pipeline-close");
+    const moonRenderSmoothPreset = createElement("moon-render-preset-smooth");
+    const moonRenderNormalPreset = createElement("moon-render-preset-normal");
+    const moonRenderTexturePreset = createElement("moon-render-preset-texture");
+    const moonRenderTextureNormalPreset = createElement("moon-render-preset-textureNormal");
+    const moonRenderPhotometricPreset = createElement("moon-render-preset-photometric");
+    const moonRenderFullPreset = createElement("moon-render-preset-full");
+    const moonRenderColorTextureStage = createElement("moon-render-stage-colorTexture", { checked: true });
+    const moonRenderNormalMapStage = createElement("moon-render-stage-generatedNormalMap", { checked: true });
+    const moonRenderDisplacementStage = createElement("moon-render-stage-displacement", { checked: true });
+    const moonRenderPhotometricStage = createElement("moon-render-stage-photometric", { checked: true });
+    const moonRenderTerminatorStage = createElement("moon-render-stage-terminatorRelief", { checked: true });
+    const moonRenderTerrainShadowsStage = createElement("moon-render-stage-terrainShadows", { checked: true });
+    const moonRenderEarthshineStage = createElement("moon-render-stage-earthshine", { checked: true });
+    let moonRenderPipeline = options.moonRenderPipeline || {
+        colorTexture: true,
+        generatedNormalMap: true,
+        displacement: true,
+        photometric: true,
+        terminatorRelief: true,
+        terrainShadows: true,
+        earthshine: true,
+    };
     const surfacePointsPill = createElement("toggle-pill-surface-points");
     const surfacePointsPanel = createElement("surface-points-controls-panel", { hidden: true });
     const surfacePointsClose = createElement("surface-points-close");
@@ -236,6 +261,22 @@ function createHarness(options = {}) {
         ["moon-profile-pill-fast", fastPill],
         ["moon-profile-pill-quality", qualityPill],
         ["photo-mode-pill", photoModePill],
+        ["moon-render-pill", moonRenderPill],
+        ["moon-render-pipeline-panel", moonRenderPanel],
+        ["moon-render-pipeline-close", moonRenderClose],
+        ["moon-render-preset-smooth", moonRenderSmoothPreset],
+        ["moon-render-preset-normal", moonRenderNormalPreset],
+        ["moon-render-preset-texture", moonRenderTexturePreset],
+        ["moon-render-preset-textureNormal", moonRenderTextureNormalPreset],
+        ["moon-render-preset-photometric", moonRenderPhotometricPreset],
+        ["moon-render-preset-full", moonRenderFullPreset],
+        ["moon-render-stage-colorTexture", moonRenderColorTextureStage],
+        ["moon-render-stage-generatedNormalMap", moonRenderNormalMapStage],
+        ["moon-render-stage-displacement", moonRenderDisplacementStage],
+        ["moon-render-stage-photometric", moonRenderPhotometricStage],
+        ["moon-render-stage-terminatorRelief", moonRenderTerminatorStage],
+        ["moon-render-stage-terrainShadows", moonRenderTerrainShadowsStage],
+        ["moon-render-stage-earthshine", moonRenderEarthshineStage],
         ["toggle-pill-surface-points", surfacePointsPill],
         ["surface-points-controls-panel", surfacePointsPanel],
         ["surface-points-close", surfacePointsClose],
@@ -257,6 +298,7 @@ function createHarness(options = {}) {
                 mobileActiveTab: options.mobileActiveTab || "",
             },
         },
+        addEventListener: vi.fn(),
         getElementById(id) {
             return byId.get(id) || null;
         },
@@ -283,6 +325,10 @@ function createHarness(options = {}) {
         commitViewSetting: vi.fn(),
         toggleLandingMode: vi.fn(),
     };
+    const setMoonRenderPipeline = vi.fn((pipeline) => {
+        moonRenderPipeline = pipeline;
+        return moonRenderPipeline;
+    });
 
     const controller = createViewSettingsPillController({
         controlBackend,
@@ -306,6 +352,10 @@ function createHarness(options = {}) {
             photoMode = value === true;
             return Promise.resolve(photoMode);
         },
+        getMoonRenderPipeline() {
+            return moonRenderPipeline;
+        },
+        setMoonRenderPipeline,
         originPillPairs: [
             ["origin-pill-earth", "origin-earth", "geo"],
             ["origin-pill-moon", "origin-moon", "lunar"],
@@ -367,6 +417,14 @@ function createHarness(options = {}) {
         locatorsPill,
         moonGridPill,
         moonOrbitPill,
+        moonRenderClose,
+        moonRenderColorTextureStage,
+        moonRenderEarthshineStage,
+        moonRenderFullPreset,
+        moonRenderPanel,
+        moonRenderPill,
+        moonRenderPipelineSetter: setMoonRenderPipeline,
+        moonRenderSmoothPreset,
         observerInstances,
         orbitLabel,
         orbitPill,
@@ -490,6 +548,38 @@ describe("createViewSettingsPillController", function () {
 
         expect(harness.photoModePill.classList.contains("is-active")).toBe(true);
         expect(harness.photoModePill["aria-pressed"]).toBe("true");
+    });
+
+    it("opens Moon Render controls and commits pipeline presets", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        expect(harness.moonRenderFullPreset["aria-pressed"]).toBe("true");
+        expect(harness.moonRenderPill["aria-pressed"]).toBe("false");
+
+        harness.moonRenderPill.dispatchEvent({ type: "click", target: harness.moonRenderPill });
+        expect(harness.moonRenderPanel.hidden).toBe(false);
+        expect(harness.moonRenderPill["aria-expanded"]).toBe("true");
+
+        harness.moonRenderSmoothPreset.dispatchEvent({
+            type: "click",
+            target: harness.moonRenderSmoothPreset,
+        });
+
+        expect(harness.moonRenderPipelineSetter).toHaveBeenCalledWith({
+            colorTexture: false,
+            generatedNormalMap: false,
+            displacement: false,
+            photometric: false,
+            terminatorRelief: false,
+            terrainShadows: false,
+            earthshine: false,
+        });
+        expect(harness.moonRenderSmoothPreset["aria-pressed"]).toBe("true");
+        expect(harness.moonRenderFullPreset["aria-pressed"]).toBe("false");
+        expect(harness.moonRenderPill["aria-pressed"]).toBe("true");
+        expect(harness.moonRenderColorTextureStage.checked).toBe(false);
+        expect(harness.moonRenderEarthshineStage.checked).toBe(false);
     });
 
     it("opens the lunar grid panel and commits grid overlay controls", function () {

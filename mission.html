@@ -1332,6 +1332,59 @@
                     ></div>
                     </div>
                 </div>
+                <section
+                    id="moon-render-pipeline-panel"
+                    class="moon-render-pipeline-panel"
+                    role="dialog"
+                    aria-labelledby="moon-render-pipeline-title"
+                    aria-modal="false"
+                    hidden
+                >
+                    <div class="moon-render-pipeline-panel__header">
+                        <span id="moon-render-pipeline-title" class="moon-render-pipeline-panel__title">Moon Render</span>
+                        <button id="moon-render-pipeline-close" class="moon-render-pipeline-panel__close" type="button" title="Close">×</button>
+                    </div>
+                    <div class="moon-render-pipeline-panel__mode-label">Presets</div>
+                    <div class="moon-render-pipeline-panel__presets" role="group" aria-label="Moon render pipeline presets">
+                        <button id="moon-render-preset-smooth" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Smooth</button>
+                        <button id="moon-render-preset-normal" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Normal</button>
+                        <button id="moon-render-preset-texture" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Texture</button>
+                        <button id="moon-render-preset-textureNormal" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Texture + Normal</button>
+                        <button id="moon-render-preset-photometric" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Photometric</button>
+                        <button id="moon-render-preset-full" type="button" class="moon-render-pipeline-panel__button" aria-pressed="true">Full</button>
+                    </div>
+                    <div class="moon-render-pipeline-panel__mode-label">Stages</div>
+                    <div class="moon-render-pipeline-panel__stages">
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-colorTexture" type="checkbox" checked>
+                            <span>Color Texture</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-generatedNormalMap" type="checkbox" checked>
+                            <span>Normal Map</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-displacement" type="checkbox" checked>
+                            <span>Displacement</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-photometric" type="checkbox" checked>
+                            <span>Photometric</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-terminatorRelief" type="checkbox" checked>
+                            <span>Terminator</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-terrainShadows" type="checkbox" checked>
+                            <span>Terrain Shadows</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-earthshine" type="checkbox" checked>
+                            <span>Earthshine</span>
+                        </label>
+                    </div>
+                </section>
                 <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
                     <div class="header-pill-group header-pill-group--panels" role="group" aria-label="Panels">
@@ -1408,6 +1461,17 @@
                         <div class="header-pill-segment" role="group" aria-label="Moon surface detail options">
                             <button id="moon-profile-pill-fast" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Use the standard Moon surface asset profile">Standard</button>
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
+                            <button
+                                id="moon-render-pill"
+                                type="button"
+                                class="header-pill-segment__btn header-pill-segment__btn--persistent"
+                                aria-haspopup="dialog"
+                                aria-expanded="false"
+                                aria-controls="moon-render-pipeline-panel"
+                                title="Open Moon render pipeline controls"
+                            >
+                                Moon Render
+                            </button>
                         </div>
                     </div>
                     <div class="header-pill-group header-pill-group--annotations" role="group" aria-label="Annotation controls">
@@ -1464,8 +1528,8 @@
                         </button>
                     </div>
                     <div id="advanced-controls-pill-wrap" class="header-pill-segment header-pill-segment--single">
-                        <button
-                            id="advanced-controls-pill"
+                    <button
+                        id="advanced-controls-pill"
                             type="button"
                             class="header-pill-segment__btn"
                             aria-haspopup="dialog"
@@ -1481,7 +1545,6 @@
                     </div>
                 </div>
             </div>
-
             <div id="compare-panel-wrapper" class="compare-panel-wrapper" hidden>
                 <section
                     id="compare-panel"

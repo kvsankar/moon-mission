@@ -4,6 +4,7 @@ import { createRuntimeUiControlsActions } from "./runtime-ui-controls.js";
 import { createOrbitProcessActions } from "./orbit-process-actions.js";
 import { createInitOrchestrationActions } from "./init-orchestration.js";
 import { createMoonRenderProfileActions } from "./moon-render-profile-actions.js";
+import { createMoonRenderPipelineActions } from "./moon-render-pipeline-actions.js";
 import {
     createInitOrchestrationDeps,
     createOrbitProcessDeps,
@@ -24,6 +25,7 @@ function createRuntimeBootstrapActions(ports) {
             animationActions,
             accessors,
             createMoonRenderProfileActions,
+            createMoonRenderPipelineActions,
         }),
     );
     const runtimeInitActions = createRuntimeInitActions(

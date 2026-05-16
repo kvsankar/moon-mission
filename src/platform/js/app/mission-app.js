@@ -89,6 +89,8 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleInfo: (event) => eventBus.emit("ui:infoToggle", { event }),
         setMoonRenderProfile: handlers.setMoonRenderProfile,
         getMoonRenderProfile: handlers.getMoonRenderProfile,
+        setMoonRenderPipeline: handlers.setMoonRenderPipeline,
+        getMoonRenderPipeline: handlers.getMoonRenderPipeline,
         setPhotoMode: handlers.setPhotoMode,
         getPhotoMode: handlers.getPhotoMode,
     });

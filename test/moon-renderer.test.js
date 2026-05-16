@@ -499,7 +499,9 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader)
             .toContain("reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;");
         expect(shader.fragmentShader)
-            .toContain("outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone;");
+            .toContain("outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone * clamp( uMoonEarthshineBlend, 0.0, 1.0 );");
+        expect(shader.fragmentShader).toContain("uniform float uMoonEarthshineBlend;");
+        expect(shader.uniforms.uMoonEarthshineBlend.value).toBe(1.0);
         // Old approaches must not leak back in.
         expect(shader.fragmentShader).not.toContain("reflectedLight.directDiffuse *= moonSunVisibility");
         expect(shader.fragmentShader)
@@ -530,6 +532,67 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader).not.toContain("smoothstep( 0.045, 0.22, moonSmoothNdotL )");
         expect(shader.fragmentShader).not.toContain("smoothstep( 0.0, 0.055, moonSmoothNdotL )");
         expect(shader.fragmentShader).toContain("#endif\n    reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );");
+
+        moonRenderer.dispose();
+    });
+
+    it("can reduce the Moon to a smooth untextured baseline", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setRenderPipeline({
+            colorTexture: false,
+            generatedNormalMap: false,
+            displacement: false,
+            photometric: false,
+            terminatorRelief: false,
+            terrainShadows: false,
+            earthshine: false,
+        });
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        expect(material.map).toBeNull();
+        expect(material.normalMap).toBeNull();
+        expect(material.bumpMap).toBeNull();
+        expect(material.displacementMap).toBeNull();
+        expect(material.color.getHex()).toBe(0x8f969e);
+        expect(material.userData.moonLsBlend).toBe(0.0);
+        expect(material.userData.moonTerrainShadowStrength).toBe(0.0);
+        expect(material.userData.moonEarthshineBlend).toBe(0.0);
+
+        moonRenderer.dispose();
+    });
+
+    it("applies the normal-map stage without forcing texture or displacement stages", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+        const normalTexture = new THREE.Texture();
+
+        moonRenderer.setRenderPipeline({
+            colorTexture: false,
+            generatedNormalMap: true,
+            displacement: false,
+            photometric: false,
+            terminatorRelief: false,
+            terrainShadows: false,
+            earthshine: false,
+        });
+        moonRenderer.setTextures(colorTexture, displacementTexture, normalTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        expect(material.map).toBeNull();
+        expect(material.normalMap).toBe(normalTexture);
+        expect(material.bumpMap).toBeNull();
+        expect(material.displacementMap).toBeNull();
+        expect(material.userData.moonLsBlend).toBe(0.0);
+        expect(material.userData.moonTerrainShadowStrength).toBe(0.0);
 
         moonRenderer.dispose();
     });

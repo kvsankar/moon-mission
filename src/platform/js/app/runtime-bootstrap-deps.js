@@ -134,6 +134,7 @@ function createRuntimeUiControlsDepsFromPorts(
         animationActions,
         accessors,
         createMoonRenderProfileActions,
+        createMoonRenderPipelineActions,
     },
 ) {
     const { app, data, session, sceneView, interaction, viewTransform } =
@@ -146,6 +147,7 @@ function createRuntimeUiControlsDepsFromPorts(
         createCameraActions: renderPort.createCameraActions,
         createModeActions: renderPort.createModeActions,
         createMoonRenderProfileActions,
+        createMoonRenderPipelineActions,
         createBurnActions: renderPort.createBurnActions,
         getConfig: app.getConfig,
         getPanXState: viewTransform.getPanXState,

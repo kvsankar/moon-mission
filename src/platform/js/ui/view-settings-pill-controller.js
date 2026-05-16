@@ -1,5 +1,12 @@
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 import {
+    MOON_RENDER_PIPELINE_PRESETS,
+    MOON_RENDER_PIPELINE_STAGE_CONTROLS,
+    normalizeMoonRenderPipelineState,
+    resolveMoonRenderPipelinePresetId,
+    resolveMoonRenderPipelineState,
+} from "../app/moon-render-pipeline.js";
+import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
@@ -31,6 +38,7 @@ export const DEFAULT_MOON_PROFILE_PILL_PAIRS = [
     ["moon-profile-pill-quality", "quality"],
 ];
 export const DEFAULT_PHOTO_MODE_PILL_ID = "photo-mode-pill";
+export const DEFAULT_MOON_RENDER_PILL_ID = "moon-render-pill";
 
 export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-orbit", "view-orbit", "viewOrbit"],
@@ -81,6 +89,13 @@ export function createViewSettingsPillController(deps = {}) {
         ? deps.getMoonRenderProfile
         : resolveMoonRenderAssetProfile;
     const setMoonRenderProfile = deps.setMoonRenderProfile;
+    const moonRenderPillId = deps.moonRenderPillId || DEFAULT_MOON_RENDER_PILL_ID;
+    const getMoonRenderPipeline = typeof deps.getMoonRenderPipeline === "function"
+        ? deps.getMoonRenderPipeline
+        : (() => resolveMoonRenderPipelineState({ globalObject: windowRef }));
+    const setMoonRenderPipeline = typeof deps.setMoonRenderPipeline === "function"
+        ? deps.setMoonRenderPipeline
+        : null;
     const getPhotoMode = typeof deps.getPhotoMode === "function"
         ? deps.getPhotoMode
         : (() => false);
@@ -196,6 +211,118 @@ export function createViewSettingsPillController(deps = {}) {
             pill.classList?.toggle?.("is-open", open === true);
             pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
         }
+    }
+
+    function getMoonRenderPanelElements() {
+        const panel = getElement("moon-render-pipeline-panel");
+        return {
+            pill: getElement(moonRenderPillId),
+            panel,
+            close: getElement("moon-render-pipeline-close"),
+            presetButtons: Object.keys(MOON_RENDER_PIPELINE_PRESETS)
+                .map((presetId) => [presetId, getElement(`moon-render-preset-${presetId}`)])
+                .filter(([, button]) => !!button),
+            stageInputs: MOON_RENDER_PIPELINE_STAGE_CONTROLS
+                .map(([key]) => [key, getElement(`moon-render-stage-${key}`)])
+                .filter(([, input]) => !!input),
+        };
+    }
+
+    function positionMoonRenderPanel(trigger, panel) {
+        if (!trigger?.getBoundingClientRect || !panel?.style) return;
+        const strip = getElement("header-pill-strip") || panel.offsetParent || null;
+        const triggerRect = trigger.getBoundingClientRect();
+        const stripRect = strip?.getBoundingClientRect?.() || {
+            left: 0,
+            top: 0,
+            width: windowRef?.innerWidth || 0,
+        };
+        const panelWidth = panel.offsetWidth || 292;
+        const maxLeft = Math.max(8, (stripRect.width || windowRef?.innerWidth || panelWidth) - panelWidth - 8);
+        const nextLeft = Math.min(
+            Math.max(8, triggerRect.left - stripRect.left),
+            maxLeft,
+        );
+        panel.style.left = `${nextLeft}px`;
+        panel.style.right = "auto";
+        panel.style.top = `${triggerRect.bottom - stripRect.top + 4}px`;
+    }
+
+    function setMoonRenderPanelOpen(open, trigger = null) {
+        const { pill, panel } = getMoonRenderPanelElements();
+        if (!panel) return;
+        panel.hidden = open !== true;
+        const activeTrigger = trigger || pill;
+        if (open === true) {
+            positionMoonRenderPanel(activeTrigger, panel);
+        }
+        [pill, activeTrigger].forEach((button) => {
+            if (!button?.setAttribute) return;
+            button.classList?.toggle?.("is-open", open === true);
+            button.setAttribute("aria-expanded", open === true ? "true" : "false");
+        });
+    }
+
+    function getActiveMoonRenderPipeline() {
+        return normalizeMoonRenderPipelineState(getMoonRenderPipeline());
+    }
+
+    function syncMoonRenderPanelState() {
+        const pipeline = getActiveMoonRenderPipeline();
+        const activePresetId = resolveMoonRenderPipelinePresetId(pipeline);
+        const { pill, presetButtons, stageInputs } = getMoonRenderPanelElements();
+        const isCustom = activePresetId === "custom";
+        syncPressedState(pill, isCustom || activePresetId !== "full");
+        presetButtons.forEach(([presetId, button]) => {
+            syncPressedState(button, presetId === activePresetId);
+        });
+        stageInputs.forEach(([key, input]) => {
+            input.checked = pipeline[key] === true;
+        });
+    }
+
+    function commitMoonRenderPipeline(nextState) {
+        const normalized = normalizeMoonRenderPipelineState(nextState);
+        if (typeof setMoonRenderPipeline === "function") {
+            setMoonRenderPipeline(normalized);
+        }
+        syncMoonRenderPanelState();
+    }
+
+    function bindMoonRenderPanel() {
+        const { pill, close, presetButtons, stageInputs } = getMoonRenderPanelElements();
+        if (pill) {
+            pill.addEventListener("click", function (event) {
+                event?.stopPropagation?.();
+                const panel = getMoonRenderPanelElements().panel;
+                setMoonRenderPanelOpen(panel?.hidden !== false, pill);
+                syncMoonRenderPanelState();
+            });
+        }
+        close?.addEventListener?.("click", () => setMoonRenderPanelOpen(false));
+        presetButtons.forEach(([presetId, button]) => {
+            button.addEventListener("click", () => {
+                const preset = MOON_RENDER_PIPELINE_PRESETS[presetId];
+                if (!preset) return;
+                commitMoonRenderPipeline(preset.state);
+            });
+        });
+        stageInputs.forEach(([key, input]) => {
+            input.addEventListener("change", () => {
+                commitMoonRenderPipeline({
+                    ...getActiveMoonRenderPipeline(),
+                    [key]: input.checked === true,
+                });
+            });
+        });
+        documentRef?.addEventListener?.("click", (event) => {
+            const trigger = event?.target?.closest?.("[data-moon-render-panel-trigger]");
+            if (!trigger) return;
+            event?.stopPropagation?.();
+            const panel = getMoonRenderPanelElements().panel;
+            setMoonRenderPanelOpen(panel?.hidden !== false, trigger);
+            syncMoonRenderPanelState();
+        });
     }
 
     function getLunarGridPanelElements() {
@@ -942,6 +1069,7 @@ export function createViewSettingsPillController(deps = {}) {
         }
 
         bindLunarCraterControlPanel();
+        bindMoonRenderPanel();
         documentRef?.addEventListener?.("moon-mission:view-identity-settings-applied", sync);
 
         const landingToggle = getElement("landing");
@@ -981,6 +1109,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncLandingPillState();
         syncDimensionPillState();
         syncMoonRenderProfilePillState();
+        syncMoonRenderPanelState();
         syncPhotoModePillState();
     }
 
@@ -997,6 +1126,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncLunarCraterPanelState,
         syncLocatorsPillState,
         syncMoonRenderProfilePillState,
+        syncMoonRenderPanelState,
         syncPhotoModePillState,
         syncOrbitLabels,
         syncOriginPillState,

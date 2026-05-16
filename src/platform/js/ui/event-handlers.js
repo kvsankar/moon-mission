@@ -281,6 +281,8 @@ export function bindMainControls(handlers) {
         toggleInfo,
         setMoonRenderProfile,
         getMoonRenderProfile,
+        setMoonRenderPipeline,
+        getMoonRenderPipeline,
         setPhotoMode,
         getPhotoMode,
     } = handlers;
@@ -294,6 +296,8 @@ export function bindMainControls(handlers) {
         toggleLanding,
         getMoonRenderProfile,
         setMoonRenderProfile,
+        getMoonRenderPipeline,
+        setMoonRenderPipeline,
         getPhotoMode,
         setPhotoMode,
         headerPillStripController: getHeaderPillStripController(),

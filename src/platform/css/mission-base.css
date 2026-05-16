@@ -101,6 +101,7 @@ textarea {
     pointer-events: none;
 }
 
+.header:has(#moon-render-pipeline-panel:not([hidden])),
 .header:has(#lunar-crater-controls-panel:not([hidden])),
 .header:has(#guides-controls-panel:not([hidden])),
 .header:has(#surface-points-controls-panel:not([hidden])) {
@@ -971,6 +972,7 @@ textarea {
 
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn.is-active,
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn.is-open,
+#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn--persistent,
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn[aria-pressed="true"],
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn[aria-expanded="true"],
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group--choice:not(:focus-within) .header-pill-segment:not(:has(.header-pill-segment__btn.is-active, .header-pill-segment__btn.is-open, .header-pill-segment__btn[aria-pressed="true"], .header-pill-segment__btn[aria-expanded="true"])) .header-pill-segment__btn:first-of-type {
@@ -1397,6 +1399,126 @@ textarea {
     display: grid;
     gap: 7px;
     min-width: 0;
+}
+
+.moon-render-pipeline-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: calc(8px + var(--header-pill-toggle-lane));
+    z-index: 43;
+    display: grid;
+    width: min(320px, calc(100vw - 18px));
+    box-sizing: border-box;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(121, 171, 255, 0.34);
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.96);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
+    color: #e7edf7;
+    font-size: 10px;
+}
+
+.moon-render-pipeline-panel[hidden] {
+    display: none !important;
+}
+
+.moon-render-pipeline-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.moon-render-pipeline-panel__title {
+    color: #dce8ff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.moon-render-pipeline-panel__close {
+    border: 1px solid rgba(121, 171, 255, 0.34);
+    border-radius: 999px;
+    background: rgba(12, 24, 44, 0.9);
+    color: #dce8ff;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+
+.moon-render-pipeline-panel__close:hover {
+    border-color: rgba(160, 196, 255, 0.62);
+    background: rgba(38, 68, 112, 0.96);
+}
+
+.moon-render-pipeline-panel__mode-label {
+    color: #b9c5d8;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.moon-render-pipeline-panel__presets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid rgba(100, 130, 180, 0.36);
+    border-radius: 8px;
+    background: rgba(5, 10, 17, 0.8);
+}
+
+.moon-render-pipeline-panel__button {
+    min-height: 25px;
+    min-width: 0;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #b9c5d8;
+    font-size: var(--ui-type-label);
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.moon-render-pipeline-panel__button:hover {
+    color: #eef5ff;
+    background: rgba(45, 75, 125, 0.34);
+}
+
+.moon-render-pipeline-panel__button[aria-pressed="true"] {
+    background: var(--ui-annotation-accent-soft);
+    color: #eef5ff;
+}
+
+.moon-render-pipeline-panel__stages {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px 8px;
+}
+
+.moon-render-pipeline-panel__toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 22px;
+    color: #d4deee;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.moon-render-pipeline-panel__toggle input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    accent-color: #7fe3ff;
 }
 
 .lunar-crater-controls-panel__search {

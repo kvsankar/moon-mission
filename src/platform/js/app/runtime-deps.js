@@ -62,6 +62,7 @@ function createRuntimeUiControlsDeps(deps) {
         createCameraActions,
         createModeActions,
         createMoonRenderProfileActions,
+        createMoonRenderPipelineActions,
         createBurnActions,
         getConfig,
         getPanXState,
@@ -123,6 +124,7 @@ function createRuntimeUiControlsDeps(deps) {
         createCameraActions,
         createModeActions,
         createMoonRenderProfileActions,
+        createMoonRenderPipelineActions,
         createBurnActions,
         getPanX: () => getPanXState(getConfig()),
         setPanX: (val) => {
