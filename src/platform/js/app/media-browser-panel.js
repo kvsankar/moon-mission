@@ -18,7 +18,7 @@ import {
 import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v16-compact-header-clearance";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v17-thumbnail-placement";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 32;
 const PANEL_DEFAULT_WIDTH_PX = 672;
@@ -38,10 +38,15 @@ const DRILLDOWN_DRAWER_MIN_HEIGHT_PX = 180;
 const THUMBNAIL_STRIP_MIN_HEIGHT_PX = 86;
 const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = THUMBNAIL_STRIP_MIN_HEIGHT_PX;
 const THUMBNAIL_STRIP_MAX_HEIGHT_PX = 240;
+const THUMBNAIL_STRIP_MIN_SIDE_WIDTH_PX = 126;
+const THUMBNAIL_STRIP_DEFAULT_SIDE_WIDTH_PX = 152;
+const THUMBNAIL_STRIP_MAX_SIDE_WIDTH_PX = 260;
 const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 96;
+const THUMBNAIL_STRIP_MIN_STAGE_WIDTH_PX = 180;
 const THUMBNAIL_STRIP_KEYBOARD_STEP_PX = 12;
 const THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX = 36;
 const THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX = 5;
+const THUMBNAIL_STRIP_PLACEMENTS = new Set(["left", "right", "top", "bottom"]);
 const MEDIA_IMAGE_MIN_ZOOM = 1;
 const MEDIA_IMAGE_MAX_ZOOM = 6;
 const MEDIA_IMAGE_ZOOM_STEP = 1.25;
@@ -84,6 +89,16 @@ function createDefaultMediaImageViewState() {
         panX: 0,
         panY: 0,
     };
+}
+
+function normalizeThumbnailStripPlacement(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    return THUMBNAIL_STRIP_PLACEMENTS.has(normalized) ? normalized : "bottom";
+}
+
+function isVerticalThumbnailStripPlacement(value) {
+    const placement = normalizeThumbnailStripPlacement(value);
+    return placement === "left" || placement === "right";
 }
 
 function normalizeMediaImageViewState(state = {}) {
@@ -346,6 +361,7 @@ function createMediaBrowserPanelActions({
     let dragState = null;
     let panelResizeDragState = null;
     let thumbnailResizeDragState = null;
+    let thumbnailPlacementDragState = null;
     let thumbnailScrollerDragState = null;
     let thumbnailPagingTargetScrollLeft = null;
     let suppressThumbnailClick = false;
@@ -372,6 +388,7 @@ function createMediaBrowserPanelActions({
         && Number(restoredPanelLayout.thumbnailStripHeight) > 0
         ? Math.round(Number(restoredPanelLayout.thumbnailStripHeight))
         : THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX;
+    let thumbnailStripPlacement = normalizeThumbnailStripPlacement(restoredPanelLayout?.thumbnailStripPlacement);
     let thumbnailStripCollapsed = restoredPanelLayout?.thumbnailStripCollapsed === true;
     let panelExpanded = restoredPanelLayout?.maximized === true;
     let restorePanelFrame = restoredPanelLayout?.restoreFrame && typeof restoredPanelLayout.restoreFrame === "object"
@@ -759,6 +776,7 @@ function createMediaBrowserPanelActions({
                 state: panelVisibilityState,
                 layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
                 thumbnailStripHeight: Math.round(thumbnailStripHeight),
+                thumbnailStripPlacement,
                 thumbnailStripCollapsed: thumbnailStripCollapsed === true,
             });
             return;
@@ -773,6 +791,7 @@ function createMediaBrowserPanelActions({
             layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
             defaultLayoutManaged: defaultLayoutManaged !== false,
             thumbnailStripHeight: Math.round(thumbnailStripHeight),
+            thumbnailStripPlacement,
             thumbnailStripCollapsed: thumbnailStripCollapsed === true,
             restoreFrame: restorePanelFrame && typeof restorePanelFrame === "object"
                 ? {
@@ -793,7 +812,50 @@ function createMediaBrowserPanelActions({
         return Number.isFinite(offsetHeight) ? offsetHeight : 0;
     }
 
+    function getElementWidth(node) {
+        const rect = node?.getBoundingClientRect?.() || null;
+        const rectWidth = Number(rect?.width);
+        if (Number.isFinite(rectWidth) && rectWidth > 0) return rectWidth;
+        const offsetWidth = Number(node?.offsetWidth);
+        return Number.isFinite(offsetWidth) ? offsetWidth : 0;
+    }
+
+    function isThumbnailStripVertical() {
+        return isVerticalThumbnailStripPlacement(thumbnailStripPlacement);
+    }
+
+    function getThumbnailCollapseButtons(panel = getNode("media-browser-panel")) {
+        const buttons = Array.from(panel?.querySelectorAll?.(".media-browser-panel__thumbnail-collapse") || []);
+        const primaryButton = getNode("media-browser-thumbnail-collapse");
+        if (primaryButton && !buttons.includes(primaryButton)) {
+            buttons.unshift(primaryButton);
+        }
+        return buttons;
+    }
+
     function resolveThumbnailStripConstraints(panel = getNode("media-browser-panel")) {
+        const vertical = isThumbnailStripVertical();
+        if (vertical) {
+            const panelWidth = getElementWidth(panel);
+            if (!panelWidth) {
+                return {
+                    min: THUMBNAIL_STRIP_MIN_SIDE_WIDTH_PX,
+                    max: THUMBNAIL_STRIP_MAX_SIDE_WIDTH_PX,
+                };
+            }
+            const resizerWidth = getElementWidth(getNode("media-browser-thumbnail-resizer")) || 8;
+            const availableWidth = panelWidth
+                - resizerWidth
+                - THUMBNAIL_STRIP_MIN_STAGE_WIDTH_PX;
+            return {
+                min: THUMBNAIL_STRIP_MIN_SIDE_WIDTH_PX,
+                max: Math.max(
+                    THUMBNAIL_STRIP_MIN_SIDE_WIDTH_PX,
+                    Math.min(THUMBNAIL_STRIP_MAX_SIDE_WIDTH_PX, Math.round(availableWidth)),
+                ),
+            };
+        }
+
         const panelHeight = getElementHeight(panel);
         if (!panelHeight) {
             return {
@@ -833,9 +895,24 @@ function createMediaBrowserPanelActions({
             strip.setAttribute?.("aria-hidden", collapsed ? "true" : "false");
         }
 
-        const button = getNode("media-browser-thumbnail-collapse");
-        if (isElementLike(button)) {
-            button.textContent = collapsed ? "▾" : "▴";
+        const buttons = getThumbnailCollapseButtons(panel);
+        for (const button of buttons) {
+            if (!isElementLike(button)) continue;
+            const expandedIcons = {
+                top: "▾",
+                bottom: "▴",
+                left: "▸",
+                right: "◂",
+            };
+            const collapsedIcons = {
+                top: "▴",
+                bottom: "▾",
+                left: "◂",
+                right: "▸",
+            };
+            button.textContent = collapsed
+                ? collapsedIcons[thumbnailStripPlacement]
+                : expandedIcons[thumbnailStripPlacement];
             button.title = collapsed ? "Show thumbnail strip" : "Collapse thumbnail strip";
             button.setAttribute("aria-label", button.title);
             button.setAttribute("aria-expanded", collapsed ? "false" : "true");
@@ -843,10 +920,62 @@ function createMediaBrowserPanelActions({
 
         const resizer = getNode("media-browser-thumbnail-resizer");
         if (resizer?.setAttribute) {
+            resizer.setAttribute("aria-orientation", isThumbnailStripVertical() ? "vertical" : "horizontal");
             resizer.setAttribute(
                 "aria-label",
                 collapsed ? "Thumbnail strip collapsed" : "Resize thumbnail strip",
             );
+        }
+    }
+
+    function syncThumbnailStripPlacement(panel = getNode("media-browser-panel")) {
+        if (!isElementLike(panel)) return;
+        const placement = normalizeThumbnailStripPlacement(thumbnailStripPlacement);
+        thumbnailStripPlacement = placement;
+        panel.dataset.thumbnailStripPlacement = placement;
+        for (const side of THUMBNAIL_STRIP_PLACEMENTS) {
+            panel.classList.toggle(`media-browser-panel--thumbnail-strip-${side}`, side === placement);
+        }
+        const vertical = isThumbnailStripVertical();
+        const strip = panel.querySelector?.(".media-browser-panel__thumbnail-strip");
+        strip?.classList?.toggle("is-vertical", vertical);
+        strip?.classList?.toggle("is-horizontal", !vertical);
+        const host = getNode("media-browser-thumbnail-list");
+        host?.classList?.toggle("is-vertical", vertical);
+        host?.classList?.toggle("is-horizontal", !vertical);
+        const previousButton = getNode("media-browser-thumbnail-prev");
+        const nextButton = getNode("media-browser-thumbnail-next");
+        if (previousButton?.setAttribute) {
+            previousButton.textContent = vertical ? "⌃" : "<";
+            previousButton.title = vertical ? "Scroll thumbnails up" : "Scroll thumbnails left";
+            previousButton.setAttribute("aria-label", previousButton.title);
+        }
+        if (nextButton?.setAttribute) {
+            nextButton.textContent = vertical ? "⌄" : ">";
+            nextButton.title = vertical ? "Scroll thumbnails down" : "Scroll thumbnails right";
+            nextButton.setAttribute("aria-label", nextButton.title);
+        }
+        syncThumbnailStripDisclosure(panel);
+    }
+
+    function setThumbnailStripPlacement(nextPlacement, {
+        persist = false,
+    } = {}) {
+        const normalized = normalizeThumbnailStripPlacement(nextPlacement);
+        const changed = normalized !== thumbnailStripPlacement;
+        thumbnailStripPlacement = normalized;
+        const panel = getNode("media-browser-panel");
+        syncThumbnailStripPlacement(panel);
+        if (isThumbnailStripVertical() && thumbnailStripHeight < THUMBNAIL_STRIP_MIN_SIDE_WIDTH_PX) {
+            thumbnailStripHeight = THUMBNAIL_STRIP_DEFAULT_SIDE_WIDTH_PX;
+        }
+        applyThumbnailStripHeight(thumbnailStripHeight, { persist: false });
+        thumbnailPagingTargetScrollLeft = null;
+        revealActiveThumbnail();
+        syncThumbnailPageButtons();
+        applyImageViewState(imageViewState, { animate: false });
+        if (persist || changed) {
+            persistPanelLayoutState(panel);
         }
     }
 
@@ -885,13 +1014,17 @@ function createMediaBrowserPanelActions({
         );
         const cssValue = `${thumbnailStripHeight}px`;
         const heightChanged = panel.style.getPropertyValue("--media-browser-thumbnail-strip-height") !== cssValue;
+        const widthChanged = panel.style.getPropertyValue("--media-browser-thumbnail-strip-width") !== cssValue;
         if (heightChanged) {
             panel.style.setProperty("--media-browser-thumbnail-strip-height", cssValue);
         }
+        if (widthChanged) {
+            panel.style.setProperty("--media-browser-thumbnail-strip-width", cssValue);
+        }
 
         const strip = panel.querySelector?.(".media-browser-panel__thumbnail-strip");
-        strip?.classList?.toggle("is-compact", thumbnailStripHeight <= 118);
-        strip?.classList?.toggle("is-minimal", thumbnailStripHeight <= 96);
+        strip?.classList?.toggle("is-compact", !isThumbnailStripVertical() && thumbnailStripHeight <= 118);
+        strip?.classList?.toggle("is-minimal", !isThumbnailStripVertical() && thumbnailStripHeight <= 96);
         syncThumbnailStripDisclosure(panel);
 
         const resizer = getNode("media-browser-thumbnail-resizer");
@@ -903,7 +1036,7 @@ function createMediaBrowserPanelActions({
         if (persist) {
             persistPanelLayoutState(panel);
         }
-        if (heightChanged) {
+        if (heightChanged || widthChanged) {
             applyImageViewState(imageViewState, { animate: false });
             revealActiveThumbnail();
         }
@@ -928,37 +1061,120 @@ function createMediaBrowserPanelActions({
     function isThumbnailDisclosureTarget(target, resizer) {
         let node = target || null;
         while (node && node !== resizer) {
-            if (node.id === "media-browser-thumbnail-collapse") return true;
+            if (node.id === "media-browser-thumbnail-collapse" || node.dataset?.thumbnailCollapse === "true") {
+                return true;
+            }
             node = node.parentNode || null;
         }
         return false;
+    }
+
+    function isThumbnailPlacementGrabTarget(target, resizer) {
+        let node = target || null;
+        while (node && node !== resizer) {
+            if (node.id === "media-browser-thumbnail-placement-grab"
+                || node.classList?.contains?.("media-browser-panel__thumbnail-placement-grab")) {
+                return true;
+            }
+            node = node.parentNode || null;
+        }
+        return false;
+    }
+
+    function isThumbnailResizerControlTarget(target, resizer) {
+        return isThumbnailDisclosureTarget(target, resizer) || isThumbnailPlacementGrabTarget(target, resizer);
+    }
+
+    function resolveThumbnailPlacementAtPoint(panel, clientX, clientY) {
+        const rect = panel?.getBoundingClientRect?.() || null;
+        if (!rect) return thumbnailStripPlacement;
+        const distances = [
+            ["left", Math.abs(clientX - rect.left)],
+            ["right", Math.abs(clientX - rect.right)],
+            ["top", Math.abs(clientY - rect.top)],
+            ["bottom", Math.abs(clientY - rect.bottom)],
+        ];
+        distances.sort((a, b) => a[1] - b[1]);
+        return distances[0]?.[0] || thumbnailStripPlacement;
+    }
+
+    function ensureThumbnailPlacementDropZones(panel = getNode("media-browser-panel")) {
+        if (!isElementLike(panel)) return;
+        for (const side of THUMBNAIL_STRIP_PLACEMENTS) {
+            if (panel.querySelector?.(`.media-browser-panel__thumbnail-drop-zone--${side}`)) continue;
+            const zone = createElement("div");
+            if (!zone) continue;
+            zone.className = [
+                "media-browser-panel__thumbnail-drop-zone",
+                `media-browser-panel__thumbnail-drop-zone--${side}`,
+            ].join(" ");
+            zone.dataset.thumbnailDropSide = side;
+            zone.setAttribute("aria-hidden", "true");
+            panel.appendChild(zone);
+        }
+    }
+
+    function syncThumbnailPlacementDropTarget(panel, targetPlacement = "") {
+        if (!isElementLike(panel)) return;
+        const placement = normalizeThumbnailStripPlacement(targetPlacement || thumbnailStripPlacement);
+        panel.dataset.thumbnailDropTarget = placement;
+        const zones = panel.querySelectorAll?.(".media-browser-panel__thumbnail-drop-zone") || [];
+        zones.forEach?.((zone) => {
+            zone.classList?.toggle("is-target", zone.dataset?.thumbnailDropSide === placement);
+        });
+    }
+
+    function finishThumbnailPlacementDrag(event, panel, grab) {
+        if (
+            !thumbnailPlacementDragState
+            || (event?.pointerId != null && thumbnailPlacementDragState.pointerId !== event.pointerId)
+        ) {
+            return;
+        }
+        const nextPlacement = thumbnailPlacementDragState.targetPlacement || thumbnailStripPlacement;
+        const pointerId = thumbnailPlacementDragState.pointerId;
+        thumbnailPlacementDragState = null;
+        panel?.classList?.remove("is-placing-thumbnails");
+        panel?.querySelectorAll?.(".media-browser-panel__thumbnail-placement-grab")?.forEach?.((node) => {
+            node?.setAttribute?.("aria-grabbed", "false");
+        });
+        if (typeof grab?.hasPointerCapture !== "function" || grab.hasPointerCapture(pointerId)) {
+            grab?.releasePointerCapture?.(pointerId);
+        }
+        setThumbnailStripPlacement(nextPlacement, { persist: true });
+        event?.preventDefault?.();
     }
 
     function bindThumbnailStripResizer() {
         const panel = getNode("media-browser-panel");
         const resizer = getNode("media-browser-thumbnail-resizer");
         if (!isElementLike(panel) || !isElementLike(resizer)) return;
+        ensureThumbnailPlacementDropZones(panel);
+        syncThumbnailStripPlacement(panel);
 
-        const collapseButton = getNode("media-browser-thumbnail-collapse");
-        collapseButton?.addEventListener?.("click", (event) => {
+        const collapseButtons = getThumbnailCollapseButtons(panel);
+        const placementGrabs = Array.from(panel.querySelectorAll?.(".media-browser-panel__thumbnail-placement-grab") || []);
+        collapseButtons.forEach((collapseButton) => collapseButton?.addEventListener?.("click", (event) => {
             event?.preventDefault?.();
             event?.stopPropagation?.();
             setThumbnailStripCollapsed(thumbnailStripCollapsed !== true, { persist: true });
-        });
+        }));
 
         resizer.addEventListener("click", (event) => {
-            if (thumbnailStripCollapsed !== true || isThumbnailDisclosureTarget(event.target, resizer)) return;
+            if (thumbnailStripCollapsed !== true || isThumbnailResizerControlTarget(event.target, resizer)) return;
             event?.preventDefault?.();
             setThumbnailStripCollapsed(false, { persist: true });
         });
 
         resizer.addEventListener("pointerdown", (event) => {
             if (event.button !== 0) return;
-            if (thumbnailStripCollapsed === true || isThumbnailDisclosureTarget(event.target, resizer)) return;
+            if (thumbnailStripCollapsed === true || isThumbnailResizerControlTarget(event.target, resizer)) return;
             thumbnailResizeDragState = {
                 pointerId: event.pointerId,
+                startX: event.clientX,
                 startY: event.clientY,
                 startHeight: thumbnailStripHeight,
+                placement: thumbnailStripPlacement,
             };
             panel.classList.add("is-resizing-thumbnails");
             resizer.setPointerCapture?.(event.pointerId);
@@ -967,14 +1183,71 @@ function createMediaBrowserPanelActions({
 
         resizer.addEventListener("pointermove", (event) => {
             if (!thumbnailResizeDragState || thumbnailResizeDragState.pointerId !== event.pointerId) return;
-            applyThumbnailStripHeight(
-                thumbnailResizeDragState.startHeight - (event.clientY - thumbnailResizeDragState.startY),
-                { persist: false },
-            );
+            const placement = normalizeThumbnailStripPlacement(thumbnailResizeDragState.placement);
+            let delta = 0;
+            if (placement === "top") {
+                delta = event.clientY - thumbnailResizeDragState.startY;
+            } else if (placement === "bottom") {
+                delta = thumbnailResizeDragState.startY - event.clientY;
+            } else if (placement === "left") {
+                delta = event.clientX - thumbnailResizeDragState.startX;
+            } else {
+                delta = thumbnailResizeDragState.startX - event.clientX;
+            }
+            applyThumbnailStripHeight(thumbnailResizeDragState.startHeight + delta, { persist: false });
         });
 
         resizer.addEventListener("pointerup", (event) => stopThumbnailStripResize(event, panel, resizer));
         resizer.addEventListener("pointercancel", (event) => stopThumbnailStripResize(event, panel, resizer));
+
+        const handlePlacementPointerDown = (event) => {
+            if (event.button !== 0 || thumbnailStripCollapsed === true) return;
+            thumbnailPlacementDragState = {
+                pointerId: event.pointerId,
+                targetPlacement: thumbnailStripPlacement,
+            };
+            panel.classList.add("is-placing-thumbnails");
+            syncThumbnailPlacementDropTarget(panel, thumbnailStripPlacement);
+            placementGrabs.forEach((grab) => grab?.setAttribute?.("aria-grabbed", "true"));
+            event.currentTarget?.setPointerCapture?.(event.pointerId);
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        const handlePlacementPointerMove = (event) => {
+            if (!thumbnailPlacementDragState || thumbnailPlacementDragState.pointerId !== event.pointerId) return;
+            const targetPlacement = resolveThumbnailPlacementAtPoint(panel, event.clientX, event.clientY);
+            thumbnailPlacementDragState.targetPlacement = targetPlacement;
+            syncThumbnailPlacementDropTarget(panel, targetPlacement);
+            event.preventDefault();
+        };
+
+        const handlePlacementKeydown = (event) => {
+            const keyPlacements = {
+                ArrowLeft: "left",
+                ArrowRight: "right",
+                ArrowUp: "top",
+                ArrowDown: "bottom",
+            };
+            const nextPlacement = keyPlacements[event.key];
+            if (!nextPlacement) return;
+            event.preventDefault();
+            setThumbnailStripPlacement(nextPlacement, { persist: true });
+        };
+
+        placementGrabs.forEach((placementGrab) => {
+            placementGrab?.addEventListener?.("pointerdown", handlePlacementPointerDown);
+            placementGrab?.addEventListener?.("pointermove", handlePlacementPointerMove);
+            placementGrab?.addEventListener?.(
+                "pointerup",
+                (event) => finishThumbnailPlacementDrag(event, panel, event.currentTarget),
+            );
+            placementGrab?.addEventListener?.(
+                "pointercancel",
+                (event) => finishThumbnailPlacementDrag(event, panel, event.currentTarget),
+            );
+            placementGrab?.addEventListener?.("keydown", handlePlacementKeydown);
+        });
 
         resizer.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -986,9 +1259,16 @@ function createMediaBrowserPanelActions({
             const constraints = resolveThumbnailStripConstraints(panel);
             const step = event.shiftKey ? THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX : THUMBNAIL_STRIP_KEYBOARD_STEP_PX;
             let nextHeight = null;
-            if (event.key === "ArrowDown") {
+            const placement = thumbnailStripPlacement;
+            if ((placement === "bottom" && event.key === "ArrowDown")
+                || (placement === "top" && event.key === "ArrowUp")
+                || (placement === "left" && event.key === "ArrowLeft")
+                || (placement === "right" && event.key === "ArrowRight")) {
                 nextHeight = thumbnailStripHeight - step;
-            } else if (event.key === "ArrowUp") {
+            } else if ((placement === "bottom" && event.key === "ArrowUp")
+                || (placement === "top" && event.key === "ArrowDown")
+                || (placement === "left" && event.key === "ArrowRight")
+                || (placement === "right" && event.key === "ArrowLeft")) {
                 nextHeight = thumbnailStripHeight + step;
             } else if (event.key === "PageDown") {
                 nextHeight = thumbnailStripHeight - THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX;
@@ -1037,12 +1317,18 @@ function createMediaBrowserPanelActions({
 
         host.addEventListener("pointerdown", (event) => {
             if (event.button !== 0) return;
-            if (Number(host.scrollWidth) <= Number(host.clientWidth)) return;
+            const vertical = isThumbnailStripVertical();
+            const canScroll = vertical
+                ? Number(host.scrollHeight) > Number(host.clientHeight)
+                : Number(host.scrollWidth) > Number(host.clientWidth);
+            if (!canScroll) return;
             thumbnailScrollerDragState = {
                 pointerId: event.pointerId,
                 startX: event.clientX,
                 startY: event.clientY,
                 scrollLeft: Number(host.scrollLeft) || 0,
+                scrollTop: Number(host.scrollTop) || 0,
+                vertical,
                 didDrag: false,
             };
             host.classList.add("is-drag-ready");
@@ -1064,7 +1350,11 @@ function createMediaBrowserPanelActions({
                 host.classList.add("is-dragging");
                 host.setPointerCapture?.(event.pointerId);
             }
-            host.scrollLeft = thumbnailScrollerDragState.scrollLeft - deltaX;
+            if (thumbnailScrollerDragState.vertical === true) {
+                host.scrollTop = thumbnailScrollerDragState.scrollTop - deltaY;
+            } else {
+                host.scrollLeft = thumbnailScrollerDragState.scrollLeft - deltaX;
+            }
             event.preventDefault();
         };
 
@@ -1081,47 +1371,54 @@ function createMediaBrowserPanelActions({
     }
 
     function getThumbnailPageStep(host) {
-        const width = Number(host?.clientWidth);
-        if (!Number.isFinite(width) || width <= 0) return 0;
-        return Math.max(1, Math.floor(width - 32));
+        const size = isThumbnailStripVertical()
+            ? Number(host?.clientHeight)
+            : Number(host?.clientWidth);
+        if (!Number.isFinite(size) || size <= 0) return 0;
+        return Math.max(1, Math.floor(size - 32));
     }
 
-    function getThumbnailMaxScrollLeft(host) {
+    function getThumbnailMaxScroll(host) {
         if (!host) return 0;
-        const clientWidth = Number(host.clientWidth);
-        const scrollWidth = Number(host.scrollWidth);
-        let maxScrollLeft = Number.isFinite(scrollWidth) && Number.isFinite(clientWidth)
-            ? scrollWidth - clientWidth
+        const vertical = isThumbnailStripVertical();
+        const clientSize = vertical ? Number(host.clientHeight) : Number(host.clientWidth);
+        const scrollSize = vertical ? Number(host.scrollHeight) : Number(host.scrollWidth);
+        let maxScroll = Number.isFinite(scrollSize) && Number.isFinite(clientSize)
+            ? scrollSize - clientSize
             : 0;
         const children = Array.from(host.children || []);
         const lastChild = children.at(-1);
-        const lastChildRight = Number(lastChild?.offsetLeft) + Number(lastChild?.offsetWidth);
-        if (Number.isFinite(lastChildRight) && Number.isFinite(clientWidth)) {
-            maxScrollLeft = Math.max(maxScrollLeft, lastChildRight - clientWidth);
+        const lastChildEnd = vertical
+            ? Number(lastChild?.offsetTop) + Number(lastChild?.offsetHeight)
+            : Number(lastChild?.offsetLeft) + Number(lastChild?.offsetWidth);
+        if (Number.isFinite(lastChildEnd) && Number.isFinite(clientSize)) {
+            maxScroll = Math.max(maxScroll, lastChildEnd - clientSize);
         }
-        return Math.max(0, maxScrollLeft);
+        return Math.max(0, maxScroll);
     }
 
-    function getEffectiveThumbnailScrollLeft(host) {
+    function getEffectiveThumbnailScroll(host) {
         if (thumbnailPagingTargetScrollLeft != null) {
             const target = Number(thumbnailPagingTargetScrollLeft);
             if (Number.isFinite(target)) return target;
         }
-        return Number(host?.scrollLeft) || 0;
+        return isThumbnailStripVertical()
+            ? Number(host?.scrollTop) || 0
+            : Number(host?.scrollLeft) || 0;
     }
 
     function syncThumbnailPageButtons() {
         const host = getNode("media-browser-thumbnail-list");
         const previousButton = getNode("media-browser-thumbnail-prev");
         const nextButton = getNode("media-browser-thumbnail-next");
-        const maxScrollLeft = getThumbnailMaxScrollLeft(host);
-        const scrollLeft = clamp(getEffectiveThumbnailScrollLeft(host), 0, maxScrollLeft);
-        const canScroll = maxScrollLeft > 1;
+        const maxScroll = getThumbnailMaxScroll(host);
+        const scrollPosition = clamp(getEffectiveThumbnailScroll(host), 0, maxScroll);
+        const canScroll = maxScroll > 1;
         if (previousButton) {
-            previousButton.disabled = !canScroll || scrollLeft <= 1;
+            previousButton.disabled = !canScroll || scrollPosition <= 1;
         }
         if (nextButton) {
-            nextButton.disabled = !canScroll || scrollLeft >= maxScrollLeft - 1;
+            nextButton.disabled = !canScroll || scrollPosition >= maxScroll - 1;
         }
     }
 
@@ -1130,21 +1427,25 @@ function createMediaBrowserPanelActions({
         if (!host) return;
         const step = getThumbnailPageStep(host);
         if (step <= 0) return;
-        const maxScrollLeft = getThumbnailMaxScrollLeft(host);
-        const currentScrollLeft = clamp(getEffectiveThumbnailScrollLeft(host), 0, maxScrollLeft);
-        const nextScrollLeft = clamp(currentScrollLeft + (direction < 0 ? -step : step), 0, maxScrollLeft);
-        thumbnailPagingTargetScrollLeft = nextScrollLeft;
+        const vertical = isThumbnailStripVertical();
+        const maxScroll = getThumbnailMaxScroll(host);
+        const currentScroll = clamp(getEffectiveThumbnailScroll(host), 0, maxScroll);
+        const nextScroll = clamp(currentScroll + (direction < 0 ? -step : step), 0, maxScroll);
+        thumbnailPagingTargetScrollLeft = nextScroll;
         try {
             if (typeof host.scrollTo === "function") {
                 host.scrollTo({
-                    left: nextScrollLeft,
+                    left: vertical ? Number(host.scrollLeft) || 0 : nextScroll,
+                    top: vertical ? nextScroll : Number(host.scrollTop) || 0,
                     behavior: "smooth",
                 });
             } else {
-                host.scrollLeft = nextScrollLeft;
+                if (vertical) host.scrollTop = nextScroll;
+                else host.scrollLeft = nextScroll;
             }
         } catch {
-            host.scrollLeft = nextScrollLeft;
+            if (vertical) host.scrollTop = nextScroll;
+            else host.scrollLeft = nextScroll;
         }
         getWindowRef()?.requestAnimationFrame?.(syncThumbnailPageButtons);
         getWindowRef()?.setTimeout?.(syncThumbnailPageButtons, 160);
@@ -1155,7 +1456,10 @@ function createMediaBrowserPanelActions({
         const target = thumbnailPagingTargetScrollLeft == null
             ? Number.NaN
             : Number(thumbnailPagingTargetScrollLeft);
-        if (host && Number.isFinite(target) && Math.abs((Number(host.scrollLeft) || 0) - target) <= 1) {
+        const currentScroll = isThumbnailStripVertical()
+            ? Number(host?.scrollTop) || 0
+            : Number(host?.scrollLeft) || 0;
+        if (host && Number.isFinite(target) && Math.abs(currentScroll - target) <= 1) {
             thumbnailPagingTargetScrollLeft = null;
         }
         syncThumbnailPageButtons();
@@ -2085,27 +2389,38 @@ function createMediaBrowserPanelActions({
         if (typeof host.getBoundingClientRect !== "function") return;
         const hostRect = host.getBoundingClientRect();
         const activeRect = activeButton.getBoundingClientRect();
-        const edgePadding = Math.min(120, Math.max(48, hostRect.width * 0.18));
-        const isNearEdge = activeRect.left < (hostRect.left + edgePadding)
-            || activeRect.right > (hostRect.right - edgePadding);
+        const vertical = isThumbnailStripVertical();
+        const hostSize = vertical ? hostRect.height : hostRect.width;
+        const activeStart = vertical ? activeRect.top : activeRect.left;
+        const activeEnd = vertical ? activeRect.bottom : activeRect.right;
+        const hostStart = vertical ? hostRect.top : hostRect.left;
+        const hostEnd = vertical ? hostRect.bottom : hostRect.right;
+        const activeSize = vertical ? activeRect.height : activeRect.width;
+        const edgePadding = Math.min(120, Math.max(48, hostSize * 0.18));
+        const isNearEdge = activeStart < (hostStart + edgePadding)
+            || activeEnd > (hostEnd - edgePadding);
         if (!isNearEdge) return;
-        const targetScrollLeft = Math.max(
+        const currentScroll = vertical ? Number(host.scrollTop) || 0 : Number(host.scrollLeft) || 0;
+        const targetScroll = Math.max(
             0,
-            host.scrollLeft
-                + (activeRect.left - hostRect.left)
-                - ((hostRect.width - activeRect.width) / 2),
+            currentScroll
+                + (activeStart - hostStart)
+                - ((hostSize - activeSize) / 2),
         );
         try {
             if (typeof host.scrollTo === "function") {
                 host.scrollTo({
-                    left: targetScrollLeft,
+                    left: vertical ? Number(host.scrollLeft) || 0 : targetScroll,
+                    top: vertical ? targetScroll : Number(host.scrollTop) || 0,
                     behavior: "auto",
                 });
             } else {
-                host.scrollLeft = targetScrollLeft;
+                if (vertical) host.scrollTop = targetScroll;
+                else host.scrollLeft = targetScroll;
             }
         } catch {
-            host.scrollLeft = targetScrollLeft;
+            if (vertical) host.scrollTop = targetScroll;
+            else host.scrollLeft = targetScroll;
         }
         syncThumbnailPageButtons();
     }

@@ -1,5 +1,5 @@
 const PANEL_Z_ORDER_STATE_KEY = "__moonMissionPanelZOrder";
-const PANEL_Z_ORDER_BASE = 1200;
+const PANEL_Z_ORDER_BASE = 5200;
 
 function getPanelZOrderState() {
     const existing = globalThis[PANEL_Z_ORDER_STATE_KEY];

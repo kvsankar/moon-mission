@@ -2296,17 +2296,39 @@
                 >
                     <button
                         id="media-browser-thumbnail-collapse"
-                        class="media-browser-panel__thumbnail-collapse"
+                        class="media-browser-panel__thumbnail-collapse media-browser-panel__thumbnail-collapse--leading"
                         type="button"
                         title="Collapse thumbnail strip"
                         aria-label="Collapse thumbnail strip"
                         aria-expanded="true"
                         aria-controls="media-browser-thumbnail-list"
+                        data-thumbnail-collapse="true"
+                    >▴</button>
+                    <button
+                        id="media-browser-thumbnail-collapse-secondary"
+                        class="media-browser-panel__thumbnail-collapse media-browser-panel__thumbnail-collapse--trailing"
+                        type="button"
+                        title="Collapse thumbnail strip"
+                        aria-label="Collapse thumbnail strip"
+                        aria-expanded="true"
+                        aria-controls="media-browser-thumbnail-list"
+                        data-thumbnail-collapse="true"
                     >▴</button>
                 </div>
                 <div class="media-browser-panel__thumbnail-strip">
-                    <div class="media-browser-panel__thumbnail-strip-title">Filtered Media</div>
+                    <div class="media-browser-panel__thumbnail-strip-title">
+                        <span>Filtered Media</span>
+                    </div>
                     <div class="media-browser-panel__thumbnail-rail">
+                        <button
+                            id="media-browser-thumbnail-placement-grab"
+                            class="media-browser-panel__thumbnail-placement-grab media-browser-panel__thumbnail-placement-grab--leading"
+                            type="button"
+                            title="Move thumbnail strip"
+                            aria-label="Move thumbnail strip"
+                            aria-controls="media-browser-thumbnail-list"
+                            aria-grabbed="false"
+                        ></button>
                         <button
                             id="media-browser-thumbnail-prev"
                             class="media-browser-panel__thumbnail-page-button media-browser-panel__thumbnail-page-button--previous mission-panel-shell__button"

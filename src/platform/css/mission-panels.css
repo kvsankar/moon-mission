@@ -1180,22 +1180,32 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel-wrapper {
     position: fixed;
     inset: 0;
-    z-index: 1108;
+    z-index: 5010;
     pointer-events: none;
 }
 
 .media-browser-panel-wrapper--thumbnail-disclosure-active {
-    z-index: 5010;
+    z-index: 5011;
 }
 
 .media-browser-panel {
     --media-browser-thumbnail-strip-height: 86px;
-    --media-browser-thumbnail-resizer-height: 18px;
+    --media-browser-thumbnail-strip-width: 152px;
+    --media-browser-thumbnail-resizer-height: 10px;
+    --media-browser-thumbnail-resizer-width: 10px;
     position: absolute;
     width: min(672px, calc(100vw - 20px));
     height: 60vh;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) auto var(--media-browser-thumbnail-resizer-height) minmax(0, var(--media-browser-thumbnail-strip-height)) auto;
+    grid-template-areas:
+        "header"
+        "body"
+        "controls"
+        "thumb-resizer"
+        "thumb-strip"
+        "status";
     pointer-events: all;
     resize: none;
     min-width: 360px;
@@ -1203,6 +1213,37 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     overflow: hidden;
+}
+
+.media-browser-panel--thumbnail-strip-top {
+    grid-template-rows: auto minmax(0, var(--media-browser-thumbnail-strip-height)) var(--media-browser-thumbnail-resizer-height) minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "header"
+        "thumb-strip"
+        "thumb-resizer"
+        "body"
+        "controls"
+        "status";
+}
+
+.media-browser-panel--thumbnail-strip-left {
+    grid-template-columns: minmax(0, var(--media-browser-thumbnail-strip-width)) var(--media-browser-thumbnail-resizer-width) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "header header header"
+        "thumb-strip thumb-resizer body"
+        "controls controls controls"
+        "status status status";
+}
+
+.media-browser-panel--thumbnail-strip-right {
+    grid-template-columns: minmax(0, 1fr) var(--media-browser-thumbnail-resizer-width) minmax(0, var(--media-browser-thumbnail-strip-width));
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "header header header"
+        "body thumb-resizer thumb-strip"
+        "controls controls controls"
+        "status status status";
 }
 
 .media-browser-panel__resize-grip {
@@ -1286,12 +1327,29 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel--thumbnails-collapsed {
-    --media-browser-thumbnail-resizer-height: 24px;
+    --media-browser-thumbnail-resizer-height: 18px;
     grid-template-rows: auto minmax(0, 1fr) auto var(--media-browser-thumbnail-resizer-height) 0 auto;
 }
 
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-top {
+    grid-template-rows: auto 0 var(--media-browser-thumbnail-resizer-height) minmax(0, 1fr) auto auto;
+}
+
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-left,
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-right {
+    --media-browser-thumbnail-resizer-width: 18px;
+}
+
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-left {
+    grid-template-columns: 0 var(--media-browser-thumbnail-resizer-width) minmax(0, 1fr);
+}
+
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-right {
+    grid-template-columns: minmax(0, 1fr) var(--media-browser-thumbnail-resizer-width) 0;
+}
+
 .media-browser-panel__header {
-    grid-row: 1;
+    grid-area: header;
 }
 
 .media-browser-panel__header-controls {
@@ -1563,7 +1621,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__body {
-    grid-row: 2;
+    grid-area: body;
     position: relative;
     min-height: 0;
     border-top: 1px solid rgba(152, 186, 236, 0.08);
@@ -2002,7 +2060,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__media-controls {
-    grid-row: 3;
+    grid-area: controls;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -2218,14 +2276,23 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__thumbnail-resizer {
-    grid-row: 4;
+    grid-area: thumb-resizer;
     position: relative;
     z-index: 7;
     min-height: var(--media-browser-thumbnail-resizer-height);
-    background: rgba(8, 14, 24, 0.72);
+    background: rgba(8, 14, 24, 0.34);
     border-top: 1px solid rgba(152, 186, 236, 0.14);
     cursor: row-resize;
     touch-action: none;
+}
+
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer {
+    min-width: var(--media-browser-thumbnail-resizer-width);
+    min-height: 0;
+    border-top: 0;
+    border-left: 1px solid rgba(152, 186, 236, 0.14);
+    cursor: col-resize;
 }
 
 .media-browser-panel__thumbnail-resizer::before {
@@ -2233,19 +2300,58 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 52px;
-    height: 2px;
+    width: 34px;
+    height: 1px;
     border-radius: 999px;
     background: rgba(156, 184, 224, 0.32);
     transform: translate(-50%, -50%);
     transition: background-color 120ms ease, width 120ms ease;
 }
 
+.media-browser-panel__thumbnail-resizer::after {
+    content: "‹  ›";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 66px;
+    color: rgba(156, 184, 224, 0.44);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    transform: translate(-50%, -56%);
+    pointer-events: none;
+}
+
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer::before,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer::before {
+    width: 2px;
+    height: 34px;
+}
+
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer::after,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer::after {
+    content: "⌃\A\A⌄";
+    width: auto;
+    white-space: pre;
+    transform: translate(-50%, -50%);
+}
+
 .media-browser-panel__thumbnail-resizer:hover::before,
 .media-browser-panel__thumbnail-resizer:focus-visible::before,
 .media-browser-panel.is-resizing-thumbnails .media-browser-panel__thumbnail-resizer::before {
-    width: 74px;
+    width: 46px;
     background: rgba(156, 206, 255, 0.68);
+}
+
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer:hover::before,
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer:focus-visible::before,
+.media-browser-panel--thumbnail-strip-left.is-resizing-thumbnails .media-browser-panel__thumbnail-resizer::before,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer:hover::before,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer:focus-visible::before,
+.media-browser-panel--thumbnail-strip-right.is-resizing-thumbnails .media-browser-panel__thumbnail-resizer::before {
+    width: 2px;
+    height: 46px;
 }
 
 .media-browser-panel__thumbnail-resizer:focus-visible {
@@ -2255,24 +2361,111 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__thumbnail-collapse {
     position: absolute;
-    left: 50%;
     top: 50%;
     z-index: 1;
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 22px;
+    width: 18px;
+    height: 16px;
     min-width: 0;
     padding: 0;
     border: 0;
     background: transparent;
     color: rgba(225, 238, 255, 0.9);
     font-family: var(--ui-font-condensed);
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1;
     transform: translate(-50%, -50%);
     cursor: pointer;
+}
+
+.media-browser-panel__thumbnail-collapse--leading {
+    left: calc(50% - 46px);
+}
+
+.media-browser-panel__thumbnail-collapse--trailing {
+    left: calc(50% + 46px);
+}
+
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-collapse--leading,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-collapse--leading {
+    left: 50%;
+    top: calc(50% - 46px);
+}
+
+.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-collapse--trailing,
+.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-collapse--trailing {
+    left: 50%;
+    top: calc(50% + 46px);
+}
+
+.media-browser-panel__thumbnail-strip-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.media-browser-panel__thumbnail-placement-grab {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    justify-self: center;
+    width: 12px;
+    height: 100%;
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: transparent !important;
+    color: rgba(195, 218, 248, 0.94);
+    box-shadow: none;
+    cursor: grab;
+    touch-action: none;
+}
+
+.media-browser-panel__thumbnail-placement-grab::before {
+    content: "";
+    width: 8px;
+    height: 12px;
+    background:
+        radial-gradient(circle at 2px 2px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 6px 2px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 2px 6px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 6px 6px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 2px 10px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 6px 10px, currentColor 1px, transparent 1.4px);
+    opacity: 0.88;
+}
+
+.media-browser-panel__thumbnail-strip.is-vertical .media-browser-panel__thumbnail-placement-grab::before {
+    width: 12px;
+    height: 8px;
+    background:
+        radial-gradient(circle at 2px 2px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 6px 2px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 10px 2px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 2px 6px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 6px 6px, currentColor 1px, transparent 1.4px),
+        radial-gradient(circle at 10px 6px, currentColor 1px, transparent 1.4px);
+}
+
+.media-browser-panel__thumbnail-placement-grab:hover,
+.media-browser-panel__thumbnail-placement-grab:focus-visible,
+.media-browser-panel.is-placing-thumbnails .media-browser-panel__thumbnail-placement-grab {
+    background: transparent !important;
+    color: rgba(232, 242, 255, 0.96);
+}
+
+.media-browser-panel__thumbnail-placement-grab:focus-visible {
+    outline: 1px solid rgba(170, 208, 255, 0.82);
+    outline-offset: 2px;
+}
+
+.media-browser-panel.is-placing-thumbnails .media-browser-panel__thumbnail-placement-grab {
+    cursor: grabbing;
 }
 
 .media-browser-panel__thumbnail-collapse:hover,
@@ -2287,7 +2480,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel--thumbnails-collapsed .media-browser-panel__thumbnail-resizer {
+    margin-block: 3px;
     cursor: pointer;
+}
+
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer,
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer {
+    margin-block: 0;
+    margin-inline: 3px;
 }
 
 .media-browser-panel--thumbnails-collapsed .media-browser-panel__thumbnail-resizer::before {
@@ -2295,21 +2495,46 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     background: rgba(156, 184, 224, 0.2);
 }
 
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-resizer::before,
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-resizer::before {
+    width: 2px;
+    height: 86px;
+}
+
 .media-browser-panel--thumbnails-collapsed .media-browser-panel__thumbnail-collapse {
     top: 0;
     transform: translate(-50%, calc(-100% - 4px));
 }
 
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-collapse--leading,
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-collapse--leading {
+    left: 50%;
+    top: calc(50% - 46px);
+    transform: translate(-50%, -50%);
+}
+
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-left .media-browser-panel__thumbnail-collapse--trailing,
+.media-browser-panel--thumbnails-collapsed.media-browser-panel--thumbnail-strip-right .media-browser-panel__thumbnail-collapse--trailing {
+    left: 50%;
+    top: calc(50% + 46px);
+    transform: translate(-50%, -50%);
+}
+
 .media-browser-panel__thumbnail-strip {
-    grid-row: 5;
+    grid-area: thumb-strip;
+    position: relative;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     gap: 7px;
     min-height: 0;
-    padding: 8px 12px 10px;
+    padding: 8px 10px 10px;
     background: rgba(8, 14, 24, 0.58);
     overflow: hidden;
+}
+
+.media-browser-panel__thumbnail-strip.is-vertical {
+    padding: 8px;
 }
 
 .media-browser-panel--thumbnails-collapsed .media-browser-panel__thumbnail-strip {
@@ -2318,25 +2543,51 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__thumbnail-rail {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) 24px;
+    position: relative;
+    grid-template-columns: 16px 16px minmax(0, 1fr) 16px;
     align-items: stretch;
-    gap: 6px;
+    gap: 3px;
     min-width: 0;
     min-height: 0;
 }
 
+.media-browser-panel__thumbnail-strip.is-vertical .media-browser-panel__thumbnail-rail {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 16px 16px minmax(0, 1fr) 16px;
+}
+
+.media-browser-panel__thumbnail-strip.is-vertical .media-browser-panel__thumbnail-placement-grab,
+.media-browser-panel__thumbnail-strip.is-vertical .media-browser-panel__thumbnail-page-button {
+    width: 100%;
+    height: 100%;
+}
+
 .media-browser-panel__thumbnail-page-button {
+    position: relative;
+    z-index: 9;
     display: grid;
     place-items: center;
+    justify-self: center;
     min-width: 0;
-    width: 24px;
+    width: 16px;
     min-height: 0;
     padding: 0;
     border-radius: 4px;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
     color: rgba(225, 238, 255, 0.9);
     font-size: 17px;
     font-weight: 700;
     line-height: 1;
+    text-align: center;
+}
+
+.media-browser-panel__thumbnail-page-button:hover,
+.media-browser-panel__thumbnail-page-button:focus-visible {
+    border-color: transparent;
+    background: rgba(121, 171, 255, 0.1);
+    box-shadow: none;
 }
 
 .media-browser-panel__thumbnail-page-button:disabled {
@@ -2368,6 +2619,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     contain: content;
 }
 
+.media-browser-panel__thumbnail-list.is-vertical {
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0;
+    touch-action: pan-x;
+}
+
 .media-browser-panel__thumbnail-list:empty {
     display: none;
 }
@@ -2394,6 +2653,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     text-align: left;
     cursor: grab;
     overflow: hidden;
+}
+
+.media-browser-panel__thumbnail-list.is-vertical .media-browser-panel__thumbnail-card {
+    flex: 0 0 auto;
+    align-self: stretch;
 }
 
 .media-browser-panel__thumbnail-card.is-active {
@@ -2522,6 +2786,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     padding: 5px;
 }
 
+.media-browser-panel__thumbnail-strip.is-compact {
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-strip-title {
+    display: none;
+}
+
 .media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-title {
     height: 15px;
     margin-top: 4px;
@@ -2540,7 +2812,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     padding-top: 6px;
 }
 
-.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-strip-title,
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-strip-title span,
 .media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-title,
 .media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-meta,
 .media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-metadata {
@@ -2551,8 +2823,62 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     padding: 4px;
 }
 
+.media-browser-panel__thumbnail-drop-zone {
+    position: absolute;
+    z-index: 6;
+    pointer-events: none;
+    border: 1px solid rgba(142, 197, 255, 0);
+    background: rgba(84, 149, 232, 0);
+    opacity: 0;
+    transition: opacity 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.media-browser-panel__thumbnail-drop-zone--top {
+    left: 12px;
+    right: 12px;
+    top: 36px;
+    height: min(24%, 110px);
+    border-radius: 6px 6px 2px 2px;
+}
+
+.media-browser-panel__thumbnail-drop-zone--bottom {
+    left: 12px;
+    right: 12px;
+    bottom: 36px;
+    height: min(24%, 110px);
+    border-radius: 2px 2px 6px 6px;
+}
+
+.media-browser-panel__thumbnail-drop-zone--left {
+    left: 12px;
+    top: 48px;
+    bottom: 40px;
+    width: min(28%, 128px);
+    border-radius: 6px 2px 2px 6px;
+}
+
+.media-browser-panel__thumbnail-drop-zone--right {
+    right: 12px;
+    top: 48px;
+    bottom: 40px;
+    width: min(28%, 128px);
+    border-radius: 2px 6px 6px 2px;
+}
+
+.media-browser-panel.is-placing-thumbnails .media-browser-panel__thumbnail-drop-zone {
+    opacity: 1;
+    border-color: rgba(142, 197, 255, 0.24);
+    background: rgba(84, 149, 232, 0.08);
+}
+
+.media-browser-panel.is-placing-thumbnails .media-browser-panel__thumbnail-drop-zone.is-target {
+    border-color: rgba(255, 213, 128, 0.78);
+    background: rgba(255, 190, 88, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 238, 184, 0.22), 0 0 22px rgba(255, 190, 88, 0.18);
+}
+
 .media-browser-panel__status {
-    grid-row: 6;
+    grid-area: status;
     padding: 9px 12px 12px;
     color: rgba(183, 201, 225, 0.78);
     font-size: 12px;
