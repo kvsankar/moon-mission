@@ -99,7 +99,10 @@ class FakePanel {
         return child;
     }
 
-    querySelector() {
+    querySelector(selector) {
+        if (selector === ".media-browser-panel__thumbnail-strip") {
+            return this.children.find((child) => String(child.className || "").includes("media-browser-panel__thumbnail-strip")) || null;
+        }
         return null;
     }
 
@@ -573,6 +576,125 @@ describe("media browser panel timeline", () => {
 
         expect(previousButton.disabled).toBe(true);
         expect(nextButton.disabled).toBe(true);
+    });
+
+    it("collapses and restores the thumbnail strip from the disclosure button", () => {
+        const panelElement = new FakePanel();
+        const thumbnailStrip = new FakeElement("div");
+        thumbnailStrip.className = "media-browser-panel__thumbnail-strip";
+        panelElement.children.push(thumbnailStrip);
+        const resizer = new FakeElement("div");
+        const collapseButton = new FakeElement("button");
+        collapseButton.id = "media-browser-thumbnail-collapse";
+        const thumbnailList = new FakeElement("div");
+        thumbnailList.clientWidth = 240;
+        thumbnailList.clientHeight = 80;
+        thumbnailList.scrollWidth = 900;
+        const wrapper = new FakeElement("div");
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-resizer") return resizer;
+                if (id === "media-browser-thumbnail-collapse") return collapseButton;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                if (id === "media-browser-panel-wrapper") return wrapper;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        panel.render({
+            thumbnailItems: Array.from({ length: 2 }, (_value, index) => ({
+                id: `image-${index}`,
+                kind: "image",
+                title: `Image ${index}`,
+                meta: "MET",
+                thumbnailAssetUrl: `thumb-${index}.jpg`,
+            })),
+        });
+
+        expect(collapseButton.textContent).toBe("▴");
+        expect(collapseButton.attributes["aria-expanded"]).toBe("true");
+
+        collapseButton.dispatchEvent({ type: "click" });
+
+        expect(panelElement.classList.contains("media-browser-panel--thumbnails-collapsed")).toBe(true);
+        expect(thumbnailStrip.hidden).toBe(true);
+        expect(wrapper.classList.contains("media-browser-panel-wrapper--thumbnail-disclosure-active")).toBe(true);
+        expect(collapseButton.textContent).toBe("▾");
+        expect(collapseButton.attributes["aria-expanded"]).toBe("false");
+
+        collapseButton.dispatchEvent({ type: "click" });
+
+        expect(panelElement.classList.contains("media-browser-panel--thumbnails-collapsed")).toBe(false);
+        expect(thumbnailStrip.hidden).toBe(false);
+        expect(wrapper.classList.contains("media-browser-panel-wrapper--thumbnail-disclosure-active")).toBe(false);
+        expect(collapseButton.textContent).toBe("▴");
+        expect(collapseButton.attributes["aria-expanded"]).toBe("true");
+    });
+
+    it("restores the thumbnail strip when the collapsed separator bar is clicked", () => {
+        const panelElement = new FakePanel();
+        const thumbnailStrip = new FakeElement("div");
+        thumbnailStrip.className = "media-browser-panel__thumbnail-strip";
+        panelElement.children.push(thumbnailStrip);
+        const resizer = new FakeElement("div");
+        const collapseButton = new FakeElement("button");
+        collapseButton.id = "media-browser-thumbnail-collapse";
+        const thumbnailList = new FakeElement("div");
+        thumbnailList.clientWidth = 240;
+        thumbnailList.clientHeight = 80;
+        thumbnailList.scrollWidth = 900;
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-resizer") return resizer;
+                if (id === "media-browser-thumbnail-collapse") return collapseButton;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        panel.render({
+            thumbnailItems: [{
+                id: "image-0",
+                kind: "image",
+                title: "Image 0",
+                meta: "MET",
+                thumbnailAssetUrl: "thumb-0.jpg",
+            }],
+        });
+
+        collapseButton.dispatchEvent({ type: "click" });
+        expect(panelElement.classList.contains("media-browser-panel--thumbnails-collapsed")).toBe(true);
+
+        resizer.dispatchEvent({ type: "click", target: resizer });
+
+        expect(panelElement.classList.contains("media-browser-panel--thumbnails-collapsed")).toBe(false);
+        expect(thumbnailStrip.hidden).toBe(false);
+        expect(collapseButton.textContent).toBe("▴");
+        expect(collapseButton.attributes["aria-expanded"]).toBe("true");
     });
 
     it("updates thumbnail active state without rebuilding unchanged cards", () => {

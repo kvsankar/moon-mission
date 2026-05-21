@@ -372,6 +372,7 @@ function createMediaBrowserPanelActions({
         && Number(restoredPanelLayout.thumbnailStripHeight) > 0
         ? Math.round(Number(restoredPanelLayout.thumbnailStripHeight))
         : THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX;
+    let thumbnailStripCollapsed = restoredPanelLayout?.thumbnailStripCollapsed === true;
     let panelExpanded = restoredPanelLayout?.maximized === true;
     let restorePanelFrame = restoredPanelLayout?.restoreFrame && typeof restoredPanelLayout.restoreFrame === "object"
         ? {
@@ -758,6 +759,7 @@ function createMediaBrowserPanelActions({
                 state: panelVisibilityState,
                 layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
                 thumbnailStripHeight: Math.round(thumbnailStripHeight),
+                thumbnailStripCollapsed: thumbnailStripCollapsed === true,
             });
             return;
         }
@@ -771,6 +773,7 @@ function createMediaBrowserPanelActions({
             layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
             defaultLayoutManaged: defaultLayoutManaged !== false,
             thumbnailStripHeight: Math.round(thumbnailStripHeight),
+            thumbnailStripCollapsed: thumbnailStripCollapsed === true,
             restoreFrame: restorePanelFrame && typeof restorePanelFrame === "object"
                 ? {
                     x: Math.round(Number(restorePanelFrame.x) || 0),
@@ -818,6 +821,56 @@ function createMediaBrowserPanelActions({
         };
     }
 
+    function syncThumbnailStripDisclosure(panel = getNode("media-browser-panel")) {
+        if (!isElementLike(panel)) return;
+        const collapsed = thumbnailStripCollapsed === true;
+        panel.classList.toggle("media-browser-panel--thumbnails-collapsed", collapsed);
+        getWrapper()?.classList?.toggle?.("media-browser-panel-wrapper--thumbnail-disclosure-active", collapsed);
+
+        const strip = panel.querySelector?.(".media-browser-panel__thumbnail-strip");
+        if (strip) {
+            strip.hidden = collapsed;
+            strip.setAttribute?.("aria-hidden", collapsed ? "true" : "false");
+        }
+
+        const button = getNode("media-browser-thumbnail-collapse");
+        if (isElementLike(button)) {
+            button.textContent = collapsed ? "▾" : "▴";
+            button.title = collapsed ? "Show thumbnail strip" : "Collapse thumbnail strip";
+            button.setAttribute("aria-label", button.title);
+            button.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        }
+
+        const resizer = getNode("media-browser-thumbnail-resizer");
+        if (resizer?.setAttribute) {
+            resizer.setAttribute(
+                "aria-label",
+                collapsed ? "Thumbnail strip collapsed" : "Resize thumbnail strip",
+            );
+        }
+    }
+
+    function setThumbnailStripCollapsed(collapsed, {
+        persist = false,
+    } = {}) {
+        const nextCollapsed = collapsed === true;
+        if (thumbnailStripCollapsed === nextCollapsed) {
+            syncThumbnailStripDisclosure();
+            return;
+        }
+        thumbnailStripCollapsed = nextCollapsed;
+        const panel = getNode("media-browser-panel");
+        syncThumbnailStripDisclosure(panel);
+        syncThumbnailPageButtons();
+        applyImageViewState(imageViewState, { animate: false });
+        if (!nextCollapsed) {
+            revealActiveThumbnail();
+        }
+        if (persist) {
+            persistPanelLayoutState(panel);
+        }
+    }
+
     function applyThumbnailStripHeight(nextHeight = thumbnailStripHeight, {
         persist = false,
     } = {}) {
@@ -839,6 +892,7 @@ function createMediaBrowserPanelActions({
         const strip = panel.querySelector?.(".media-browser-panel__thumbnail-strip");
         strip?.classList?.toggle("is-compact", thumbnailStripHeight <= 118);
         strip?.classList?.toggle("is-minimal", thumbnailStripHeight <= 96);
+        syncThumbnailStripDisclosure(panel);
 
         const resizer = getNode("media-browser-thumbnail-resizer");
         if (resizer?.setAttribute) {
@@ -871,13 +925,36 @@ function createMediaBrowserPanelActions({
         applyThumbnailStripHeight(thumbnailStripHeight, { persist: true });
     }
 
+    function isThumbnailDisclosureTarget(target, resizer) {
+        let node = target || null;
+        while (node && node !== resizer) {
+            if (node.id === "media-browser-thumbnail-collapse") return true;
+            node = node.parentNode || null;
+        }
+        return false;
+    }
+
     function bindThumbnailStripResizer() {
         const panel = getNode("media-browser-panel");
         const resizer = getNode("media-browser-thumbnail-resizer");
         if (!isElementLike(panel) || !isElementLike(resizer)) return;
 
+        const collapseButton = getNode("media-browser-thumbnail-collapse");
+        collapseButton?.addEventListener?.("click", (event) => {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            setThumbnailStripCollapsed(thumbnailStripCollapsed !== true, { persist: true });
+        });
+
+        resizer.addEventListener("click", (event) => {
+            if (thumbnailStripCollapsed !== true || isThumbnailDisclosureTarget(event.target, resizer)) return;
+            event?.preventDefault?.();
+            setThumbnailStripCollapsed(false, { persist: true });
+        });
+
         resizer.addEventListener("pointerdown", (event) => {
             if (event.button !== 0) return;
+            if (thumbnailStripCollapsed === true || isThumbnailDisclosureTarget(event.target, resizer)) return;
             thumbnailResizeDragState = {
                 pointerId: event.pointerId,
                 startY: event.clientY,
@@ -900,6 +977,12 @@ function createMediaBrowserPanelActions({
         resizer.addEventListener("pointercancel", (event) => stopThumbnailStripResize(event, panel, resizer));
 
         resizer.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setThumbnailStripCollapsed(thumbnailStripCollapsed !== true, { persist: true });
+                return;
+            }
+            if (thumbnailStripCollapsed === true) return;
             const constraints = resolveThumbnailStripConstraints(panel);
             const step = event.shiftKey ? THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX : THUMBNAIL_STRIP_KEYBOARD_STEP_PX;
             let nextHeight = null;
