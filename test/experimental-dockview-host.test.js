@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
     applyDefaultDockviewWorkspaceLayout,
     createDockviewHeaderActionsRenderer,
+    createFullscreenToggleButton,
     createDockviewTabContextMenuItems,
     calculateDefaultDockviewWorkspaceSizes,
     clampShellRect,
@@ -191,6 +192,92 @@ describe("experimental Dockview host helpers", () => {
 
         expect(renderer.element.children).toHaveLength(3);
         expect(renderer.element.className).toBe("experimental-dockview-host__header-actions");
+    });
+
+    it("toggles app fullscreen from the Dockview top-strip button", () => {
+        const eventListeners = new Map();
+        const createElement = (tagName) => {
+            const listeners = new Map();
+            return {
+                tagName,
+                children: [],
+                className: "",
+                disabled: false,
+                attributes: {},
+                classList: {
+                    classes: new Set(),
+                    toggle(name, enabled) {
+                        if (enabled) {
+                            this.classes.add(name);
+                        } else {
+                            this.classes.delete(name);
+                        }
+                    },
+                    contains(name) {
+                        return this.classes.has(name);
+                    },
+                },
+                appendChild(child) {
+                    this.children.push(child);
+                    return child;
+                },
+                setAttribute(key, value) {
+                    this.attributes[key] = value;
+                },
+                getAttribute(key) {
+                    return this.attributes[key];
+                },
+                addEventListener(eventName, handler) {
+                    listeners.set(eventName, handler);
+                },
+                removeEventListener(eventName) {
+                    listeners.delete(eventName);
+                },
+                click() {
+                    listeners.get("click")?.();
+                },
+            };
+        };
+        const documentRef = {
+            fullscreenElement: null,
+            createElement,
+            documentElement: {
+                requestFullscreen() {
+                    documentRef.fullscreenElement = documentRef.documentElement;
+                },
+            },
+            exitFullscreen() {
+                documentRef.fullscreenElement = null;
+            },
+            addEventListener(eventName, handler) {
+                eventListeners.set(eventName, handler);
+            },
+            removeEventListener(eventName) {
+                eventListeners.delete(eventName);
+            },
+        };
+
+        const { button, dispose } = createFullscreenToggleButton(documentRef);
+        const icon = button.children[0];
+
+        expect(button.getAttribute("aria-label")).toBe("Enter fullscreen");
+        expect(button.getAttribute("aria-pressed")).toBe("false");
+        expect(icon.className).toBe("dockview-panel-launch-strip__fullscreen-icon");
+        expect(icon.textContent).toBe("⛶");
+
+        button.click();
+        expect(documentRef.fullscreenElement).toBe(documentRef.documentElement);
+        expect(button.getAttribute("aria-label")).toBe("Exit fullscreen");
+        expect(button.classList.contains("is-active")).toBe(true);
+        expect(icon.textContent).toBe("⛶");
+
+        button.click();
+        expect(documentRef.fullscreenElement).toBe(null);
+        expect(button.getAttribute("aria-label")).toBe("Enter fullscreen");
+        expect(icon.textContent).toBe("⛶");
+
+        dispose();
+        expect(eventListeners.size).toBe(0);
     });
 
     it("adds Dockview tab menu actions for external window workflows", () => {

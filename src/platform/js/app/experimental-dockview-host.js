@@ -217,6 +217,115 @@ function createHostRoot(documentRef, { shellStorageKey } = {}) {
     return { root, toolbar, dockRoot, resetButton, resizeGrip };
 }
 
+function getFullscreenElement(documentRef = globalThis?.document) {
+    return documentRef?.fullscreenElement ||
+        documentRef?.webkitFullscreenElement ||
+        documentRef?.mozFullScreenElement ||
+        documentRef?.msFullscreenElement ||
+        null;
+}
+
+function getFullscreenRequestTarget(documentRef = globalThis?.document) {
+    return documentRef?.documentElement || documentRef?.body || null;
+}
+
+function isFullscreenSupported(documentRef = globalThis?.document) {
+    const target = getFullscreenRequestTarget(documentRef);
+    return !!(
+        target?.requestFullscreen ||
+        target?.webkitRequestFullscreen ||
+        target?.mozRequestFullScreen ||
+        target?.msRequestFullscreen
+    );
+}
+
+function invokeFullscreenPromise(result) {
+    if (result && typeof result.catch === "function") {
+        result.catch(() => {
+            // Browsers can reject fullscreen requests outside direct user gestures.
+        });
+    }
+}
+
+function requestAppFullscreen(documentRef = globalThis?.document) {
+    const target = getFullscreenRequestTarget(documentRef);
+    const requestFullscreen =
+        target?.requestFullscreen ||
+        target?.webkitRequestFullscreen ||
+        target?.mozRequestFullScreen ||
+        target?.msRequestFullscreen;
+    if (typeof requestFullscreen !== "function") return false;
+    invokeFullscreenPromise(requestFullscreen.call(target));
+    return true;
+}
+
+function exitAppFullscreen(documentRef = globalThis?.document) {
+    const exitFullscreen =
+        documentRef?.exitFullscreen ||
+        documentRef?.webkitExitFullscreen ||
+        documentRef?.mozCancelFullScreen ||
+        documentRef?.msExitFullscreen;
+    if (typeof exitFullscreen !== "function") return false;
+    invokeFullscreenPromise(exitFullscreen.call(documentRef));
+    return true;
+}
+
+function createFullscreenToggleButton(documentRef = globalThis?.document) {
+    const button = documentRef.createElement("button");
+    button.type = "button";
+    button.id = "dockview-fullscreen-toggle";
+    button.className = "dockview-panel-launch-strip__pill dockview-panel-launch-strip__pill--fullscreen";
+
+    const icon = documentRef.createElement("span");
+    icon.className = "dockview-panel-launch-strip__fullscreen-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.textContent = "⛶";
+    button.appendChild(icon);
+
+    const supported = isFullscreenSupported(documentRef);
+    button.disabled = !supported;
+    button.setAttribute("aria-disabled", supported ? "false" : "true");
+
+    const sync = () => {
+        const isFullscreen = !!getFullscreenElement(documentRef);
+        button.classList.toggle("is-active", isFullscreen);
+        button.setAttribute("aria-pressed", isFullscreen ? "true" : "false");
+        button.setAttribute(
+            "aria-label",
+            isFullscreen ? "Exit fullscreen" : "Enter fullscreen",
+        );
+        button.title = supported ? (isFullscreen ? "Exit fullscreen" : "Fullscreen") : "Fullscreen unavailable";
+    };
+
+    const toggle = () => {
+        if (!supported) return;
+        if (getFullscreenElement(documentRef)) {
+            exitAppFullscreen(documentRef);
+        } else {
+            requestAppFullscreen(documentRef);
+        }
+        sync();
+    };
+
+    button.addEventListener("click", toggle);
+    const fullscreenEvents = [
+        "fullscreenchange",
+        "webkitfullscreenchange",
+        "mozfullscreenchange",
+        "MSFullscreenChange",
+    ];
+    fullscreenEvents.forEach((eventName) => documentRef.addEventListener?.(eventName, sync));
+    sync();
+
+    return {
+        button,
+        dispose() {
+            button.removeEventListener?.("click", toggle);
+            fullscreenEvents.forEach((eventName) => documentRef.removeEventListener?.(eventName, sync));
+        },
+    };
+}
+
 function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     const header = documentRef?.getElementById?.("header");
     const navbar = header?.querySelector?.(".navbar") || header;
@@ -287,6 +396,9 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     });
     strip.appendChild(resetViewButton);
 
+    const fullscreenToggle = createFullscreenToggleButton(documentRef);
+    strip.appendChild(fullscreenToggle.button);
+
     const setAttributeIfChanged = (element, name, value) => {
         const nextValue = String(value);
         if (element.getAttribute(name) !== nextValue) {
@@ -328,6 +440,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     return {
         dispose() {
             observer?.disconnect?.();
+            fullscreenToggle.dispose();
             strip.remove();
         },
     };
@@ -1496,6 +1609,8 @@ export {
     getDefaultShellRect,
     resolveDockviewPopoutUrl,
     createDockviewHeaderActionsRenderer,
+    createDockviewPanelLaunchStrip,
+    createFullscreenToggleButton,
     createDockviewTabContextMenuItems,
     initializeExperimentalDockviewHost,
     isDesktopDockviewViewport,
