@@ -349,6 +349,59 @@ describe("createCameraActions", () => {
         expect(controller._setFreeFlyEnabled).toHaveBeenCalledWith(false);
     });
 
+    it("preserves plane camera up vector when resetting pivot after a plane switch", () => {
+        globalThis.document = createDocumentStub();
+
+        const camera = {
+            position: new Vector3(0, 0, 10),
+            fov: 50,
+            up: new Vector3(0, 0, 1),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+        const controls = {
+            target: new Vector3(4, 5, 6),
+            enabled: true,
+            noRotate: false,
+            noPan: false,
+            noZoom: false,
+            update: vi.fn(),
+        };
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: {
+                controls,
+                _setFreeFlyEnabled: vi.fn(),
+            },
+            defaultLookTarget: { x: 0, y: 0, z: 0 },
+        };
+        const render = vi.fn();
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => "manual",
+            readCameraLookMode: () => "manual",
+            applyCameraFromTo: vi.fn(),
+            readPlaneSelection: () => "XY",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(() => {
+                camera.up.set(0, 1, 0);
+            }),
+            render,
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.togglePlane();
+
+        expect(camera.up.toArray()).toEqual([0, 1, 0]);
+        expect(controls.target.toArray()).toEqual([0, 0, 0]);
+        expect(camera.lookAt).toHaveBeenCalledWith(controls.target);
+        expect(render).toHaveBeenCalled();
+    });
+
     it("ignores desktop FoV input outside semantic source-to-target views", () => {
         globalThis.document = createDocumentStub();
 

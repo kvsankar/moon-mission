@@ -169,6 +169,44 @@ describe("CameraController mounted wheel FoV behavior", () => {
         expect(controller.controls.noPan).toBe(false);
     });
 
+    it("preserves manual follow pan offsets relative to the followed target", () => {
+        const controller = createController();
+        const moon = new THREE.Object3D();
+        moon.position.set(100, 200, 300);
+        moon.updateMatrixWorld(true);
+
+        controller.camera.position.set(150, 210, 320);
+        controller.setFromToModes(CAMERA_POSITION_MODE.MANUAL, CAMERA_LOOK_MODE.MOON);
+        controller.updateFromTo({ moon });
+
+        controller.followOffset.set(50, 10, 20);
+        controller.followTargetOffset.set(6, -4, 2);
+        moon.position.set(110, 220, 330);
+        moon.updateMatrixWorld(true);
+        controller.updateFromTo({ moon });
+
+        expect(controller.camera.position.toArray()).toEqual([160, 230, 350]);
+        expect(controller.controls.target.toArray()).toEqual([116, 216, 332]);
+        expect(controller.controls.noPan).toBe(false);
+    });
+
+    it("allows panning when mounted to a body with manual aim", () => {
+        const controller = createController();
+        const earth = new THREE.Object3D();
+        earth.position.set(4, -8, 2);
+        earth.updateMatrixWorld(true);
+
+        controller.setFromToModes(CAMERA_POSITION_MODE.EARTH, CAMERA_LOOK_MODE.MANUAL);
+        controller.setMountOffset(new THREE.Vector3(0, 0, 5));
+        controller.setMountTargetOffset(new THREE.Vector3(3, 1, 0));
+        controller.updateFromTo({ earth });
+
+        expect(controller.camera.position.toArray()).toEqual([4, -8, 7]);
+        expect(controller.controls.target.toArray()).toEqual([7, -7, 2]);
+        expect(controller.controls.noRotate).toBe(true);
+        expect(controller.controls.noPan).toBe(false);
+    });
+
     it("can still opt into mounted FoV wheel behavior explicitly", () => {
         const controller = createController();
         const spacecraft = new THREE.Object3D();

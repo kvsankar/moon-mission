@@ -84,7 +84,7 @@ export function createCameraActions({
         return { x: 0, y: 0, z: 0 };
     }
 
-    function resetManualCameraControls(scene, { resetCameraParameters = false } = {}) {
+    function resetManualCameraControls(scene, { resetCameraParameters = false, resetUp = true } = {}) {
         if (!scene) return false;
         if (resetCameraParameters) {
             scene.setCameraParameters?.(false);
@@ -104,7 +104,9 @@ export function createCameraActions({
         controls.noPan = false;
         controls.noZoom = false;
         scene.cameraController?._setFreeFlyEnabled?.(false);
-        scene.camera?.up?.set?.(0, 0, 1);
+        if (resetUp) {
+            scene.camera?.up?.set?.(0, 0, 1);
+        }
         scene.camera?.lookAt?.(controls.target);
         controls.update?.();
         return true;
@@ -933,7 +935,7 @@ export function createCameraActions({
         if (positionMode === "manual" && lookMode === "manual") {
             const config = getConfig();
             const scene = animationScenes[config];
-            if (resetManualCameraControls(scene)) {
+            if (resetManualCameraControls(scene, { resetUp: false })) {
                 render();
             }
         }

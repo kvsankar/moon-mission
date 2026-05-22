@@ -56,6 +56,7 @@ export class CameraController {
         this.mountOffset = new THREE.Vector3();
         this.mountTargetOffset = new THREE.Vector3();
         this.followOffset = new THREE.Vector3();
+        this.followTargetOffset = new THREE.Vector3();
         this._mountWorld = new THREE.Vector3();
         this._lookWorld = new THREE.Vector3();
         this._targets = { earth: null, moon: null, spacecraft: null };
@@ -171,6 +172,7 @@ export class CameraController {
                 const lookPos = this._resolveTargetWorld(this.lookMode, this._lookWorld);
                 if (!lookPos) return;
                 this.followOffset.copy(this.camera.position).sub(lookPos);
+                this.followTargetOffset.copy(this.controls.target).sub(lookPos);
             }
         };
         this.controls.addEventListener('change', this._fromToChangeHandler, { passive: true });
@@ -311,6 +313,12 @@ export class CameraController {
             // Capture the current world-space camera-to-target vector on the next update so
             // follow mode preserves the exact user-established angle and distance.
             this._pendingFollowOffsetInit = true;
+            this.followTargetOffset.set(0, 0, 0);
+        } else if (
+            previousLookMode !== this.lookMode &&
+            this.lookMode !== CAMERA_LOOK_MODE.MANUAL
+        ) {
+            this.followTargetOffset.set(0, 0, 0);
         }
     }
 
@@ -393,7 +401,7 @@ export class CameraController {
                     // Mounted camera keeps its user-defined relative standoff; allow dolly
                     // unless an outer policy (for example fixed 1-degree FoV) disables it.
                     this.controls.enabled = !wantsFreeFly;
-                    this.controls.noPan = true;
+                    this.controls.noPan = hasForcedLook;
                     this.controls.noRotate = true;
                     this.controls.noZoom = !this._mountedDollyEnabled;
                 }
@@ -449,9 +457,12 @@ export class CameraController {
 
                 const allowOrbitAroundTarget =
                     (this.positionMode === CAMERA_POSITION_MODE.MANUAL);
-                this._applyEclipticNorthUp(lookPos);
+                const lookTarget = this.controls
+                    ? this._lookWorld.copy(lookPos).add(this.followTargetOffset)
+                    : lookPos;
+                this._applyEclipticNorthUp(lookTarget);
                 if (this.controls) {
-                    this.controls.target.copy(lookPos);
+                    this.controls.target.copy(lookTarget);
                     if (hasPositionMount) {
                         this.controls.noRotate = true;
                         this.controls.noPan = true;
@@ -460,9 +471,9 @@ export class CameraController {
                         this.controls.noPan = !allowOrbitAroundTarget;
                     }
                     // Force immediate alignment without relying on TrackballControls.update().
-                    this.camera.lookAt(lookPos);
+                    this.camera.lookAt(lookTarget);
                 } else {
-                    this.camera.lookAt(lookPos);
+                    this.camera.lookAt(lookTarget);
                 }
                 this._setMainCameraClippingForMountedView(
                     hasPositionMount
@@ -472,9 +483,9 @@ export class CameraController {
             }
         } else if (this.controls) {
             if (hasPositionMount) {
-                // Mounted + manual aim remains zoom-only.
+                // Mounted + manual aim keeps pan enabled so users can offset the body in frame.
                 this.controls.noRotate = true;
-                this.controls.noPan = true;
+                this.controls.noPan = false;
                 this._setMainCameraClippingForMountedView(
                     this.camera.position.distanceTo(this.controls.target),
                 );
