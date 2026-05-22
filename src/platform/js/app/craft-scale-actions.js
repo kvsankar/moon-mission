@@ -93,6 +93,7 @@ export function createCraftScaleActions({
         const scene = animationScenes[config];
         if (!scene || !scene.craft || !scene.initialized3D) return;
         updateCraftScale();
+        scene.updateOrbitMilestoneLabels?.();
         requestSceneOrbitOverlapRefinement({
             scene,
             dimension: "3D",

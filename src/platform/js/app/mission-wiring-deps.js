@@ -109,6 +109,7 @@ function createDataflowWiringDeps(ctx, { getStartAndEndTimes, loadProgress }) {
         getLatestEndTime: ctx.getLatestEndTime,
         getPlaneVariables: ctx.getPlaneVariables,
         getViewOrbit: ctx.getViewOrbit,
+        getEventInfos: ctx.getEventInfos,
         getOrbitStyle: ctx.getEffectiveOrbitStyle || ctx.getOrbitStyle,
         getTrailTrackBrightness2D: ctx.getTrailTrackBrightness2D,
         getTrailTailBrightness2D: ctx.getTrailTailBrightness2D,

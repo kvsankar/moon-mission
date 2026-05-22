@@ -41,6 +41,7 @@ export function createSpacecraftCurveActions({
             getTrailTrackBrightness3D(),
             getTrailTailBrightness3D(),
         );
+        scene?.updateOrbitMilestoneVisibility?.();
     }
 
     function isValidVector3(point) {
@@ -346,6 +347,7 @@ export function createSpacecraftCurveActions({
 
     function disposeSpacecraftCurve(scene) {
         invalidateSceneOrbitOverlap(scene);
+        scene.disposeOrbitMilestones3D?.();
         if (scene.orbitLines) {
             scene.orbitLines.forEach((line) => {
                 if (line.geometry) {

@@ -18,6 +18,7 @@ function createAnimationSceneClass(deps) {
         moonActions,
         lunarCraterActions,
         surfacePointMarkerActions,
+        orbitMilestoneActions,
         locationActions,
         primarySecondaryBodiesActions,
         spacecraftCurveActions,
@@ -190,6 +191,9 @@ function createAnimationSceneClass(deps) {
             this.surfacePointMarkerGroup = null;
             this.surfacePointMarkers = {};
             this.surfacePointMarkerVisibility = {};
+            this.orbitMilestoneGroup = null;
+            this.orbitMilestonePickTargets = [];
+            this.orbitMilestoneObjectsByBodyId = {};
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
             this.primaryCraftId = "SC";
@@ -647,6 +651,37 @@ function createAnimationSceneClass(deps) {
 
         disposeSpacecraftCurve() {
             spacecraftCurveActions.disposeSpacecraftCurve(this);
+        }
+
+        addOrbitMilestones3D() {
+            orbitMilestoneActions.add3DMilestones({ scene: this });
+        }
+
+        disposeOrbitMilestones3D() {
+            orbitMilestoneActions.dispose3DMilestones({ scene: this });
+        }
+
+        updateOrbitMilestoneVisibility() {
+            orbitMilestoneActions.update3DVisibility({ scene: this });
+        }
+
+        updateOrbitMilestoneLabels() {
+            orbitMilestoneActions.update3DLabels({ scene: this });
+        }
+
+        updateOrbitMilestoneHoverFromPointer(input = {}) {
+            return orbitMilestoneActions.update3DHoverFromPointer({
+                scene: this,
+                ...input,
+            });
+        }
+
+        clearOrbitMilestoneHover() {
+            return orbitMilestoneActions.clear3DHover();
+        }
+
+        selectHoveredOrbitMilestone() {
+            return orbitMilestoneActions.select3DHover();
         }
 
         addSpacecraft() {

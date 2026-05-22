@@ -165,6 +165,7 @@ Example deep dive:
 - [Frame and Shoot Lighting and Exposure Spec](specs/frame-and-shoot-lighting-exposure-spec.md)
 - [Panel Progressive Disclosure Spec](specs/panel-progressive-disclosure-spec.md)
 - [Timeline and Media Playback Spec](specs/timeline-media-playback-spec.md)
+- [Orbit Milestones Spec](specs/orbit-milestones-spec.md)
 
 ### Roadmaps and implementation plans
 

@@ -271,6 +271,7 @@ function createMissionSceneEntry(ctx) {
             getLunarFeatureSearchQuery: readLunarFeatureSearchQuery,
             getLunarFeatureExcludedKeys: readLunarFeatureExcludedKeys,
             getLastInputActivityMs,
+            getEventInfos,
             SceneHelpers,
         },
         sceneBootstrapDeps: {

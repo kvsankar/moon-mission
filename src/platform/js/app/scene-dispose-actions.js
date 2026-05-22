@@ -16,6 +16,7 @@ export function createSceneDisposeActions() {
         scene.disposeMoonLocations();
         scene.disposeMoon();
         scene.disposeSpacecraftModel();
+        scene.disposeOrbitMilestones3D?.();
         scene.disposeSpacecraftCurve();
         scene.disposeMoonSOI();
         scene.disposeLineOfSight();

@@ -8,6 +8,7 @@ import { createOrbitVectorsActions } from "./orbit-vectors-actions.js";
 import { createLabelActions } from "./label-actions.js";
 import { createZoomActions } from "./zoom-actions.js";
 import { createPlaneActions } from "./plane-actions.js";
+import { createOrbitMilestoneActions } from "./orbit-milestone-actions.js";
 
 function createDataflowWiringActions(deps) {
     const {
@@ -117,6 +118,7 @@ function createDataflowWiringActions(deps) {
         setLocation,
         getOrbitStyle,
         getViewOrbit,
+        getEventInfos,
         getTrailTrackBrightness2D,
         getTrailTailBrightness2D,
         getViewportWidth,
@@ -264,7 +266,7 @@ function createDataflowWiringActions(deps) {
         getOrbitStyle,
     });
 
-    const { processOrbitVectorsData } = createOrbitVectorsActions({
+    const { processOrbitVectorsData: processOrbitVectorsDataBase } = createOrbitVectorsActions({
         d3,
         sleep,
         getSvgContainer,
@@ -297,6 +299,23 @@ function createDataflowWiringActions(deps) {
         setEpochDisplay,
         getIsCompareMode,
     });
+
+    const orbitMilestoneActions = createOrbitMilestoneActions({
+        THREE,
+        d3,
+        getEventInfos,
+        getGlobalConfig,
+        getViewOrbit,
+        getZoomFactor,
+    });
+
+    async function processOrbitVectorsData() {
+        await processOrbitVectorsDataBase();
+        orbitMilestoneActions.add2DMilestones({
+            scene: animationScenes[getConfig()],
+            svgContainer: getSvgContainer(),
+        });
+    }
 
     const { setLabelLocation, showGreenwichLongitude, adjustLabelLocations } = createLabelActions({
         d3,
@@ -344,6 +363,10 @@ function createDataflowWiringActions(deps) {
         adjustLabelLocations: adjustLabelLocationsOverride || adjustLabelLocations,
         showGreenwichLongitude: showGreenwichLongitudeOverride || showGreenwichLongitude,
         getOrbitStyle,
+        refreshOrbitMilestones2D: () => orbitMilestoneActions.add2DMilestones({
+            scene: animationScenes[getConfig()],
+            svgContainer: getSvgContainer(),
+        }),
     });
 
     const planeActions = createPlaneActions({

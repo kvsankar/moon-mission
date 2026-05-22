@@ -53,6 +53,7 @@ function createSceneHandlerClass(deps) {
             this.handleLunarCraterPointerLeaveBound = this.handleLunarCraterPointerLeave.bind(this);
             this.handleLunarCraterPointerDownBound = this.handleLunarCraterPointerDown.bind(this);
             this.handleLunarCraterPointerUpBound = this.handleLunarCraterPointerUp.bind(this);
+            this.handleOrbitMilestonePointerClickBound = this.handleOrbitMilestonePointerClick.bind(this);
 
             this.init();
         }
@@ -117,9 +118,10 @@ function createSceneHandlerClass(deps) {
                 clientY: event?.clientY,
             };
             const craterChanged = animationScene.updateLunarCraterHoverFromPointer?.(pointerInput) === true;
+            const milestoneChanged = animationScene.updateOrbitMilestoneHoverFromPointer?.(pointerInput) === true;
             const earthCoordinateChanged = animationScene.updateEarthLatLonHoverFromPointer?.(pointerInput) === true;
             const moonCoordinateChanged = animationScene.updateMoonLatLonHoverFromPointer?.(pointerInput) === true;
-            const changed = craterChanged || earthCoordinateChanged || moonCoordinateChanged;
+            const changed = craterChanged || milestoneChanged || earthCoordinateChanged || moonCoordinateChanged;
             if (changed) {
                 this.scheduleLunarCraterHoverRender();
             }
@@ -128,10 +130,20 @@ function createSceneHandlerClass(deps) {
         handleLunarCraterPointerLeave() {
             const animationScene = this.lastAnimationScene;
             const changed = (animationScene?.clearLunarCraterHover?.() === true)
+                || (animationScene?.clearOrbitMilestoneHover?.() === true)
                 || (animationScene?.clearEarthLatLonHover?.() === true)
                 || (animationScene?.clearMoonLatLonHover?.() === true);
             if (changed) {
                 this.scheduleLunarCraterHoverRender();
+            }
+        }
+
+        handleOrbitMilestonePointerClick(event) {
+            if (event?.button != null && event.button !== 0) {
+                return;
+            }
+            if (this.lastAnimationScene?.selectHoveredOrbitMilestone?.() === true) {
+                event?.preventDefault?.();
             }
         }
 
@@ -162,6 +174,7 @@ function createSceneHandlerClass(deps) {
             target.addEventListener("pointerdown", this.handleLunarCraterPointerDownBound, {
                 passive: true,
             });
+            target.addEventListener("click", this.handleOrbitMilestonePointerClickBound);
             const windowRef = typeof window !== "undefined" ? window : null;
             windowRef?.addEventListener?.("pointerup", this.handleLunarCraterPointerUpBound, {
                 passive: true,

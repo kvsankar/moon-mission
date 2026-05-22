@@ -35,6 +35,77 @@
     min-height: 0px;
 }
 
+.orbit-milestone {
+    cursor: pointer;
+    outline: none;
+    pointer-events: all;
+}
+
+.orbit-milestone__dot {
+    stroke: rgba(255, 255, 255, 0.92);
+    stroke-width: 1.2px;
+    paint-order: stroke fill;
+    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.75));
+    vector-effect: non-scaling-stroke;
+}
+
+.orbit-milestone--burn .orbit-milestone__dot {
+    stroke-width: 1.6px;
+}
+
+.orbit-milestone--hovered .orbit-milestone__dot,
+.orbit-milestone:focus .orbit-milestone__dot {
+    stroke: #ffffff;
+    stroke-width: 2px;
+}
+
+.orbit-milestone__label {
+    fill: rgba(224, 244, 255, 0.68);
+    stroke: rgba(4, 10, 15, 0.82);
+    stroke-width: 1.6px;
+    paint-order: stroke fill;
+    font-family: var(--ui-font-sans, "IBM Plex Sans", Arial, sans-serif);
+    font-weight: 500;
+    pointer-events: none;
+    vector-effect: non-scaling-stroke;
+}
+
+.orbit-milestone-popout {
+    position: fixed;
+    z-index: var(--ui-layer-scene-overlay, 30);
+    width: min(300px, calc(100vw - 24px));
+    padding: 8px 10px;
+    border: 1px solid rgba(154, 215, 255, 0.48);
+    border-radius: 8px;
+    background: rgba(7, 17, 28, 0.94);
+    color: #eaf7ff;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42);
+    pointer-events: none;
+}
+
+.orbit-milestone-popout[hidden] {
+    display: none;
+}
+
+.orbit-milestone-popout__title {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.orbit-milestone-popout__meta,
+.orbit-milestone-popout__note {
+    margin-top: 4px;
+    color: rgba(210, 231, 246, 0.78);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.orbit-milestone-popout__body {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
 svg {
     overflow: visible;
     position: fixed;

@@ -37,6 +37,7 @@ import { createEarthActions } from "./earth-actions.js";
 import { createMoonActions } from "./moon-actions.js";
 import { createLunarCraterActions } from "./lunar-crater-actions.js";
 import { createSurfacePointMarkerActions } from "./surface-point-marker-actions.js";
+import { createOrbitMilestoneActions } from "./orbit-milestone-actions.js";
 
 function createMissionSceneActionBundle(deps) {
     const {
@@ -116,6 +117,7 @@ function createMissionSceneActionBundle(deps) {
         getLunarFeatureHoverSearchQuery,
         getLunarFeatureHoverExcludedKeys,
         getLastInputActivityMs,
+        getEventInfos,
         SceneHelpers,
     } = deps;
 
@@ -337,6 +339,15 @@ function createMissionSceneActionBundle(deps) {
         render,
     });
 
+    const orbitMilestoneActions = createOrbitMilestoneActions({
+        THREE,
+        d3: deps.d3,
+        getEventInfos,
+        getGlobalConfig,
+        getViewOrbit,
+        render,
+    });
+
     return {
         orbitCurveActions,
         bodyRotationActions,
@@ -362,6 +373,7 @@ function createMissionSceneActionBundle(deps) {
         moonActions,
         lunarCraterActions,
         surfacePointMarkerActions,
+        orbitMilestoneActions,
     };
 }
 

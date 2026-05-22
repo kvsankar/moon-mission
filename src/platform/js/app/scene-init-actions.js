@@ -88,6 +88,10 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
         render();
         wait20().then();
 
+        scene.addOrbitMilestones3D?.();
+        render();
+        wait20().then();
+
         void runDeferredSceneDecorations(scene, runId);
     }
 

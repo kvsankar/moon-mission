@@ -17,6 +17,7 @@ export function createZoomActions({
     adjustLabelLocations,
     showGreenwichLongitude,
     getOrbitStyle,
+    refreshOrbitMilestones2D = null,
 }) {
     function zoomChangeTransform(t) {
         // Only process in 2D mode when svgContainer exists
@@ -93,6 +94,7 @@ export function createZoomActions({
             dimension: "2D",
             orbitStyle: getOrbitStyle?.() || "trail",
         });
+        refreshOrbitMilestones2D?.();
 
         // var zoom = d3.zoom().on("zoom", handleZoom).on("end", adjustLabelLocations);
 

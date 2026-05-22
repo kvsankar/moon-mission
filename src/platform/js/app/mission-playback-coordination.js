@@ -264,6 +264,7 @@ function createMissionPlaybackUiShell({
 }) {
     let timelineDockController = null;
     let lastTimelineEventsRef = null;
+    let orbitMilestoneSelectBound = false;
 
     function ensureTimelineDockController() {
         if (timelineDockController) return timelineDockController;
@@ -446,6 +447,23 @@ function createMissionPlaybackUiShell({
         }));
     }
 
+    function bindOrbitMilestoneSelection() {
+        if (orbitMilestoneSelectBound || !documentRef?.addEventListener) return;
+        orbitMilestoneSelectBound = true;
+        documentRef.addEventListener("mission-orbit-milestone-select", (event) => {
+            const timeMs = Number(event?.detail?.eventTimeMs);
+            if (!Number.isFinite(timeMs)) return;
+            getAnimationController()?.setTime(timeMs);
+            getAnimationController()?.pause?.();
+            dispatchMissionTimelineUserSeek({
+                phase: "commit",
+                source: event?.detail?.source || "orbit-milestone",
+                commit: true,
+                timeMs,
+            });
+        });
+    }
+
     function syncPlaybackStartup({
         isRunning,
         speedMultiplier,
@@ -465,6 +483,7 @@ function createMissionPlaybackUiShell({
         }
 
         ensureTimelineDockController();
+        bindOrbitMilestoneSelection();
         syncTimelineDock();
         syncActiveCraftControl();
     }
