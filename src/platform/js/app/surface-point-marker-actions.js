@@ -4,36 +4,42 @@ const SURFACE_POINT_MARKER_DEFINITIONS = Object.freeze({
         color: 0xffd34d,
         shadow: 0x151207,
         radiusScale: 0.038,
+        maxRadiusScale: 0.030,
     },
     subSolarMoon: {
         body: "moon",
         color: 0xffdc62,
         shadow: 0x161408,
         radiusScale: 0.052,
+        maxRadiusScale: 0.040,
     },
     subMoonEarth: {
         body: "earth",
         color: 0xd7dee8,
         shadow: 0x101318,
         radiusScale: 0.036,
+        maxRadiusScale: 0.028,
     },
     subCraftEarth: {
         body: "earth",
         color: 0x2fe7ff,
         shadow: 0x061419,
         radiusScale: 0.034,
+        maxRadiusScale: 0.027,
     },
     subCraftMoon: {
         body: "moon",
         color: 0x36eaff,
         shadow: 0x061419,
         radiusScale: 0.048,
+        maxRadiusScale: 0.038,
     },
     solarGlintEarth: {
         body: "earth",
         color: 0xfff0a6,
         shadow: 0x161102,
         radiusScale: 0.15,
+        maxRadiusScale: 0.050,
         glint: true,
     },
     lunarGlintEarth: {
@@ -41,6 +47,7 @@ const SURFACE_POINT_MARKER_DEFINITIONS = Object.freeze({
         color: 0xe7ecf4,
         shadow: 0x11151d,
         radiusScale: 0.12,
+        maxRadiusScale: 0.046,
         glint: true,
     },
     antiSolarEarth: {
@@ -48,30 +55,35 @@ const SURFACE_POINT_MARKER_DEFINITIONS = Object.freeze({
         color: 0xffd34d,
         shadow: 0x151207,
         radiusScale: 0.038,
+        maxRadiusScale: 0.030,
     },
     antiSolarMoon: {
         body: "moon",
         color: 0xffdc62,
         shadow: 0x161408,
         radiusScale: 0.052,
+        maxRadiusScale: 0.040,
     },
     antiMoonEarth: {
         body: "earth",
         color: 0xd7dee8,
         shadow: 0x101318,
         radiusScale: 0.036,
+        maxRadiusScale: 0.028,
     },
     antiCraftEarth: {
         body: "earth",
         color: 0x2fe7ff,
         shadow: 0x061419,
         radiusScale: 0.034,
+        maxRadiusScale: 0.027,
     },
     antiCraftMoon: {
         body: "moon",
         color: 0x36eaff,
         shadow: 0x061419,
         radiusScale: 0.048,
+        maxRadiusScale: 0.038,
     },
 });
 
@@ -88,6 +100,7 @@ const SURFACE_POINT_VISIBILITY_KEYS = Object.freeze({
 const SURFACE_POINT_GROUP_NAME = "surface-point-markers";
 const SURFACE_POINT_SURFACE_SCALE = 1.006;
 const SURFACE_POINT_MIN_RADIUS = 0.012;
+const SURFACE_POINT_DEFAULT_MAX_RADIUS_SCALE = 0.030;
 const GLINT_MARKER_KEYS = Object.freeze(["solarGlintEarth", "lunarGlintEarth"]);
 const GLINT_ANIMATION_PERIOD_MS = 1800;
 const LOCAL_Z = Object.freeze({ x: 0, y: 0, z: 1 });
@@ -225,6 +238,21 @@ function getBodyRadius(scene, body) {
     }
     const sphereRadius = Number(geometry.boundingSphere?.radius);
     return Number.isFinite(sphereRadius) && sphereRadius > 0 ? sphereRadius : 1;
+}
+
+function resolveMarkerRadius(bodyRadius, definition = {}) {
+    const requestedRadius = bodyRadius * Number(definition.radiusScale);
+    const maxRadiusScale = Number.isFinite(Number(definition.maxRadiusScale))
+        ? Number(definition.maxRadiusScale)
+        : SURFACE_POINT_DEFAULT_MAX_RADIUS_SCALE;
+    const cappedRadius = bodyRadius * maxRadiusScale;
+    return Math.max(
+        SURFACE_POINT_MIN_RADIUS,
+        Math.min(
+            Number.isFinite(requestedRadius) && requestedRadius > 0 ? requestedRadius : SURFACE_POINT_MIN_RADIUS,
+            Number.isFinite(cappedRadius) && cappedRadius > 0 ? cappedRadius : SURFACE_POINT_MIN_RADIUS,
+        ),
+    );
 }
 
 function createSurfacePointMarker(THREE, key, definition) {
@@ -526,7 +554,7 @@ export function createSurfacePointMarkerActions({ THREE, render }) {
         markerNormal.normalize();
 
         const bodyRadius = getBodyRadius(scene, definition.body);
-        const markerRadius = Math.max(SURFACE_POINT_MIN_RADIUS, bodyRadius * definition.radiusScale);
+        const markerRadius = resolveMarkerRadius(bodyRadius, definition);
         marker.position.copy(markerNormal).multiplyScalar(bodyRadius * SURFACE_POINT_SURFACE_SCALE);
         marker.quaternion.setFromUnitVectors(localZVector, markerNormal);
         marker.scale.setScalar(markerRadius);

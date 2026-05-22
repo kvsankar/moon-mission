@@ -44,6 +44,19 @@ describe("lunar feature view domain", () => {
         expect(state.viewLunarFeatures).toBe(true);
     });
 
+    it("treats pinned feature names as an active Lunar Features overlay", () => {
+        const state = normalizeLunarFeatureViewState({
+            lunarCraterShowAllEnabled: false,
+            lunarCraterHoverEnabled: false,
+            viewLunarCraters: false,
+            lunarFeaturePinnedNames: ["Glushko", "Ohm"],
+        });
+
+        expect(state.lunarFeaturePinnedNames).toEqual(["Glushko", "Ohm"]);
+        expect(state.viewLunarCraters).toBe(true);
+        expect(state.viewLunarFeatures).toBe(true);
+    });
+
     it("normalizes excluded lunar feature keys", () => {
         expect(normalizeLunarFeatureViewState({
             lunarFeatureExcludedKeys: [" Tycho ", "Tycho", "", null],

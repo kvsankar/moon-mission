@@ -36,6 +36,7 @@ const TYPE_FILTER_DEFAULT_MIN_KM = 0;
 const TYPE_FILTER_DEFAULT_MAX_KM = 6000;
 const LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL = "showAll";
 const LUNAR_CRATER_FILTER_SCOPE_HOVER = "hover";
+const LUNAR_CRATER_FILTER_SCOPE_SYNCED = "synced";
 const LUNAR_CRATER_FILTER_SCOPE_SEARCH = "search";
 const EMPTY_LUNAR_CRATER_CATALOG = Object.freeze({
     display: Object.freeze({}),
@@ -389,6 +390,9 @@ function normalizeFilterScope(value) {
     if (value === LUNAR_CRATER_FILTER_SCOPE_SEARCH) {
         return LUNAR_CRATER_FILTER_SCOPE_SEARCH;
     }
+    if (value === LUNAR_CRATER_FILTER_SCOPE_SYNCED) {
+        return LUNAR_CRATER_FILTER_SCOPE_SYNCED;
+    }
     return value === LUNAR_CRATER_FILTER_SCOPE_HOVER
         ? LUNAR_CRATER_FILTER_SCOPE_HOVER
         : LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL;
@@ -443,6 +447,7 @@ function cacheLunarCraterPanelNodes(elements = {}) {
         "scale",
         "statusRow",
         "nudge",
+        "syncedControlsContainer",
     ]) {
         if (elements[key]) {
             cache[key] = elements[key];
@@ -458,10 +463,23 @@ function syncLunarCraterTabBody(elements = {}, scope = LUNAR_CRATER_FILTER_SCOPE
     if (!panel) return;
     const tabPanel = elements.tabPanelBody || panel;
     cacheLunarCraterPanelNodes(elements);
-    const isSearchScope = normalizeFilterScope(scope) === LUNAR_CRATER_FILTER_SCOPE_SEARCH;
+    const normalizedScope = normalizeFilterScope(scope);
+    const isSearchScope = normalizedScope === LUNAR_CRATER_FILTER_SCOPE_SEARCH;
+    const isSyncedScope = normalizedScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED;
     if (isSearchScope) {
         const alreadyMounted = elements.searchWrap?.parentNode === tabPanel &&
             elements.searchResultsContainer?.parentNode === tabPanel &&
+            elements.presetContainer?.parentNode !== tabPanel &&
+            elements.rangeLabel?.parentNode !== tabPanel &&
+            elements.typeFilterContainer?.parentNode !== tabPanel &&
+            elements.syncedControlsContainer?.parentNode !== tabPanel;
+        if (alreadyMounted) {
+            return;
+        }
+    } else if (isSyncedScope) {
+        const alreadyMounted = elements.syncedControlsContainer?.parentNode === tabPanel &&
+            elements.searchWrap?.parentNode !== tabPanel &&
+            elements.searchResultsContainer?.parentNode !== tabPanel &&
             elements.presetContainer?.parentNode !== tabPanel &&
             elements.rangeLabel?.parentNode !== tabPanel &&
             elements.typeFilterContainer?.parentNode !== tabPanel;
@@ -491,15 +509,25 @@ function syncLunarCraterTabBody(elements = {}, scope = LUNAR_CRATER_FILTER_SCOPE
         elements.searchWrap,
         elements.searchResultsContainer,
     ];
-    if (isSearchScope) {
+    const syncedElements = [
+        elements.syncedControlsContainer,
+    ];
+    if (isSearchScope || isSyncedScope) {
         for (const element of filterElements) {
             removePanelChild(element);
         }
-        appendPanelChild(tabPanel, elements.searchWrap);
-        appendPanelChild(tabPanel, elements.searchResultsContainer);
+        for (const element of isSearchScope ? syncedElements : searchElements) {
+            removePanelChild(element);
+        }
+        if (isSearchScope) {
+            appendPanelChild(tabPanel, elements.searchWrap);
+            appendPanelChild(tabPanel, elements.searchResultsContainer);
+        } else {
+            appendPanelChild(tabPanel, elements.syncedControlsContainer);
+        }
         return;
     }
-    for (const element of searchElements) {
+    for (const element of [...searchElements, ...syncedElements]) {
         removePanelChild(element);
     }
     for (const element of filterElements) {
@@ -517,6 +545,15 @@ function getScopedFilterState(state = {}, scope = LUNAR_CRATER_FILTER_SCOPE_SHOW
             lunarFeatureTypeFilters: normalizeLunarFeatureTypeFilters({}, {}),
             lunarFeatureSearchQuery: normalized.lunarFeatureSearchQuery,
             lunarFeatureExcludedKeys: normalized.lunarFeatureExcludedKeys,
+        };
+    }
+    if (normalizedScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED) {
+        return {
+            lunarCraterMinDiameterKm: normalized.lunarCraterMinDiameterKm,
+            lunarCraterMaxDiameterKm: normalized.lunarCraterMaxDiameterKm,
+            lunarFeatureTypeFilters: normalized.lunarFeatureTypeFilters,
+            lunarFeatureSearchQuery: "",
+            lunarFeatureExcludedKeys: [],
         };
     }
     if (normalizedScope === LUNAR_CRATER_FILTER_SCOPE_HOVER) {
@@ -545,6 +582,9 @@ function buildScopedFilterPatch(scope, filterState = {}) {
         if (has("lunarFeatureSearchQuery")) patch.lunarFeatureSearchQuery = filterState.lunarFeatureSearchQuery;
         if (has("lunarFeatureExcludedKeys")) patch.lunarFeatureExcludedKeys = filterState.lunarFeatureExcludedKeys;
         return patch;
+    }
+    if (normalizedScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED) {
+        return {};
     }
     if (normalizedScope === LUNAR_CRATER_FILTER_SCOPE_HOVER) {
         const patch = {};
@@ -1216,7 +1256,9 @@ export function getLunarCraterControlPanelElements(documentRef, {
         hoverFilterToggle: getElement(`${idPrefix}-hover-filter-toggle`),
         filterScopeShowAll: getElement(`${idPrefix}-filter-scope-show-all`),
         filterScopeHover: getElement(`${idPrefix}-filter-scope-hover`),
+        filterScopeSynced: getElement(`${idPrefix}-filter-scope-synced`),
         filterScopeSearch: getElement(`${idPrefix}-filter-scope-search`),
+        syncedControlsContainer: getPanelElement("syncedControlsContainer", `${idPrefix}-synced-controls`),
         minDiameterSlider: getElement(`${idPrefix}-min-diameter`),
         minDiameterStepDown: getElement(`${idPrefix}-min-diameter-step-down`),
         minDiameterStepUp: getElement(`${idPrefix}-min-diameter-step-up`),
@@ -1252,6 +1294,7 @@ export function readLunarCraterControlState(elements = {}) {
         elements.showAllInput ||
         elements.showAllFilterToggle ||
         elements.hoverFilterToggle ||
+        elements.filterScopeSynced ||
         elements.filterScopeSearch
     );
     const legacyVisible = elements.visibleInput?.checked === true;
@@ -1348,6 +1391,7 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
     const activeScope = getActiveFilterScope(elements);
     const scopedState = getScopedFilterState(normalized, activeScope);
     const isSearchScope = activeScope === LUNAR_CRATER_FILTER_SCOPE_SEARCH;
+    const isSyncedScope = activeScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED;
     syncLunarCraterTabBody(elements, activeScope);
     const enabled = normalized.viewLunarCraters === true;
     const featuresEnabled = normalized.viewLunarFeatures === true;
@@ -1418,6 +1462,13 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
         elements.filterScopeHover.setAttribute?.("tabindex", active ? "0" : "-1");
         elements.filterScopeHover.disabled = controlsDisabled;
     }
+    if (elements.filterScopeSynced) {
+        const active = isSyncedScope;
+        elements.filterScopeSynced.classList?.toggle?.("is-active", active);
+        elements.filterScopeSynced.setAttribute?.("aria-selected", active ? "true" : "false");
+        elements.filterScopeSynced.setAttribute?.("tabindex", active ? "0" : "-1");
+        elements.filterScopeSynced.disabled = controlsDisabled;
+    }
     if (elements.filterScopeSearch) {
         const active = isSearchScope;
         elements.filterScopeSearch.classList?.toggle?.("is-active", active);
@@ -1428,6 +1479,8 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
     if (elements.tabPanelBody) {
         const labelledBy = isSearchScope
             ? elements.filterScopeSearch?.id
+            : isSyncedScope
+                ? elements.filterScopeSynced?.id
             : activeScope === LUNAR_CRATER_FILTER_SCOPE_HOVER
                 ? elements.filterScopeHover?.id
                 : elements.filterScopeShowAll?.id;
@@ -1529,7 +1582,7 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
                 : modeEnabled && areTypeFiltersEquivalent(normalizedTypeFilters, presetFilters);
             button.setAttribute("aria-pressed", active ? "true" : "false");
             button.classList?.toggle?.("is-active", active);
-            button.disabled = controlsDisabled || isSearchScope;
+            button.disabled = controlsDisabled || isSearchScope || isSyncedScope;
         }
     }
     syncLunarCraterCountStatus(elements, normalized);
@@ -1649,6 +1702,7 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
         elements.showAllInput ||
         elements.showAllFilterToggle ||
         elements.hoverFilterToggle ||
+        elements.filterScopeSynced ||
         elements.filterScopeSearch
     );
     const getModeEnabledPatch = (scope, enabled) => {
@@ -1748,6 +1802,9 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
     listen(elements.filterScopeHover, "click", () => {
         activateFilterScope(LUNAR_CRATER_FILTER_SCOPE_HOVER);
     });
+    listen(elements.filterScopeSynced, "click", () => {
+        activateFilterScope(LUNAR_CRATER_FILTER_SCOPE_SYNCED);
+    });
     listen(elements.filterScopeSearch, "click", () => {
         activateFilterScope(LUNAR_CRATER_FILTER_SCOPE_SEARCH);
     });
@@ -1755,6 +1812,7 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
         const tabs = [
             [elements.filterScopeShowAll, LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL],
             [elements.filterScopeHover, LUNAR_CRATER_FILTER_SCOPE_HOVER],
+            [elements.filterScopeSynced, LUNAR_CRATER_FILTER_SCOPE_SYNCED],
             [elements.filterScopeSearch, LUNAR_CRATER_FILTER_SCOPE_SEARCH],
         ].filter(([tab]) => tab && tab.disabled !== true);
         const currentIndex = tabs.findIndex(([tab]) => tab === event.target);
@@ -2008,6 +2066,10 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
 
 export function createLunarCraterControlPanelElements(documentRef, options = {}) {
     const prefix = options.idPrefix || "lunar-crater";
+    const enableSyncedScope = options.enableSyncedScope === true;
+    const initialFilterScope = enableSyncedScope
+        ? normalizeFilterScope(options.initialFilterScope || LUNAR_CRATER_FILTER_SCOPE_SYNCED)
+        : LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL;
     const state = createDefaultLunarFeatureViewState();
 
     const panel = documentRef.createElement("div");
@@ -2015,7 +2077,7 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     panel.className = "lunar-crater-controls-panel";
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", "Lunar feature controls");
-    panel.dataset.filterScope = LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL;
+    panel.dataset.filterScope = initialFilterScope;
     panel.hidden = true;
 
     const header = documentRef.createElement("div");
@@ -2077,27 +2139,49 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
         "filter-scope-show-all",
         "Show Always",
         "Edit the Show Always filter set",
-        "true",
+        initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SHOW_ALL ? "true" : "false",
     );
     const filterScopeHover = makeButton(
         "filter-scope-hover",
         "Hover",
         "Edit the Hover filter set",
+        initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_HOVER ? "true" : "false",
     );
+    const filterScopeSynced = enableSyncedScope
+        ? makeButton(
+            "filter-scope-synced",
+            "Synced",
+            "Show transcript-synced lunar features",
+            initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED ? "true" : "false",
+        )
+        : null;
     const filterScopeSearch = makeButton(
         "filter-scope-search",
         "Search",
         "Search and pin lunar feature annotations",
+        initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SEARCH ? "true" : "false",
     );
     scopeToggles.appendChild(filterScopeShowAll);
     scopeToggles.appendChild(filterScopeHover);
+    if (filterScopeSynced) {
+        scopeToggles.appendChild(filterScopeSynced);
+    }
     scopeToggles.appendChild(filterScopeSearch);
 
     const tabPanelBody = documentRef.createElement("div");
     tabPanelBody.id = `${prefix}-tab-panel`;
     tabPanelBody.className = "lunar-crater-controls-panel__tab-panel";
     tabPanelBody.setAttribute("role", "tabpanel");
-    tabPanelBody.setAttribute("aria-labelledby", filterScopeShowAll.id);
+    tabPanelBody.setAttribute(
+        "aria-labelledby",
+        initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SEARCH
+            ? filterScopeSearch.id
+            : initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED && filterScopeSynced
+                ? filterScopeSynced.id
+                : initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_HOVER
+                    ? filterScopeHover.id
+                    : filterScopeShowAll.id,
+    );
 
     const searchWrap = documentRef.createElement("div");
     searchWrap.id = `${prefix}-search-wrap`;
@@ -2130,6 +2214,10 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     searchResults.id = `${prefix}-search-results`;
     searchResults.className = "lunar-crater-controls-panel__search-results";
     searchResults.hidden = true;
+
+    const syncedControls = documentRef.createElement("div");
+    syncedControls.id = `${prefix}-synced-controls`;
+    syncedControls.className = "lunar-crater-controls-panel__synced-controls";
 
     const label = documentRef.createElement("label");
     label.id = `${prefix}-range-label`;
@@ -2221,14 +2309,20 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     panel.appendChild(modeInput);
     panel.appendChild(header);
     panel.appendChild(scopeToggles);
-    tabPanelBody.appendChild(presets);
-    tabPanelBody.appendChild(label);
-    tabPanelBody.appendChild(rangeStack);
-    tabPanelBody.appendChild(scale);
-    tabPanelBody.appendChild(typeFilters);
-    tabPanelBody.appendChild(statusRow);
-    tabPanelBody.appendChild(nudge);
-    tabPanelBody.appendChild(searchResults);
+    if (initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SEARCH) {
+        tabPanelBody.appendChild(searchWrap);
+        tabPanelBody.appendChild(searchResults);
+    } else if (initialFilterScope === LUNAR_CRATER_FILTER_SCOPE_SYNCED && enableSyncedScope) {
+        tabPanelBody.appendChild(syncedControls);
+    } else {
+        tabPanelBody.appendChild(presets);
+        tabPanelBody.appendChild(label);
+        tabPanelBody.appendChild(rangeStack);
+        tabPanelBody.appendChild(scale);
+        tabPanelBody.appendChild(typeFilters);
+        tabPanelBody.appendChild(statusRow);
+        tabPanelBody.appendChild(nudge);
+    }
     panel.appendChild(tabPanelBody);
 
     return {
@@ -2253,7 +2347,9 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
         hoverFilterToggle: null,
         filterScopeShowAll,
         filterScopeHover,
+        filterScopeSynced,
         filterScopeSearch,
+        syncedControlsContainer: syncedControls,
         minDiameterSlider,
         minDiameterStepDown: null,
         minDiameterStepUp: null,

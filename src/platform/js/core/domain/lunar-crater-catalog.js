@@ -49,6 +49,19 @@ function normalizeSearchText(value) {
     return String(value || "").trim().toLowerCase();
 }
 
+function normalizeFeatureName(value) {
+    return normalizeSearchText(value)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+}
+
+function normalizeFeatureNameSet(value) {
+    if (!Array.isArray(value)) return new Set();
+    return new Set(value.map(normalizeFeatureName).filter(Boolean));
+}
+
 export function getLunarFeatureKey(feature) {
     const link = typeof feature?.link === "string" ? feature.link.trim() : "";
     if (link) return link;
@@ -887,6 +900,7 @@ export function getCraterDisplayFeatures(catalog = {}, options = {}) {
         ? options.lunarFeatureTypeFilters
         : null;
     const searchQuery = normalizeSearchText(options.lunarFeatureSearchQuery ?? options.searchQuery);
+    const pinnedNames = normalizeFeatureNameSet(options.lunarFeaturePinnedNames);
     const excludedKeys = new Set(Array.isArray(options.lunarFeatureExcludedKeys)
         ? options.lunarFeatureExcludedKeys.map((entry) => String(entry || "").trim()).filter(Boolean)
         : []);
@@ -896,6 +910,7 @@ export function getCraterDisplayFeatures(catalog = {}, options = {}) {
         !Number.isFinite(Number(options.lunarCraterMaxDiameterKm ?? options.maxDiameterKm)) &&
         !typeFilters &&
         !searchQuery &&
+        pinnedNames.size === 0 &&
         excludedKeys.size === 0
     ) {
         return features;
@@ -903,10 +918,19 @@ export function getCraterDisplayFeatures(catalog = {}, options = {}) {
     const diameterRange = normalizeCraterDisplayDiameterRange(options, catalog);
     const selectedFeatures = [];
     for (const feature of features) {
-        if (!featureMatchesSearch(feature, searchQuery)) {
+        const pinned = pinnedNames.has(normalizeFeatureName(feature.name)) ||
+            pinnedNames.has(normalizeFeatureName(feature.cleanName));
+        if (searchQuery && !featureMatchesSearch(feature, searchQuery) && !pinned) {
+            continue;
+        }
+        if (!searchQuery && pinnedNames.size > 0 && !pinned) {
             continue;
         }
         if (excludedKeys.has(getLunarFeatureKey(feature))) {
+            continue;
+        }
+        if (pinned) {
+            selectedFeatures.push(feature);
             continue;
         }
         const typeFilter = typeFilters
