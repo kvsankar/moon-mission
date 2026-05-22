@@ -31,6 +31,7 @@ import {
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
 const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v10-transcript-panel";
 const PANEL_EDGE_MARGIN_PX = 8;
+const PANEL_TRANSPORT_CLEARANCE_PX = 14;
 const PANEL_STACK_LEFT_PX = 32;
 const PANEL_STACK_TOP_FALLBACK_PX = 36;
 const PANEL_STACK_GAP_PX = 8;
@@ -774,10 +775,28 @@ function getPanelWrapperTopPx(id) {
 }
 
 function getTimelineSafeBottomPx() {
-    const timelineRect = getDocumentRef()?.querySelector?.(".timeline-dock")?.getBoundingClientRect?.() || null;
-    const timelineTop = Number(timelineRect?.top);
-    if (Number.isFinite(timelineTop) && timelineTop > PANEL_EDGE_MARGIN_PX) {
-        return Math.round(timelineTop - PANEL_EDGE_MARGIN_PX - getPanelWrapperTopPx("background-media-panel-wrapper"));
+    const resolveVisibleTop = (selector) => {
+        const node = getDocumentRef()?.querySelector?.(selector) || null;
+        if (!node || node.hidden === true) return Number.NaN;
+        const style = getWindowRef()?.getComputedStyle?.(node) || null;
+        if (style?.display === "none" || style?.visibility === "hidden") return Number.NaN;
+        const rect = node.getBoundingClientRect?.() || null;
+        const top = Number(rect?.top);
+        const height = Number(rect?.height);
+        return Number.isFinite(top) && Number.isFinite(height) && height > 0 ? top : Number.NaN;
+    };
+    const controlTop = resolveVisibleTop("#control-panel");
+    const timelineTop = resolveVisibleTop(".timeline-dock");
+    const boundaryTop = Math.min(
+        Number.isFinite(controlTop) ? controlTop : Infinity,
+        Number.isFinite(timelineTop) ? timelineTop : Infinity,
+    );
+    if (Number.isFinite(boundaryTop) && boundaryTop > PANEL_EDGE_MARGIN_PX) {
+        return Math.round(
+            boundaryTop
+            - PANEL_TRANSPORT_CLEARANCE_PX
+            - getPanelWrapperTopPx("background-media-panel-wrapper"),
+        );
     }
     return (Number(getWindowRef()?.innerHeight) || 768) - PANEL_EDGE_MARGIN_PX;
 }

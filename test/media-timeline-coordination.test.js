@@ -1252,7 +1252,7 @@ describe("createMediaTimelineCoordination", () => {
         expect(marker.endTimeMs).toBeCloseTo(audioStartMs + 10973.083, 3);
     });
 
-    it("filters thumbnails from structured LLM body metadata when searching", async () => {
+    it("filters thumbnails from structured AI body metadata when searching", async () => {
         globalThis.window = {
             missionConfig: {
                 dataPath: "assets/artemis2/data",
@@ -1276,8 +1276,23 @@ describe("createMediaTimelineCoordination", () => {
                         reason: "Earth is the main subject.",
                     },
                 },
+                {
+                    file: "prelaunch.jpg",
+                    shortDescription: "Pad closeout before launch.",
+                    tags: ["prelaunch"],
+                    subjects: ["Launch pad"],
+                    sceneType: "launch",
+                    bodies: ["Orion"],
+                    mainBody: "Orion",
+                },
             ],
             photos: [
+                {
+                    time: "2026-04-01 18:30:00",
+                    file: "prelaunch.jpg",
+                    title: "Prelaunch closeout",
+                    enabled: true,
+                },
                 {
                     time: "2026-04-02 12:00:00",
                     file: "crew.jpg",
@@ -1299,7 +1314,9 @@ describe("createMediaTimelineCoordination", () => {
                 },
             ],
         });
-        const coordination = createMediaTimelineCoordination();
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-01T22:35:12Z"),
+        });
 
         coordination.update({
             globalConfig: createMissionConfig({ mediaEnabled: true }),
@@ -1312,9 +1329,20 @@ describe("createMediaTimelineCoordination", () => {
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
         expect(latestRender.filterModel.query).toBe("earth");
         expect(latestRender.thumbnailItems.map((item) => item.id)).toEqual(["earth.jpg"]);
-        expect(latestRender.thumbnailItems[0].metadataLabel).toContain("LLM:");
+        expect(latestRender.thumbnailItems[0].metadataLabel).toContain("AI:");
         expect(latestRender.thumbnailItems[0].metadataLabel).toContain("Earth");
+        expect(latestRender.thumbnailItems[0].meta).toBe("MET 000:17:29");
+        expect(latestRender.thumbnailItems[0].metaFull).toBe("MET 000:17:29:48");
+        expect(latestRender.thumbnailItems[0].localTimeLabel).toBeTruthy();
+        expect(latestRender.thumbnailItems[0].utcTimeLabel).toContain("UTC");
         expect(latestRender.mediaCountLabel).toBe("1");
+
+        mocks.panelIntentHandler?.({ type: "setSearchQuery", value: "prelaunch" });
+        const prelaunchRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(prelaunchRender.thumbnailItems.map((item) => item.id)).toEqual(["prelaunch.jpg"]);
+        expect(prelaunchRender.thumbnailItems[0].meta).toBe("MET -000:00:05");
+        expect(prelaunchRender.thumbnailItems[0].metaFull).toBe("MET -000:00:05:12");
+        expect(prelaunchRender.thumbnailItems[0].thumbnailLabel).toBe("MET -000:00:05");
     });
 
     it("moves adjacent controls from the current time-proximity focus", async () => {

@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     createMediaBrowserPanelActions,
     resolveRangeValueAtClientX,
+    resolveThumbnailDisclosureLevel,
+    resolveThumbnailPopoverPosition,
 } from "../src/platform/js/app/media-browser-panel.js";
 
 class FakeRangeInput {
@@ -247,6 +249,119 @@ describe("media browser panel timeline", () => {
         expect(resolveRangeValueAtClientX(slider, 100)).toBe(0);
         expect(resolveRangeValueAtClientX(slider, 388)).toBe(72);
         expect(resolveRangeValueAtClientX(slider, 600)).toBe(100);
+    });
+
+    it("derives horizontal thumbnail disclosure levels from strip geometry", () => {
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "bottom",
+            stripSize: 170,
+            panelWidth: 672,
+        })).toBe("full");
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "top",
+            stripSize: 132,
+            panelWidth: 672,
+        })).toBe("compact");
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "bottom",
+            stripSize: 104,
+            panelWidth: 672,
+        })).toBe("minimal");
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "top",
+            stripSize: 86,
+            panelWidth: 672,
+        })).toBe("media-only");
+    });
+
+    it("derives vertical thumbnail disclosure levels from strip geometry", () => {
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "left",
+            stripSize: 224,
+            panelHeight: 520,
+        })).toBe("full");
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "right",
+            stripSize: 188,
+            panelHeight: 520,
+        })).toBe("compact");
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "left",
+            stripSize: 148,
+            panelHeight: 520,
+        })).toBe("minimal");
+        expect(resolveThumbnailDisclosureLevel({
+            placement: "right",
+            stripSize: 126,
+            panelHeight: 520,
+        })).toBe("media-only");
+    });
+
+    it("positions thumbnail popovers away from the hovered thumbnail when clamped", () => {
+        const position = resolveThumbnailPopoverPosition({
+            panelWidth: 560,
+            panelHeight: 240,
+            anchorLeft: 20,
+            anchorTop: 88,
+            anchorRight: 110,
+            anchorBottom: 170,
+            popoverWidth: 292,
+            popoverHeight: 152,
+        });
+        const popoverRect = {
+            left: position.left,
+            top: position.top,
+            right: position.left + 292,
+            bottom: position.top + 152,
+        };
+        const anchorRect = {
+            left: 20,
+            top: 88,
+            right: 110,
+            bottom: 170,
+        };
+        const overlaps = popoverRect.left < anchorRect.right &&
+            popoverRect.right > anchorRect.left &&
+            popoverRect.top < anchorRect.bottom &&
+            popoverRect.bottom > anchorRect.top;
+        expect(overlaps).toBe(false);
+        expect(position.placement).toBe("right");
+    });
+
+    it("applies derived thumbnail disclosure classes to the strip", () => {
+        const panelElement = new FakePanel();
+        const thumbnailStrip = new FakeElement("div");
+        thumbnailStrip.className = "media-browser-panel__thumbnail-strip";
+        panelElement.children.push(thumbnailStrip);
+        const resizer = new FakeElement("div");
+        const thumbnailList = new FakeElement("div");
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-resizer") return resizer;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+
+        panel.render({ thumbnailItems: [] });
+
+        expect(thumbnailStrip.dataset.thumbnailDisclosureLevel).toBe("media-only");
+        expect(thumbnailStrip.classList.contains("media-browser-panel__thumbnail-strip--level-media-only")).toBe(true);
+        expect(thumbnailStrip.classList.contains("is-compact")).toBe(true);
+        expect(thumbnailStrip.classList.contains("is-minimal")).toBe(true);
     });
 
     it("emits media seek intents on direct pointer clicks", () => {
@@ -730,6 +845,7 @@ describe("media browser panel timeline", () => {
                 kind: "image",
                 title: "Image 0",
                 meta: "MET",
+                metadataLabel: "AI: Earth",
                 thumbnailAssetUrl: "thumb-0.jpg",
                 active: true,
             },
@@ -746,6 +862,21 @@ describe("media browser panel timeline", () => {
         const firstButtons = [...thumbnailList.children];
         expect(firstButtons[0].className).toContain("is-active");
         expect(firstButtons[0].attributes["aria-current"]).toBe("true");
+        expect(firstButtons[0].attributes["aria-label"]).toBe("Image 0 - MET - AI: Earth");
+        expect(firstButtons[0].attributes.title).toBeUndefined();
+        expect(firstButtons[0].children[1].textContent).toBe("MET");
+        expect(firstButtons[0].children[2].hidden).toBe(true);
+        expect(firstButtons[0].children[3].hidden).toBe(true);
+
+        firstButtons[0].dispatchEvent({ type: "focus" });
+        const popover = panelElement.children.find((child) => child.id === "media-browser-thumbnail-popover");
+        expect(popover?.hidden).toBe(false);
+        expect(popover.children[0].textContent).toBe("Image 0");
+        const popoverText = popover.children
+            .flatMap((child) => [child.textContent, ...(child.children || []).map((grandchild) => grandchild.textContent)])
+            .filter(Boolean);
+        expect(popoverText).toContain("MET");
+        expect(popoverText).toContain("Earth");
 
         createElement.mockClear();
         panel.render({

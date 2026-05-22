@@ -31,6 +31,8 @@ import {
     formatDateTimeLocal,
     formatDateTimeUTC,
     formatDuration,
+    padZero,
+    parseConfigTimestamp,
 } from "../utils/time-utils.js";
 import {
     createMediaBrowserPanelActions,
@@ -375,10 +377,54 @@ function buildThumbnailMetadataLabel(item, searchQuery = "") {
     const selectedValues = (matchingValues.length > 0 ? matchingValues : metadataValues)
         .slice(0, 4)
         .map(formatThumbnailMetadataValue);
-    return selectedValues.length ? `LLM: ${selectedValues.join(" · ")}` : "";
+    return selectedValues.length ? `AI: ${selectedValues.join(" · ")}` : "";
 }
 
-function buildThumbnailViewItem(item, activeItem, searchQuery = "") {
+function formatThumbnailMissionElapsedLabel(timeMs, missionStartTimeMs, { includeSeconds = false } = {}) {
+    const targetMs = Number(timeMs);
+    const startMs = Number(missionStartTimeMs);
+    if (!Number.isFinite(targetMs) || !Number.isFinite(startMs)) return "";
+    const elapsedMs = targetMs - startMs;
+    const sign = elapsedMs < 0 ? "-" : "";
+    const absoluteSeconds = Math.floor(Math.abs(elapsedMs) / 1000);
+    const days = Math.floor(absoluteSeconds / 86400);
+    const hours = Math.floor((absoluteSeconds % 86400) / 3600);
+    const minutes = Math.floor((absoluteSeconds % 3600) / 60);
+    const seconds = absoluteSeconds % 60;
+    const base = `${String(days).padStart(3, "0")}:${padZero(hours)}:${padZero(minutes)}`;
+    return `MET ${sign}${base}${includeSeconds ? `:${padZero(seconds)}` : ""}`;
+}
+
+function resolveMissionElapsedStartTimeMs(globalConfig, fallbackStartTimeMs = Number.NaN) {
+    const events = globalConfig?.events || {};
+    const eventTimeScale = String(events?.time_scale || "UTC").toUpperCase();
+    const candidates = [
+        events?.missionStart,
+        events?.mission_start,
+        globalConfig?.missionStart,
+    ];
+    for (const candidate of candidates) {
+        const startTime = candidate?.startTime || candidate?.time || candidate;
+        if (typeof startTime !== "string" || !startTime.trim()) continue;
+        const parsed = parseConfigTimestamp(startTime, String(candidate?.time_scale || eventTimeScale).toUpperCase());
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    const fallback = Number(fallbackStartTimeMs);
+    return Number.isFinite(fallback) ? fallback : Number.NaN;
+}
+
+function buildThumbnailViewItem(item, activeItem, searchQuery = "", missionStartTimeMs = Number.NaN) {
+    const metLabel = formatThumbnailMissionElapsedLabel(item.startTimeMs, missionStartTimeMs);
+    const metFullLabel = formatThumbnailMissionElapsedLabel(item.startTimeMs, missionStartTimeMs, {
+        includeSeconds: true,
+    });
+    const localTimeLabel = Number.isFinite(Number(item.startTimeMs))
+        ? formatDateTimeLocal(item.startTimeMs)
+        : "";
+    const utcTimeLabel = Number.isFinite(Number(item.startTimeMs))
+        ? formatDateTimeUTC(item.startTimeMs)
+        : "";
+    const cameraLabel = item.cameraLabel || (item.kind === "audioClip" ? "Audio" : "");
     return {
         id: item.id,
         kind: item.kind,
@@ -386,10 +432,16 @@ function buildThumbnailViewItem(item, activeItem, searchQuery = "") {
         title: item.title,
         thumbnailAssetUrl: resolveMediaThumbnailAssetUrl(item),
         fallbackAssetUrl: resolveMediaThumbnailFallbackAssetUrl(item),
-        meta: [
-            formatDateTimeLocal(item.startTimeMs, { includeOffset: false }),
-            item.cameraLabel || (item.kind === "audioClip" ? "Audio" : ""),
-        ].filter(Boolean).join(" • "),
+        meta: metLabel || formatDateTimeLocal(item.startTimeMs, { includeOffset: false }),
+        metaFull: metFullLabel || localTimeLabel,
+        thumbnailLabel: metLabel || metFullLabel || "MET --",
+        localTimeLabel,
+        utcTimeLabel,
+        cameraLabel,
+        photographer: item.photographer || "",
+        location: item.location || "",
+        sourceLabel: item.sourceLabel || item.fileName || "",
+        stageBadge: buildStageBadge(item),
         metadataLabel: buildThumbnailMetadataLabel(item, searchQuery),
     };
 }
@@ -420,7 +472,7 @@ function resolveThumbnailWindowStart(items, selection = {}, timeMs = Number.NaN,
     return clampIndex(clampedTargetIndex - halfWindow, maxStartIndex);
 }
 
-function buildThumbnailViewItems(items, selection = {}, startIndex = 0, searchQuery = "") {
+function buildThumbnailViewItems(items, selection = {}, startIndex = 0, searchQuery = "", missionStartTimeMs = Number.NaN) {
     const normalizedItems = Array.isArray(items) ? items : [];
     const clampedStartIndex = normalizedItems.length > MAX_THUMBNAIL_RENDER_ITEMS
         ? clampIndex(Number(startIndex) || 0, normalizedItems.length - MAX_THUMBNAIL_RENDER_ITEMS)
@@ -429,7 +481,12 @@ function buildThumbnailViewItems(items, selection = {}, startIndex = 0, searchQu
         clampedStartIndex,
         clampedStartIndex + MAX_THUMBNAIL_RENDER_ITEMS,
     );
-    return windowItems.map((item) => buildThumbnailViewItem(item, selection.activeItem, searchQuery));
+    return windowItems.map((item) => buildThumbnailViewItem(
+        item,
+        selection.activeItem,
+        searchQuery,
+        missionStartTimeMs,
+    ));
 }
 
 function dispatchDocumentCustomEvent(type, detail) {
@@ -3019,6 +3076,7 @@ function createMediaTimelineCoordination({
         selection,
         timeMs,
         filterModel,
+        missionElapsedStartTimeMs = Number.NaN,
     }) {
         const activeItem = selection.activeItem;
         const seedNote = String(manifest?.ui?.seedNote || "").trim();
@@ -3151,6 +3209,7 @@ function createMediaTimelineCoordination({
                 selection,
                 thumbnailWindowStartIndex,
                 runtimeMediaState.getFilters().query,
+                missionElapsedStartTimeMs,
             ),
             currentTimeMs: timeMs,
         };
@@ -3207,6 +3266,7 @@ function createMediaTimelineCoordination({
             selection: renderContext.selection,
             timeMs: renderContext.timeMs,
             filterModel: renderContext.filteredCollections.filterModel,
+            missionElapsedStartTimeMs: renderContext.missionElapsedStartTimeMs,
         }));
     }
 
@@ -3317,6 +3377,7 @@ function createMediaTimelineCoordination({
 
         const timeMs = Number.isFinite(context.animTime) ? context.animTime : Date.now();
         const timelineStartMs = Number.isFinite(getStartTime()) ? getStartTime() : Number.NaN;
+        const missionElapsedStartTimeMs = resolveMissionElapsedStartTimeMs(globalConfig, timelineStartMs);
         const timelineEndMs = Number.isFinite(getLatestEndTime()) ? getLatestEndTime() : Number.NaN;
         const filters = runtimeMediaState.getFilters();
         const filteredCollections = getFilteredMediaCollections(manifest, filters);
@@ -3371,6 +3432,7 @@ function createMediaTimelineCoordination({
             },
             selection,
             timeMs,
+            missionElapsedStartTimeMs,
         });
     }
 

@@ -20,6 +20,7 @@ import { bringPanelElementToFront } from "./panel-z-order.js";
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
 const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v17-thumbnail-placement";
 const PANEL_EDGE_MARGIN_PX = 8;
+const PANEL_TRANSPORT_CLEARANCE_PX = 14;
 const PANEL_DEFAULT_LEFT_PX = 32;
 const PANEL_DEFAULT_WIDTH_PX = 672;
 const PANEL_DEFAULT_HEIGHT_RATIO = 0.6;
@@ -47,6 +48,8 @@ const THUMBNAIL_STRIP_KEYBOARD_STEP_PX = 12;
 const THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX = 36;
 const THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX = 5;
 const THUMBNAIL_STRIP_PLACEMENTS = new Set(["left", "right", "top", "bottom"]);
+const THUMBNAIL_DISCLOSURE_LEVELS = ["full", "compact", "minimal", "media-only"];
+const THUMBNAIL_DISCLOSURE_LEVEL_CLASS_PREFIX = "media-browser-panel__thumbnail-strip--level-";
 const MEDIA_IMAGE_MIN_ZOOM = 1;
 const MEDIA_IMAGE_MAX_ZOOM = 6;
 const MEDIA_IMAGE_ZOOM_STEP = 1.25;
@@ -99,6 +102,114 @@ function normalizeThumbnailStripPlacement(value) {
 function isVerticalThumbnailStripPlacement(value) {
     const placement = normalizeThumbnailStripPlacement(value);
     return placement === "left" || placement === "right";
+}
+
+function rectsOverlap(leftRect = {}, rightRect = {}, gap = 0) {
+    return (
+        Number(leftRect.left) < Number(rightRect.right) + gap &&
+        Number(leftRect.right) + gap > Number(rightRect.left) &&
+        Number(leftRect.top) < Number(rightRect.bottom) + gap &&
+        Number(leftRect.bottom) + gap > Number(rightRect.top)
+    );
+}
+
+function resolveThumbnailPopoverPosition({
+    panelWidth = 0,
+    panelHeight = 0,
+    anchorLeft = 0,
+    anchorTop = 0,
+    anchorRight = 0,
+    anchorBottom = 0,
+    popoverWidth = 280,
+    popoverHeight = 152,
+    gap = 8,
+    margin = 8,
+} = {}) {
+    const safeMargin = Math.max(Number(margin) || 0, 0);
+    const safePanelWidth = Math.max(Number(panelWidth) || 0, (Number(popoverWidth) || 0) + safeMargin * 2);
+    const safePanelHeight = Math.max(Number(panelHeight) || 0, (Number(popoverHeight) || 0) + safeMargin * 2);
+    const safePopoverWidth = Math.min(Math.max(Number(popoverWidth) || 280, 1), Math.max(1, safePanelWidth - safeMargin * 2));
+    const safePopoverHeight = Math.min(Math.max(Number(popoverHeight) || 152, 1), Math.max(1, safePanelHeight - safeMargin * 2));
+    const safeGap = Math.max(Number(gap) || 0, 0);
+    const anchor = {
+        left: Number(anchorLeft) || 0,
+        top: Number(anchorTop) || 0,
+        right: Number(anchorRight) || 0,
+        bottom: Number(anchorBottom) || 0,
+    };
+    const anchorCenterX = (anchor.left + anchor.right) / 2;
+    const anchorCenterY = (anchor.top + anchor.bottom) / 2;
+    const maxLeft = safePanelWidth - safePopoverWidth - safeMargin;
+    const maxTop = safePanelHeight - safePopoverHeight - safeMargin;
+    const clampLeft = (value) => clamp(value, safeMargin, Math.max(safeMargin, maxLeft));
+    const clampTop = (value) => clamp(value, safeMargin, Math.max(safeMargin, maxTop));
+    const makeCandidate = (placement, left, top) => {
+        const rect = {
+            left: clampLeft(left),
+            top: clampTop(top),
+        };
+        rect.right = rect.left + safePopoverWidth;
+        rect.bottom = rect.top + safePopoverHeight;
+        const overlapWidth = Math.max(0, Math.min(rect.right, anchor.right) - Math.max(rect.left, anchor.left));
+        const overlapHeight = Math.max(0, Math.min(rect.bottom, anchor.bottom) - Math.max(rect.top, anchor.top));
+        return {
+            placement,
+            left: rect.left,
+            top: rect.top,
+            overlapArea: overlapWidth * overlapHeight,
+            rect,
+        };
+    };
+    const candidates = [
+        makeCandidate("above", anchorCenterX - safePopoverWidth / 2, anchor.top - safePopoverHeight - safeGap),
+        makeCandidate("below", anchorCenterX - safePopoverWidth / 2, anchor.bottom + safeGap),
+        makeCandidate("right", anchor.right + safeGap, anchorCenterY - safePopoverHeight / 2),
+        makeCandidate("left", anchor.left - safePopoverWidth - safeGap, anchorCenterY - safePopoverHeight / 2),
+    ];
+    const best = candidates.find((candidate) => !rectsOverlap(candidate.rect, anchor, 1)) ||
+        candidates.slice().sort((left, right) => left.overlapArea - right.overlapArea)[0];
+    return {
+        placement: best?.placement || "above",
+        left: Math.round(best?.left || safeMargin),
+        top: Math.round(best?.top || safeMargin),
+    };
+}
+
+function resolveThumbnailDisclosureLevel({
+    placement = "bottom",
+    stripSize = 0,
+    panelWidth = 0,
+    panelHeight = 0,
+} = {}) {
+    const vertical = isVerticalThumbnailStripPlacement(placement);
+    const size = Number(stripSize);
+    const safeSize = Number.isFinite(size) && size > 0
+        ? size
+        : (vertical ? THUMBNAIL_STRIP_DEFAULT_SIDE_WIDTH_PX : THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX);
+
+    let level = "media-only";
+    if (vertical) {
+        if (safeSize >= 210) level = "full";
+        else if (safeSize >= 170) level = "compact";
+        else if (safeSize >= 136) level = "minimal";
+    } else if (safeSize >= 150) {
+        level = "full";
+    } else if (safeSize >= 118) {
+        level = "compact";
+    } else if (safeSize >= 96) {
+        level = "minimal";
+    }
+
+    const width = Number(panelWidth);
+    const height = Number(panelHeight);
+    if (!vertical && Number.isFinite(width) && width > 0 && width < 420 && level === "full") {
+        level = "compact";
+    }
+    if (vertical && Number.isFinite(height) && height > 0 && height < 340 && level === "full") {
+        level = "compact";
+    }
+
+    return level;
 }
 
 function normalizeMediaImageViewState(state = {}) {
@@ -276,6 +387,17 @@ function getVisibleElementBottomPx(selector) {
     return Number.isFinite(bottom) && bottom > 0 ? bottom : Number.NaN;
 }
 
+function getVisibleElementTopPx(selector) {
+    const node = getDocumentRef()?.querySelector?.(selector) || null;
+    if (!node || node.hidden === true) return Number.NaN;
+    const style = getWindowRef()?.getComputedStyle?.(node) || null;
+    if (style?.display === "none" || style?.visibility === "hidden") return Number.NaN;
+    const rect = node.getBoundingClientRect?.() || null;
+    const top = Number(rect?.top);
+    const height = Number(rect?.height);
+    return Number.isFinite(top) && Number.isFinite(height) && height > 0 ? top : Number.NaN;
+}
+
 function getWorkflowBroadcastFallbackHeightPx() {
     const stackTop = getWorkflowPanelStackTopPx();
     const maxWidth = Math.max(
@@ -327,10 +449,18 @@ function getWorkflowMediaPanelTopPx() {
 }
 
 function getTimelineSafeBottomPx() {
-    const timelineRect = getDocumentRef()?.querySelector?.(".timeline-dock")?.getBoundingClientRect?.() || null;
-    const timelineTop = Number(timelineRect?.top);
-    if (Number.isFinite(timelineTop) && timelineTop > PANEL_EDGE_MARGIN_PX) {
-        return Math.round(timelineTop - PANEL_EDGE_MARGIN_PX - getPanelWrapperTopPx("media-browser-panel-wrapper"));
+    const controlTop = getVisibleElementTopPx("#control-panel");
+    const timelineTop = getVisibleElementTopPx(".timeline-dock");
+    const boundaryTop = Math.min(
+        Number.isFinite(controlTop) ? controlTop : Infinity,
+        Number.isFinite(timelineTop) ? timelineTop : Infinity,
+    );
+    if (Number.isFinite(boundaryTop) && boundaryTop > PANEL_EDGE_MARGIN_PX) {
+        return Math.round(
+            boundaryTop
+            - PANEL_TRANSPORT_CLEARANCE_PX
+            - getPanelWrapperTopPx("media-browser-panel-wrapper"),
+        );
     }
     return getViewportHeight() - PANEL_EDGE_MARGIN_PX;
 }
@@ -513,6 +643,149 @@ function createMediaBrowserPanelActions({
         const text = String(timeLabel || "").trim();
         if (!text) return "--";
         return text.split(" • ")[0]?.trim() || text;
+    }
+
+    function formatThumbnailKindLabel(kind) {
+        switch (kind) {
+        case "audioClip":
+            return "Audio";
+        case "videoClip":
+            return "Video";
+        case "image":
+            return "Image";
+        default:
+            return String(kind || "Media").trim() || "Media";
+        }
+    }
+
+    function buildThumbnailAriaLabel(item = {}) {
+        return [
+            item.title,
+            item.metaFull || item.meta || item.thumbnailLabel,
+            item.localTimeLabel ? `Local ${item.localTimeLabel}` : "",
+            item.utcTimeLabel ? `UTC ${item.utcTimeLabel}` : "",
+            item.cameraLabel,
+            item.metadataLabel,
+        ].filter(Boolean).join(" - ") || "Mission media item";
+    }
+
+    function appendThumbnailPopoverRow(list, label, value) {
+        const text = String(value || "").trim();
+        if (!isElementLike(list) || !text) return;
+        const key = createElement("dt");
+        const detail = createElement("dd");
+        if (!key || !detail) return;
+        key.className = "media-browser-panel__thumbnail-popover-key";
+        key.textContent = label;
+        detail.className = "media-browser-panel__thumbnail-popover-value";
+        detail.textContent = text;
+        list.appendChild(key);
+        list.appendChild(detail);
+    }
+
+    function ensureThumbnailPopover() {
+        let popover = getNode("media-browser-thumbnail-popover");
+        if (isElementLike(popover)) return popover;
+        const panel = getNode("media-browser-panel");
+        if (!isElementLike(panel)) return null;
+        popover = createElement("div");
+        if (!popover) return null;
+        popover.id = "media-browser-thumbnail-popover";
+        popover.className = "media-browser-panel__thumbnail-popover";
+        popover.hidden = true;
+        popover.setAttribute?.("role", "status");
+        panel.appendChild?.(popover);
+        return popover;
+    }
+
+    function positionThumbnailPopover(popover, anchor) {
+        const panel = getNode("media-browser-panel");
+        if (!isElementLike(popover) || !isElementLike(anchor) || !isElementLike(panel)) return;
+        const panelRect = panel.getBoundingClientRect?.() || {};
+        const anchorRect = anchor.getBoundingClientRect?.() || {};
+        const popoverRect = popover.getBoundingClientRect?.() || {};
+        const panelWidth = Number(panelRect.width) || panel.offsetWidth || 0;
+        const panelHeight = Number(panelRect.height) || panel.offsetHeight || 0;
+        const popoverWidth = Number(popoverRect.width) || 280;
+        const popoverHeight = Number(popoverRect.height) || 152;
+        const anchorLeft = Number(anchorRect.left) - (Number(panelRect.left) || 0);
+        const anchorRight = Number(anchorRect.right) - (Number(panelRect.left) || 0);
+        const anchorTop = Number(anchorRect.top) - (Number(panelRect.top) || 0);
+        const anchorBottom = Number(anchorRect.bottom) - (Number(panelRect.top) || 0);
+        const position = resolveThumbnailPopoverPosition({
+            panelWidth,
+            panelHeight,
+            anchorLeft,
+            anchorTop,
+            anchorRight,
+            anchorBottom,
+            popoverWidth,
+            popoverHeight,
+        });
+        popover.dataset.placement = position.placement;
+        popover.style.left = `${position.left}px`;
+        popover.style.top = `${position.top}px`;
+    }
+
+    function showThumbnailPopover(item, anchor) {
+        const popover = ensureThumbnailPopover();
+        if (!isElementLike(popover)) return;
+        const title = createElement("div");
+        const subtitle = createElement("div");
+        const details = createElement("dl");
+        if (!title || !subtitle || !details) return;
+        title.className = "media-browser-panel__thumbnail-popover-title";
+        title.textContent = item.title || "Mission media item";
+        subtitle.className = "media-browser-panel__thumbnail-popover-subtitle";
+        subtitle.textContent = [formatThumbnailKindLabel(item.kind), item.stageBadge]
+            .filter(Boolean)
+            .join(" • ");
+        details.className = "media-browser-panel__thumbnail-popover-details";
+        appendThumbnailPopoverRow(details, "MET", item.metaFull || item.meta);
+        appendThumbnailPopoverRow(details, "Local", item.localTimeLabel);
+        appendThumbnailPopoverRow(details, "UTC", item.utcTimeLabel);
+        appendThumbnailPopoverRow(details, "Camera", item.cameraLabel);
+        appendThumbnailPopoverRow(details, "Photographer", item.photographer);
+        appendThumbnailPopoverRow(details, "Location", item.location);
+        appendThumbnailPopoverRow(details, "Source", item.sourceLabel);
+        appendThumbnailPopoverRow(details, "AI", String(item.metadataLabel || "").replace(/^AI:\s*/i, ""));
+        if (typeof popover.replaceChildren === "function") {
+            popover.replaceChildren(title, subtitle, details);
+        } else {
+            popover.innerHTML = "";
+            popover.appendChild(title);
+            popover.appendChild(subtitle);
+            popover.appendChild(details);
+        }
+        popover.hidden = false;
+        positionThumbnailPopover(popover, anchor);
+    }
+
+    function hideThumbnailPopover() {
+        const popover = getNode("media-browser-thumbnail-popover");
+        if (!isElementLike(popover)) return;
+        popover.hidden = true;
+    }
+
+    function appendResponsiveThumbnailMetLabel(host, item = {}) {
+        if (!isElementLike(host)) return;
+        const fullLabel = String(item.metaFull || item.thumbnailLabel || item.meta || "MET --").trim();
+        const shortLabel = String(item.thumbnailLabel || item.meta || fullLabel).trim();
+        if (fullLabel && shortLabel && fullLabel !== shortLabel) {
+            const full = createElement("span");
+            const short = createElement("span");
+            if (full && short) {
+                full.className = "media-browser-panel__thumbnail-meta-full";
+                full.textContent = fullLabel;
+                short.className = "media-browser-panel__thumbnail-meta-short";
+                short.textContent = shortLabel;
+                host.appendChild(full);
+                host.appendChild(short);
+                host.setAttribute?.("aria-label", fullLabel);
+                return;
+            }
+        }
+        host.textContent = shortLabel || fullLabel || "MET --";
     }
 
     function formatCountLabel(count, singular, plural = `${singular}s`) {
@@ -1000,6 +1273,28 @@ function createMediaBrowserPanelActions({
         }
     }
 
+    function syncThumbnailDisclosureLevel(strip, panel = getNode("media-browser-panel")) {
+        if (!isElementLike(strip)) return;
+        const panelRect = panel?.getBoundingClientRect?.() || null;
+        const level = resolveThumbnailDisclosureLevel({
+            placement: thumbnailStripPlacement,
+            stripSize: thumbnailStripHeight,
+            panelWidth: Number(panelRect?.width) || getElementWidth(panel),
+            panelHeight: Number(panelRect?.height) || getElementHeight(panel),
+        });
+        for (const candidate of THUMBNAIL_DISCLOSURE_LEVELS) {
+            strip.classList?.toggle(
+                `${THUMBNAIL_DISCLOSURE_LEVEL_CLASS_PREFIX}${candidate}`,
+                candidate === level,
+            );
+        }
+        strip.classList?.toggle("is-compact", level === "compact" || level === "minimal" || level === "media-only");
+        strip.classList?.toggle("is-minimal", level === "minimal" || level === "media-only");
+        if (strip.dataset) {
+            strip.dataset.thumbnailDisclosureLevel = level;
+        }
+    }
+
     function applyThumbnailStripHeight(nextHeight = thumbnailStripHeight, {
         persist = false,
     } = {}) {
@@ -1023,8 +1318,7 @@ function createMediaBrowserPanelActions({
         }
 
         const strip = panel.querySelector?.(".media-browser-panel__thumbnail-strip");
-        strip?.classList?.toggle("is-compact", !isThumbnailStripVertical() && thumbnailStripHeight <= 118);
-        strip?.classList?.toggle("is-minimal", !isThumbnailStripVertical() && thumbnailStripHeight <= 96);
+        syncThumbnailDisclosureLevel(strip, panel);
         syncThumbnailStripDisclosure(panel);
 
         const resizer = getNode("media-browser-thumbnail-resizer");
@@ -1478,14 +1772,19 @@ function createMediaBrowserPanelActions({
     function resolveExpandedPanelRect() {
         const documentRef = getDocumentRef();
         const headerRect = documentRef?.querySelector?.(".header")?.getBoundingClientRect?.() || null;
-        const timelineRect = documentRef?.querySelector?.(".timeline-dock")?.getBoundingClientRect?.() || null;
+        const controlTop = getVisibleElementTopPx("#control-panel");
+        const timelineTop = getVisibleElementTopPx(".timeline-dock");
+        const boundaryTop = Math.min(
+            Number.isFinite(controlTop) ? controlTop : Infinity,
+            Number.isFinite(timelineTop) ? timelineTop : Infinity,
+        );
         const left = PANEL_EDGE_MARGIN_PX;
         const top = Number.isFinite(headerRect?.bottom)
             ? Math.round(headerRect.bottom + PANEL_EDGE_MARGIN_PX)
             : PANEL_EDGE_MARGIN_PX;
         const right = getViewportWidth() - PANEL_EDGE_MARGIN_PX;
-        const bottom = Number.isFinite(timelineRect?.top)
-            ? Math.round(timelineRect.top - PANEL_EDGE_MARGIN_PX)
+        const bottom = Number.isFinite(boundaryTop)
+            ? Math.round(boundaryTop - PANEL_TRANSPORT_CLEARANCE_PX)
             : (getViewportHeight() - PANEL_EDGE_MARGIN_PX);
         return {
             x: left,
@@ -2440,6 +2739,15 @@ function createMediaBrowserPanelActions({
             thumbnailAssetUrl: item.thumbnailAssetUrl,
             fallbackAssetUrl: item.fallbackAssetUrl,
             meta: item.meta,
+            metaFull: item.metaFull,
+            localTimeLabel: item.localTimeLabel,
+            utcTimeLabel: item.utcTimeLabel,
+            cameraLabel: item.cameraLabel,
+            photographer: item.photographer,
+            location: item.location,
+            sourceLabel: item.sourceLabel,
+            stageBadge: item.stageBadge,
+            thumbnailLabel: item.thumbnailLabel,
             metadataLabel: item.metadataLabel,
         })));
     }
@@ -2536,7 +2844,8 @@ function createMediaBrowserPanelActions({
                 button.setAttribute("aria-current", "true");
             }
             button.draggable = false;
-            button.title = [item.title, item.meta, item.metadataLabel].filter(Boolean).join(" - ");
+            button.removeAttribute?.("title");
+            button.setAttribute("aria-label", buildThumbnailAriaLabel(item));
             media.className = "media-browser-panel__thumbnail-media";
             media.addEventListener("dragstart", (event) => event.preventDefault());
             if (image && item.thumbnailAssetUrl) {
@@ -2576,12 +2885,29 @@ function createMediaBrowserPanelActions({
                 }
             }
             title.className = "media-browser-panel__thumbnail-title";
-            title.textContent = item.title;
+            appendResponsiveThumbnailMetLabel(title, item);
             meta.className = "media-browser-panel__thumbnail-meta";
-            meta.textContent = item.meta;
+            if (item.metaFull && item.meta && item.metaFull !== item.meta) {
+                const metaFull = createElement("span");
+                const metaShort = createElement("span");
+                if (metaFull && metaShort) {
+                    metaFull.className = "media-browser-panel__thumbnail-meta-full";
+                    metaFull.textContent = item.metaFull;
+                    metaShort.className = "media-browser-panel__thumbnail-meta-short";
+                    metaShort.textContent = item.meta;
+                    meta.appendChild(metaFull);
+                    meta.appendChild(metaShort);
+                    meta.setAttribute?.("aria-label", item.metaFull);
+                } else {
+                    meta.textContent = item.metaFull || item.meta;
+                }
+            } else {
+                meta.textContent = item.metaFull || item.meta || "";
+            }
             metadata.className = "media-browser-panel__thumbnail-metadata";
             metadata.textContent = item.metadataLabel || "";
-            metadata.hidden = !item.metadataLabel;
+            meta.hidden = true;
+            metadata.hidden = true;
             button.appendChild(media);
             button.appendChild(title);
             button.appendChild(meta);
@@ -2590,6 +2916,10 @@ function createMediaBrowserPanelActions({
                 if (suppressThumbnailClick === true) return;
                 onIntent?.({ type: "previewItem", value: item.id });
             });
+            button.addEventListener("pointerenter", () => showThumbnailPopover(item, button));
+            button.addEventListener("pointerleave", hideThumbnailPopover);
+            button.addEventListener("focus", () => showThumbnailPopover(item, button));
+            button.addEventListener("blur", hideThumbnailPopover);
             host.appendChild(button);
         }
 
@@ -2768,7 +3098,7 @@ function createMediaBrowserPanelActions({
         setText("media-browser-photographer", viewModel.activeItem?.photographer || "--");
         setText("media-browser-location", viewModel.activeItem?.location || "--");
         setText("media-browser-source", viewModel.activeItem?.sourceLabel || "--");
-        setText("media-browser-llm-summary", viewModel.activeItem?.shortDescription || "--");
+        setText("media-browser-ai-summary", viewModel.activeItem?.shortDescription || "--");
         setText("media-browser-scene-type", viewModel.activeItem?.sceneType || "--");
         setText("media-browser-bodies", formatMediaDetailList(viewModel.activeItem?.bodies));
         setText("media-browser-main-body", viewModel.activeItem?.mainBody || "--");
@@ -3338,5 +3668,7 @@ export {
     clampMediaImagePan,
     createDefaultMediaImageViewState,
     resolveRangeValueAtClientX,
+    resolveThumbnailDisclosureLevel,
+    resolveThumbnailPopoverPosition,
     zoomMediaImageViewState,
 };

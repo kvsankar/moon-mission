@@ -163,7 +163,12 @@ describe("Auxiliary panel resize interactions", () => {
                 () => document.getElementById("media-browser-panel-wrapper")?.hidden === false,
                 { timeout: 10000 },
             );
-            await page.evaluate(() => document.getElementById("panel-pill-media")?.click());
+            await page.evaluate(() => {
+                const panel = document.getElementById("media-browser-panel");
+                if (panel && !panel.classList.contains("media-browser-panel--hidden")) {
+                    document.getElementById("panel-pill-media")?.click();
+                }
+            });
             await page.waitForFunction(
                 () => document.getElementById("media-browser-panel")?.classList.contains("media-browser-panel--hidden"),
                 { timeout: 10000 },
@@ -220,7 +225,12 @@ describe("Auxiliary panel resize interactions", () => {
                 { timeout: 30000 },
             );
 
-            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.evaluate(() => {
+                const composer = document.querySelector(".aux-camera-view--composer");
+                if (!composer || composer.hidden) {
+                    document.getElementById("flyby-pill")?.click();
+                }
+            });
             await page.waitForFunction(
                 () => {
                     const panel = document.querySelector(".aux-camera-view--composer");
@@ -333,7 +343,12 @@ describe("Auxiliary panel resize interactions", () => {
                 { timeout: 30000 },
             );
 
-            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.evaluate(() => {
+                const composer = document.querySelector(".aux-camera-view--composer");
+                if (!composer || composer.hidden) {
+                    document.getElementById("flyby-pill")?.click();
+                }
+            });
             await page.waitForFunction(
                 () => {
                     const panel = document.querySelector(".aux-camera-view--composer");
@@ -470,7 +485,12 @@ describe("Auxiliary panel resize interactions", () => {
                 { timeout: 30000 },
             );
 
-            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.evaluate(() => {
+                const composer = document.querySelector(".aux-camera-view--composer");
+                if (!composer || composer.hidden) {
+                    document.getElementById("flyby-pill")?.click();
+                }
+            });
             await page.waitForFunction(
                 () => {
                     const panel = document.querySelector(".aux-camera-view--composer");
@@ -491,25 +511,37 @@ describe("Auxiliary panel resize interactions", () => {
                 () => document.getElementById("media-browser-panel-wrapper")?.hidden === false,
                 { timeout: 10000 },
             );
-            await page.evaluate(() => document.getElementById("panel-pill-media")?.click());
-            await page.waitForFunction(
-                () => {
-                    const media = document.getElementById("media-browser-panel");
-                    const composer = document.querySelector(".aux-camera-view--composer");
-                    if (!media || !composer || media.classList.contains("media-browser-panel--hidden") || composer.hidden) {
-                        return false;
-                    }
-                    const mediaRect = media.getBoundingClientRect();
-                    const composerRect = composer.getBoundingClientRect();
-                    return Math.abs(mediaRect.top - composerRect.top) <= 2 &&
-                        Math.abs(mediaRect.bottom - composerRect.bottom) <= 2;
-                },
-                { timeout: 10000 },
+            await page.evaluate(() => {
+                const panel = document.getElementById("media-browser-panel");
+                if (!panel || panel.classList.contains("media-browser-panel--hidden")) {
+                    document.getElementById("panel-pill-media")?.click();
+                }
+            });
+            const isDockviewEnabled = await page.evaluate(
+                () => document.body.classList.contains("dockview-panels-enabled"),
             );
+            if (!isDockviewEnabled) {
+                await page.waitForFunction(
+                    () => {
+                        const media = document.getElementById("media-browser-panel");
+                        const composer = document.querySelector(".aux-camera-view--composer");
+                        if (!media || !composer || media.classList.contains("media-browser-panel--hidden") || composer.hidden) {
+                            return false;
+                        }
+                        const mediaRect = media.getBoundingClientRect();
+                        const composerRect = composer.getBoundingClientRect();
+                        return Math.abs(mediaRect.top - composerRect.top) <= 2 &&
+                            Math.abs(mediaRect.bottom - composerRect.bottom) <= 2;
+                    },
+                    { timeout: 10000 },
+                );
+            }
 
             const layout = await page.evaluate(() => {
                 const media = document.getElementById("media-browser-panel");
                 const composer = document.querySelector(".aux-camera-view--composer");
+                const controlPanel = document.getElementById("control-panel");
+                const dockviewHost = document.getElementById("experimental-dockview-host");
                 const auxPanels = Array.from(document.querySelectorAll(".aux-camera-view:not(.aux-camera-view--composer)"))
                     .filter((panel) => !panel.hidden)
                     .map((panel) => {
@@ -524,7 +556,15 @@ describe("Auxiliary panel resize interactions", () => {
                     .sort((a, b) => a.top - b.top);
                 const mediaRect = media.getBoundingClientRect();
                 const composerRect = composer.getBoundingClientRect();
+                const controlRect = controlPanel?.getBoundingClientRect?.();
+                const dockviewHostRect = dockviewHost?.getBoundingClientRect?.();
                 return {
+                    dockviewEnabled: document.body.classList.contains("dockview-panels-enabled"),
+                    dockviewHost: dockviewHostRect
+                        ? {
+                            bottom: dockviewHostRect.bottom,
+                        }
+                        : null,
                     media: {
                         left: mediaRect.left,
                         top: mediaRect.top,
@@ -539,10 +579,22 @@ describe("Auxiliary panel resize interactions", () => {
                         width: composerRect.width,
                         height: composerRect.height,
                     },
+                    controlPanel: {
+                        top: controlRect?.top || 0,
+                    },
                     auxPanels,
                 };
             });
 
+            if (layout.dockviewEnabled) {
+                expect(layout.dockviewHost?.bottom || 0).toBeLessThanOrEqual(layout.controlPanel.top - 10);
+                expect(layout.media.bottom).toBeLessThanOrEqual(layout.controlPanel.top - 10);
+                expect(layout.composer.bottom).toBeLessThanOrEqual(layout.controlPanel.top - 10);
+                for (const panel of layout.auxPanels) {
+                    expect(panel.top + panel.height).toBeLessThanOrEqual(layout.controlPanel.top - 10);
+                }
+                return;
+            }
             expect(Math.abs(layout.media.top - layout.composer.top)).toBeLessThanOrEqual(2);
             expect(Math.abs(layout.media.bottom - layout.composer.bottom)).toBeLessThanOrEqual(2);
             expect(Math.abs(layout.media.width - layout.composer.width)).toBeLessThanOrEqual(2);
@@ -550,6 +602,8 @@ describe("Auxiliary panel resize interactions", () => {
             expect(Math.abs(layout.composer.height - composerBeforeMedia.height)).toBeLessThanOrEqual(2);
             expect(Math.abs(layout.media.height - (800 * 0.6))).toBeLessThanOrEqual(2);
             expect(Math.abs(layout.composer.height - (800 * 0.6))).toBeLessThanOrEqual(2);
+            expect(layout.media.bottom).toBeLessThanOrEqual(layout.controlPanel.top - 10);
+            expect(layout.composer.bottom).toBeLessThanOrEqual(layout.controlPanel.top - 10);
             expect(layout.media.left).toBeLessThan(layout.composer.left);
             expect(layout.auxPanels).toHaveLength(3);
             expect(Math.max(...layout.auxPanels.map((panel) => Math.abs(panel.left - layout.auxPanels[0].left))))
@@ -612,7 +666,7 @@ describe("Auxiliary panel resize interactions", () => {
 
         try {
             await page.addInitScript(() => localStorage.clear());
-            await page.goto(`${baseUrl}/artemis2/`, {
+            await page.goto(`${baseUrl}/artemis2/?legacyPanels=1`, {
                 waitUntil: "domcontentloaded",
                 timeout: 60000,
             });
@@ -622,7 +676,12 @@ describe("Auxiliary panel resize interactions", () => {
                 { timeout: 30000 },
             );
 
-            await page.evaluate(() => document.getElementById("panel-pill-media")?.click());
+            await page.evaluate(() => {
+                const panel = document.getElementById("media-browser-panel");
+                if (!panel || panel.classList.contains("media-browser-panel--hidden")) {
+                    document.getElementById("panel-pill-media")?.click();
+                }
+            });
             await page.waitForFunction(
                 () => {
                     const panel = document.getElementById("media-browser-panel");
@@ -635,6 +694,16 @@ describe("Auxiliary panel resize interactions", () => {
                 },
                 { timeout: 10000 },
             );
+
+            await page.evaluate(() => document.getElementById("media-browser-panel-expand")?.click());
+            await page.waitForFunction(
+                () => document.getElementById("media-browser-panel")?.classList?.contains("is-maximized"),
+                { timeout: 5000 },
+            );
+            await page.evaluate(() => {
+                const wrapper = document.getElementById("media-browser-panel-wrapper");
+                if (wrapper) wrapper.style.zIndex = "9000";
+            });
 
             await page.click("#media-browser-image-zoom-in");
             await page.click("#media-browser-image-zoom-in");
@@ -697,6 +766,139 @@ describe("Auxiliary panel resize interactions", () => {
             expect(afterResize.zoom).toBeGreaterThan(1);
             expect(Math.abs(afterResize.panY)).toBeLessThanOrEqual(afterResize.maxPanY + 1);
             expect(afterResize.activeThumbnailInsideList).toBe(true);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
+
+    it("derives Mission Media thumbnail disclosure levels from real strip geometry", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        const readThumbnailState = async () => page.evaluate(() => {
+            const panel = document.getElementById("media-browser-panel");
+            const strip = panel?.querySelector(".media-browser-panel__thumbnail-strip");
+            const list = document.getElementById("media-browser-thumbnail-list");
+            const active = list?.querySelector(".media-browser-panel__thumbnail-card.is-active");
+            const title = active?.querySelector(".media-browser-panel__thumbnail-title");
+            const meta = active?.querySelector(".media-browser-panel__thumbnail-meta");
+            const stripRect = strip?.getBoundingClientRect?.();
+            const activeRect = active?.getBoundingClientRect?.();
+            return {
+                level: strip?.dataset?.thumbnailDisclosureLevel || "",
+                placement: panel?.dataset?.thumbnailStripPlacement || "",
+                stripWidth: stripRect?.width || 0,
+                stripHeight: stripRect?.height || 0,
+                titleDisplay: title ? getComputedStyle(title).display : "",
+                titleText: title?.textContent || "",
+                metaDisplay: meta ? getComputedStyle(meta).display : "",
+                activeVisible: !!activeRect && activeRect.width > 20 && activeRect.height > 20,
+                activeAriaLabel: active?.getAttribute("aria-label") || "",
+                activeTitle: active?.getAttribute("title") || "",
+            };
+        });
+
+        try {
+            await page.addInitScript(() => localStorage.clear());
+            await page.goto(`${baseUrl}/artemis2/?legacyPanels=1`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.evaluate(() => {
+                const panel = document.getElementById("media-browser-panel");
+                if (!panel || panel.classList.contains("media-browser-panel--hidden")) {
+                    document.getElementById("panel-pill-media")?.click();
+                }
+            });
+            await page.waitForFunction(
+                () => {
+                    const panel = document.getElementById("media-browser-panel");
+                    const strip = panel?.querySelector(".media-browser-panel__thumbnail-strip");
+                    const active = document.querySelector("#media-browser-thumbnail-list .media-browser-panel__thumbnail-card.is-active");
+                    return panel
+                        && !panel.classList.contains("media-browser-panel--hidden")
+                        && strip?.dataset?.thumbnailDisclosureLevel
+                        && active;
+                },
+                { timeout: 10000 },
+            );
+
+            let state = await readThumbnailState();
+            expect(state.level).toBe("media-only");
+            expect(state.placement).toBe("bottom");
+            expect(state.titleDisplay).toBe("none");
+            expect(state.metaDisplay).toBe("none");
+            expect(state.activeVisible).toBe(true);
+            expect(state.activeTitle).toBe("");
+            expect(state.activeAriaLabel.length).toBeGreaterThan(0);
+
+            await page.evaluate(() => document.getElementById("media-browser-panel-expand")?.click());
+            await page.waitForFunction(
+                () => document.getElementById("media-browser-panel")?.classList?.contains("is-maximized"),
+                { timeout: 5000 },
+            );
+
+            await page.focus("#media-browser-thumbnail-resizer");
+            await page.keyboard.press("End");
+            await page.waitForFunction(
+                () => document.querySelector(".media-browser-panel__thumbnail-strip")?.dataset?.thumbnailDisclosureLevel === "full",
+                { timeout: 5000 },
+            );
+
+            state = await readThumbnailState();
+            expect(state.level).toBe("full");
+            expect(state.stripHeight).toBeGreaterThanOrEqual(150);
+            expect(state.titleDisplay).not.toBe("none");
+            expect(state.titleText).toMatch(/^MET /);
+            expect(state.metaDisplay).toBe("none");
+            expect(state.activeVisible).toBe(true);
+
+            await page.keyboard.press("Home");
+            await page.waitForFunction(
+                () => document.querySelector(".media-browser-panel__thumbnail-strip")?.dataset?.thumbnailDisclosureLevel === "media-only",
+                { timeout: 5000 },
+            );
+
+            await page.focus("#media-browser-thumbnail-placement-grab");
+            await page.keyboard.press("ArrowLeft");
+            await page.waitForFunction(
+                () => {
+                    const panel = document.getElementById("media-browser-panel");
+                    const strip = panel?.querySelector(".media-browser-panel__thumbnail-strip");
+                    return panel?.dataset?.thumbnailStripPlacement === "left"
+                        && strip?.classList?.contains("is-vertical")
+                        && strip?.dataset?.thumbnailDisclosureLevel === "minimal";
+                },
+                { timeout: 5000 },
+            );
+
+            state = await readThumbnailState();
+            expect(state.placement).toBe("left");
+            expect(state.level).toBe("minimal");
+            expect(state.titleDisplay).toBe("none");
+            expect(state.activeVisible).toBe(true);
+
+            await page.focus("#media-browser-thumbnail-resizer");
+            await page.keyboard.press("End");
+            await page.waitForFunction(
+                () => document.querySelector(".media-browser-panel__thumbnail-strip")?.dataset?.thumbnailDisclosureLevel === "full",
+                { timeout: 5000 },
+            );
+
+            state = await readThumbnailState();
+            expect(state.placement).toBe("left");
+            expect(state.level).toBe("full");
+            expect(state.stripWidth).toBeGreaterThanOrEqual(210);
+            expect(state.titleDisplay).not.toBe("none");
+            expect(state.titleText).toMatch(/^MET /);
+            expect(state.metaDisplay).toBe("none");
+            expect(state.activeVisible).toBe(true);
         } finally {
             await page.close();
         }

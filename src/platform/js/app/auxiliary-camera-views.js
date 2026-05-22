@@ -144,6 +144,7 @@ const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
 
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
+const PANEL_TRANSPORT_CLEARANCE_PX = 14;
 const PANEL_TOP_OFFSET_PX = 38;
 const PANEL_ABOUT_ALIGNED_MIN_VIEWPORT_WIDTH = 1600;
 const PANEL_CSS_MIN_SIDE_DEFAULT = 160;
@@ -1469,7 +1470,7 @@ class AuxiliaryCameraViewsManager {
             Number.isFinite(timelineTop) ? timelineTop : Infinity,
         );
         const bottom = Number.isFinite(bottomBoundary)
-            ? Math.round(bottomBoundary - PANEL_GAP_PX)
+            ? Math.round(bottomBoundary - PANEL_TRANSPORT_CLEARANCE_PX)
             : (viewportHeight - PANEL_MARGIN_PX);
         return {
             left,

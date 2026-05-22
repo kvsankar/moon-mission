@@ -64,7 +64,7 @@ describe("media-shot-view", () => {
         expect(hint.orientationReference).toBe("moon-north");
     });
 
-    it("uses LLM main-body metadata before generic body-list fallback", () => {
+    it("uses AI main-body metadata before generic body-list fallback", () => {
         const hint = inferMediaShotViewHint({
             id: "earth-and-moon",
             title: "Lunar flyby frame",
