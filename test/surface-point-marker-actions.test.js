@@ -112,4 +112,35 @@ describe("surface point marker actions", () => {
         expect(scene.surfacePointMarkerAnimationFrame).toBeNull();
         expect(marker.visible).toBe(false);
     });
+
+    it("caps surface point marker size aggressively against body radius", () => {
+        const scene = createScene();
+        const actions = createSurfacePointMarkerActions({ THREE, render: vi.fn() });
+
+        actions.addSurfacePointMarkers({ scene });
+        actions.setSurfacePointMarkersVisible({
+            scene,
+            view: {
+                viewSubSolarEarth: true,
+                viewSolarGlintEarth: true,
+            },
+        });
+        actions.updateSurfacePointMarkers({
+            scene,
+            sunDirections: {
+                earthCentered: { x: 1, y: 0, z: 0 },
+                moonCentered: { x: 1, y: 0, z: 0 },
+            },
+            craftId: "SC",
+        });
+
+        const subSolar = scene.surfacePointMarkers.subSolarEarth;
+        const solarGlint = scene.surfacePointMarkers.solarGlintEarth;
+
+        expect(subSolar.visible).toBe(true);
+        expect(solarGlint.visible).toBe(true);
+        expect(subSolar.scale.x).toBeCloseTo(6 * 0.030);
+        expect(solarGlint.scale.x).toBeCloseTo(6 * 0.050);
+        expect(solarGlint.scale.x).toBeLessThan(6 * 0.15);
+    });
 });

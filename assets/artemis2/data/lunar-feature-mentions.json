@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "source": "Curated from the Artemis II lunar flyby broadcast transcript entity index.",
+  "mediaStreamId": "artemis2-lunar-flyby-broadcast",
+  "streamStartTime": "2026-04-06T16:58:14Z",
+  "defaults": {
+    "visibleWindowSeconds": 300,
+    "activeLeadSeconds": 10,
+    "activeTrailSeconds": 20
+  },
+  "features": {
+    "mare_orientale": {
+      "displayName": "Mare Orientale",
+      "catalogName": "Mare Orientale"
+    },
+    "terminator": {
+      "displayName": "Terminator"
+    },
+    "mare_general": {
+      "displayName": "Mare"
+    },
+    "glushko_crater": {
+      "displayName": "Glushko",
+      "catalogName": "Glushko"
+    },
+    "ohm_crater": {
+      "displayName": "Ohm",
+      "catalogName": "Ohm"
+    },
+    "aristarchus_crater": {
+      "displayName": "Aristarchus",
+      "catalogName": "Aristarchus"
+    },
+    "grimaldi_crater": {
+      "displayName": "Grimaldi",
+      "catalogName": "Grimaldi"
+    },
+    "vavilov_crater": {
+      "displayName": "Vavilov",
+      "catalogName": "Vavilov"
+    },
+    "pythagoras_crater": {
+      "displayName": "Pythagoras",
+      "catalogName": "Pythagoras"
+    },
+    "carol_crater": {
+      "displayName": "Carol",
+      "catalogName": "Carol"
+    },
+    "south_pole_aitken_basin": {
+      "displayName": "South Pole-Aitken Basin"
+    }
+  },
+  "mentions": [
+    {
+      "timeSeconds": 1431.501,
+      "featureSlugs": ["grimaldi_crater"],
+      "speaker": "NASA Science Theme Lead",
+      "summary": "Grimaldi is called out as a dark lunar feature."
+    },
+    {
+      "timeSeconds": 1510.382,
+      "featureSlugs": ["ohm_crater"],
+      "speaker": "NASA Science Theme Lead",
+      "summary": "Ohm and its ray system are introduced as observation targets."
+    },
+    {
+      "timeSeconds": 2572.863,
+      "featureSlugs": ["glushko_crater"],
+      "speaker": "Kelsey Evans Young",
+      "summary": "Glushko is identified as a repeated lunar target."
+    },
+    {
+      "timeSeconds": 2583.221,
+      "featureSlugs": ["mare_orientale"],
+      "speaker": "Kelsey Evans Young",
+      "summary": "Mare Orientale is discussed among the planned observation areas."
+    },
+    {
+      "timeSeconds": 2620.843,
+      "featureSlugs": ["terminator"],
+      "speaker": "Kelsey Evans Young",
+      "summary": "The crew is reminded that eyes may need to adjust near the terminator."
+    },
+    {
+      "timeSeconds": 3620,
+      "featureSlugs": ["mare_orientale"],
+      "speaker": "Jeremy Hansen",
+      "summary": "Mare Orientale is used as a far-side comparison point."
+    },
+    {
+      "timeSeconds": 3737.301,
+      "featureSlugs": ["glushko_crater"],
+      "speaker": "Reid Wiseman",
+      "summary": "Glushko is called out as something to find in the view."
+    },
+    {
+      "timeSeconds": 3972.253,
+      "featureSlugs": ["ohm_crater", "carol_crater", "glushko_crater"],
+      "speaker": "Leah Cheshier-Mustachio",
+      "summary": "Ohm, Carol, and Glushko are referenced together."
+    },
+    {
+      "timeSeconds": 6459.14,
+      "featureSlugs": ["mare_orientale"],
+      "speaker": "Christina Koch",
+      "summary": "The crew compares Hertzsprung's size with Mare Orientale."
+    },
+    {
+      "timeSeconds": 6709.221,
+      "featureSlugs": ["mare_general"],
+      "speaker": "Leah Cheshier-Mustachio",
+      "summary": "Maria are described as dark volcanic deposits."
+    },
+    {
+      "timeSeconds": 7111.16,
+      "featureSlugs": ["aristarchus_crater"],
+      "speaker": "Victor Glover",
+      "summary": "Aristarchus colors are discussed for later correlation."
+    },
+    {
+      "timeSeconds": 7344.667,
+      "featureSlugs": ["vavilov_crater"],
+      "speaker": "Victor Glover",
+      "summary": "Vavilov stands out to the crew."
+    },
+    {
+      "timeSeconds": 8170.903,
+      "featureSlugs": ["grimaldi_crater"],
+      "speaker": "Kelsey Evans Young",
+      "summary": "Dark patches are compared to the albedo in Grimaldi."
+    },
+    {
+      "timeSeconds": 8321.724,
+      "featureSlugs": ["glushko_crater", "ohm_crater"],
+      "speaker": "Leah Cheshier-Mustachio",
+      "summary": "Glushko and Ohm are paired for ray-system comparison."
+    },
+    {
+      "timeSeconds": 8530.622,
+      "featureSlugs": ["pythagoras_crater"],
+      "speaker": "Kelsey Evans Young",
+      "summary": "The science team agrees with the Pythagoras assessment."
+    },
+    {
+      "timeSeconds": 8582.18,
+      "featureSlugs": ["terminator"],
+      "speaker": "Victor Glover",
+      "summary": "The terminator and its shadowing are described from Orion."
+    },
+    {
+      "timeSeconds": 8653.362,
+      "featureSlugs": ["grimaldi_crater", "carol_crater", "glushko_crater"],
+      "speaker": "Victor Glover",
+      "summary": "Grimaldi, Carol, and Glushko are described near the mare edge."
+    },
+    {
+      "timeSeconds": 9692.763,
+      "featureSlugs": ["terminator"],
+      "speaker": "Victor Glover",
+      "summary": "A feature near the South Pole and terminator is queried."
+    },
+    {
+      "timeSeconds": 10002.421,
+      "featureSlugs": ["ohm_crater", "aristarchus_crater"],
+      "speaker": "Leah Cheshier-Mustachio",
+      "summary": "Ohm and Aristarchus are listed among upcoming targets."
+    },
+    {
+      "timeSeconds": 10404,
+      "featureSlugs": ["grimaldi_crater"],
+      "speaker": "Jeremy Hansen",
+      "summary": "A dark region is compared with Grimaldi."
+    },
+    {
+      "timeSeconds": 13337.521,
+      "featureSlugs": ["aristarchus_crater"],
+      "speaker": "Jeremy Hansen",
+      "summary": "Brown hues near Aristarchus are described."
+    },
+    {
+      "timeSeconds": 18628.241,
+      "featureSlugs": ["vavilov_crater"],
+      "speaker": "Leah Cheshier-Mustachio",
+      "summary": "Vavilov is mentioned as a previously seen crater target."
+    },
+    {
+      "timeSeconds": 21150.344,
+      "featureSlugs": ["aristarchus_crater"],
+      "speaker": "Kelsey Evans Young",
+      "summary": "Greenish and brownish hues near Aristarchus are highlighted."
+    },
+    {
+      "timeSeconds": 25812.222,
+      "featureSlugs": ["south_pole_aitken_basin"],
+      "speaker": "NASA Promotional Narrator",
+      "summary": "The South Pole-Aitken Basin is described as scientifically exciting."
+    }
+  ]
+}

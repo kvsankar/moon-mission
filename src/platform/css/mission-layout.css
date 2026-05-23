@@ -56,7 +56,7 @@ svg {
 .mobile-moon-farside-overlay {
     position: fixed;
     inset: 0;
-    z-index: 4;
+    z-index: 7;
     pointer-events: none;
     display: none;
 }
@@ -803,6 +803,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .aux-camera-view__composer-crater-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     min-width: 0;
@@ -2008,6 +2009,171 @@ html[data-app-view="selector"] .mission-loading-overlay,
     overflow: hidden;
     z-index: 4;
     pointer-events: none;
+}
+
+.aux-camera-view__composer-feature-stack {
+    position: absolute;
+    top: 136px;
+    right: 10px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    width: min(260px, calc(100% - 20px));
+    max-height: min(42%, 220px);
+    border: 1px solid rgba(160, 196, 244, 0.34);
+    border-radius: 6px;
+    background: rgba(9, 16, 28, 0.64);
+    backdrop-filter: blur(3px);
+    overflow: hidden;
+    z-index: 7;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: none;
+}
+
+.aux-camera-view__composer-feature-stack[hidden] {
+    display: none !important;
+}
+
+.aux-camera-view__composer-feature-stack-restore {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aux-camera-view__composer-feature-stack-restore[hidden] {
+    display: none !important;
+}
+
+.aux-camera-view__composer-feature-stack-restore:hover,
+.aux-camera-view__composer-feature-stack-restore:focus-visible {
+    border-color: rgba(181, 221, 255, 0.68);
+    background: rgba(73, 103, 156, 0.48);
+}
+
+.aux-camera-view__viewport:hover > .aux-camera-view__composer-feature-stack,
+.aux-camera-view__composer-feature-stack:focus-within,
+.aux-camera-view__composer-feature-stack.is-dragging {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.aux-camera-view__composer-feature-stack-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px 5px;
+    border-bottom: 1px solid rgba(160, 196, 244, 0.2);
+    color: rgba(198, 219, 248, 0.86);
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: move;
+    user-select: none;
+    touch-action: none;
+}
+
+.aux-camera-view__composer-feature-stack.is-dragging {
+    border-color: rgba(181, 221, 255, 0.68);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+}
+
+.aux-camera-view__composer-feature-stack-nav {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.aux-camera-view__composer-feature-stack-window-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.aux-camera-view__composer-feature-stack-nav-button,
+.aux-camera-view__composer-feature-stack-window-button {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid rgba(159, 194, 246, 0.34);
+    border-radius: 4px;
+    color: rgba(224, 236, 252, 0.94);
+    background: rgba(73, 103, 156, 0.32);
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.aux-camera-view__composer-feature-stack-nav-button:not(:disabled):hover,
+.aux-camera-view__composer-feature-stack-nav-button:not(:disabled):focus-visible,
+.aux-camera-view__composer-feature-stack-window-button:hover,
+.aux-camera-view__composer-feature-stack-window-button:focus-visible {
+    border-color: rgba(181, 221, 255, 0.68);
+    background: rgba(94, 135, 201, 0.54);
+}
+
+.aux-camera-view__composer-feature-stack-nav-button:disabled {
+    opacity: 0.38;
+    cursor: default;
+}
+
+.aux-camera-view__composer-feature-stack-list {
+    display: grid;
+    gap: 2px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 5px;
+}
+
+.aux-camera-view__composer-feature-stack-empty {
+    padding: 6px 5px;
+    color: rgba(187, 210, 240, 0.68);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.aux-camera-view__composer-feature-stack-item {
+    display: grid;
+    grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 4px 5px;
+    border-radius: 5px;
+    color: rgba(218, 230, 247, 0.76);
+    background: rgba(186, 209, 239, 0.06);
+}
+
+.aux-camera-view__composer-feature-stack-item.is-active {
+    color: rgba(251, 255, 244, 0.98);
+    background: rgba(139, 194, 114, 0.28);
+    box-shadow: inset 3px 0 0 rgba(165, 235, 126, 0.95);
+}
+
+.aux-camera-view__composer-feature-stack-time {
+    color: rgba(187, 210, 240, 0.78);
+    font-size: 8px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-feature-stack-name {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .aux-camera-view__composer-metric-cell {

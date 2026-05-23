@@ -1435,6 +1435,56 @@ textarea {
     box-shadow: 0 0 0 2px rgba(121, 171, 255, 0.18);
 }
 
+.lunar-crater-controls-panel__synced-controls {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.lunar-crater-controls-panel__synced-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+    max-width: 100%;
+    color: rgba(224, 236, 252, 0.9);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.lunar-crater-controls-panel__synced-row {
+    display: grid;
+    grid-template-columns: 42px minmax(90px, 1fr) 36px;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.lunar-crater-controls-panel__synced-label {
+    color: #b9c5d8;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.lunar-crater-controls-panel__synced-slider {
+    width: 100%;
+    min-width: 0;
+    accent-color: #83b6ff;
+}
+
+.lunar-crater-controls-panel__synced-value {
+    color: #e8f0ff;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .lunar-crater-controls-panel__presets {
     display: inline-grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

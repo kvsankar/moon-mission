@@ -73,6 +73,39 @@ describe("lunar crater catalog render planning", () => {
         expect(plan.filteredCount).toBe(1);
     });
 
+    it("pins named lunar features outside the configured diameter range", () => {
+        const plan = getCratersToShow({
+            display: catalog.display,
+            features: [
+                ...catalog.features,
+                {
+                    name: "Glushko",
+                    cleanName: "Glushko",
+                    featureType: "Crater, craters",
+                    latitudeDeg: 8,
+                    longitudeDeg: 282,
+                    diameterKm: 40,
+                },
+                {
+                    name: "Mare Orientale",
+                    cleanName: "Mare Orientale",
+                    featureType: "Mare, maria",
+                    latitudeDeg: -20,
+                    longitudeDeg: 265,
+                    diameterKm: 294,
+                },
+            ],
+        }, {
+            lunarCraterMinDiameterKm: 100,
+            lunarCraterMaxDiameterKm: 200,
+            lunarFeaturePinnedNames: ["Glushko", "Mare Orientale"],
+            minScreenDiameterPx: 0,
+        });
+
+        expect(names(plan)).toEqual(["Mare Orientale", "Glushko"]);
+        expect(plan.filteredCount).toBe(2);
+    });
+
     it("excludes unchecked lunar feature search results by key", () => {
         const tycho = {
             name: "Tycho",

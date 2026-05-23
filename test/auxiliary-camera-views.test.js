@@ -446,6 +446,87 @@ describe("Frame and Shoot FoV bounds", () => {
         });
     });
 
+    it("injects active transcript lunar feature names into the composer crater render", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const renderer = {};
+        const camera = {};
+        const pinnedNameCalls = [];
+        const animationScene = {
+            lunarCraterGroup: { name: "lunar-crater-annotations", visible: false },
+            addLunarCraterAnnotations: vi.fn(function addLunarCraterAnnotations() {
+                pinnedNameCalls.push(this.lunarFeaturePinnedNames);
+                this.lunarCraterGroup = { name: "lunar-crater-annotations", visible: false };
+            }),
+            setLunarCraterHoverLabelsEnabled: vi.fn(),
+            clearLunarCraterHover: vi.fn(),
+            updateLunarCraterLabelScales: vi.fn(),
+            disposeLunarCraterAnnotations: vi.fn(),
+        };
+        const scene = {
+            getObjectByName: vi.fn((name) =>
+                name === "lunar-crater-annotations" ? animationScene.lunarCraterGroup : null,
+            ),
+        };
+        manager.renderLayers = vi.fn();
+
+        manager.renderComposerLayers(
+            {
+                renderer,
+                camera,
+                composerLunarCratersEnabled: false,
+                composerLunarFeatureMentionView: {
+                    activeCatalogNames: ["Grimaldi", "Ohm"],
+                },
+            },
+            scene,
+            { animationScene },
+        );
+
+        expect(pinnedNameCalls[0]).toEqual(["Grimaldi", "Ohm"]);
+        expect(animationScene.setLunarCraterHoverLabelsEnabled).toHaveBeenCalledWith(true);
+    });
+
+    it("does not inject transcript lunar features when Frame and Shoot sync is disabled", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const renderer = {};
+        const camera = {};
+        const pinnedNameCalls = [];
+        const animationScene = {
+            lunarCraterGroup: { name: "lunar-crater-annotations", visible: false },
+            addLunarCraterAnnotations: vi.fn(function addLunarCraterAnnotations() {
+                pinnedNameCalls.push(this.lunarFeaturePinnedNames);
+                this.lunarCraterGroup = { name: "lunar-crater-annotations", visible: false };
+            }),
+            setLunarCraterHoverLabelsEnabled: vi.fn(),
+            clearLunarCraterHover: vi.fn(),
+            updateLunarCraterLabelScales: vi.fn(),
+            disposeLunarCraterAnnotations: vi.fn(),
+        };
+        const scene = {
+            getObjectByName: vi.fn((name) =>
+                name === "lunar-crater-annotations" ? animationScene.lunarCraterGroup : null,
+            ),
+        };
+        manager.renderLayers = vi.fn();
+
+        manager.renderComposerLayers(
+            {
+                renderer,
+                camera,
+                composerLunarCratersEnabled: false,
+                composerLunarFeatureSyncedEnabled: false,
+                composerLunarFeatureMentionView: {
+                    activeCatalogNames: ["Grimaldi"],
+                },
+            },
+            scene,
+            { animationScene },
+        );
+
+        expect(pinnedNameCalls).toEqual([]);
+        expect(animationScene.setLunarCraterHoverLabelsEnabled).not.toHaveBeenCalled();
+    });
+
     it("keeps ordinary auxiliary renders independent from fullscreen lunar crater visibility", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const renderer = {};

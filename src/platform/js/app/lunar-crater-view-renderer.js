@@ -24,6 +24,7 @@ function captureCraterPresentation(animationScene) {
         hoverMaxDiameterKm: animationScene.lunarCraterHoverMaxDiameterKm,
         typeFilters: animationScene.lunarFeatureTypeFilters,
         searchQuery: animationScene.lunarFeatureSearchQuery,
+        pinnedNames: animationScene.lunarFeaturePinnedNames,
         excludedKeys: animationScene.lunarFeatureExcludedKeys,
         hoverTypeFilters: animationScene.lunarFeatureHoverTypeFilters,
         hoverSearchQuery: animationScene.lunarFeatureHoverSearchQuery,
@@ -48,6 +49,7 @@ function restoreCraterPresentation(animationScene, previous) {
     animationScene.lunarCraterHoverMaxDiameterKm = previous.hoverMaxDiameterKm;
     animationScene.lunarFeatureTypeFilters = previous.typeFilters;
     animationScene.lunarFeatureSearchQuery = previous.searchQuery;
+    animationScene.lunarFeaturePinnedNames = previous.pinnedNames;
     animationScene.lunarFeatureExcludedKeys = previous.excludedKeys;
     animationScene.lunarFeatureHoverTypeFilters = previous.hoverTypeFilters;
     animationScene.lunarFeatureHoverSearchQuery = previous.hoverSearchQuery;
@@ -92,7 +94,8 @@ export function renderWithLunarCraterView({
         ? normalizeLunarFeatureViewState(viewState)
         : createDefaultLunarFeatureViewState();
 
-    const hasSearchResultsOverlay = craterState.lunarFeatureSearchQuery.length > 0;
+    const hasSearchResultsOverlay = craterState.lunarFeatureSearchQuery.length > 0 ||
+        craterState.lunarFeaturePinnedNames.length > 0;
     if ((craterState.viewLunarCraters !== true && !hasSearchResultsOverlay) || !supported) {
         setCraterGroupVisibleTemporarily(
             resolveCraterGroup({ animationScene, scene }),
@@ -117,6 +120,7 @@ export function renderWithLunarCraterView({
         animationScene.lunarCraterHoverMaxDiameterKm = craterState.lunarCraterHoverMaxDiameterKm;
         animationScene.lunarFeatureTypeFilters = craterState.lunarFeatureTypeFilters;
         animationScene.lunarFeatureSearchQuery = craterState.lunarFeatureSearchQuery;
+        animationScene.lunarFeaturePinnedNames = craterState.lunarFeaturePinnedNames;
         animationScene.lunarFeatureExcludedKeys = craterState.lunarFeatureExcludedKeys;
         animationScene.lunarFeatureHoverTypeFilters = craterState.lunarFeatureHoverTypeFilters;
         animationScene.lunarFeatureHoverSearchQuery = craterState.lunarFeatureHoverSearchQuery;
