@@ -1,5 +1,5 @@
 // Headless Playwright tuner-shot script.
-// Usage: node tmp/moon-tune/shoot.mjs <label> [json-overrides]
+// Usage: node scripts/moon-tune/shoot.mjs <label> [json-overrides]
 // Renders moon-render-tuner.html with framing matching the Artemis II Earth-rise reference,
 // applies parameter overrides via the tuner's Apply JSON path, and writes a PNG.
 

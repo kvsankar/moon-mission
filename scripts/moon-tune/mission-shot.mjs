@@ -1,5 +1,5 @@
 // Headless screenshot of mission.html?mission=artemis2 in different camera views.
-// Usage: node tmp/moon-tune/mission-shot.mjs <preset> <label>
+// Usage: node scripts/moon-tune/mission-shot.mjs <preset> <label>
 //   preset: free | earth | moon (mobile-view-preset values)
 //
 // Drives the mobile-view-preset buttons or directly commits camera modes via the

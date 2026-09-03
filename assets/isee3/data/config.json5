@@ -16,8 +16,8 @@
 //   Original trajectory window from source: `2014-Jan-01` to `2014-Dec-31`
 //   Selected interesting window strategy: encounter-centered `92` days around the 2014 Earth/Moon return, because the raw HORIZONS trajectory is a 2014 reconstruction rather than the full 1978-1980s mission history.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/isee-3-ice.txt`: launch details, 2008 carrier reacquisition note, and 2014 reconstructed Earth/Moon encounter update.
-//   - `docs/horizons-blurbs/raw/isee-3-ice.txt`: exact lunar close approach reported as `2014-Aug-10 19:18:27 UTC`, about `16,663 km` above the lunar surface.
+//   - `assets/horizons-blurbs/raw/isee-3-ice.txt`: launch details, 2008 carrier reacquisition note, and 2014 reconstructed Earth/Moon encounter update.
+//   - `assets/horizons-blurbs/raw/isee-3-ice.txt`: exact lunar close approach reported as `2014-Aug-10 19:18:27 UTC`, about `16,663 km` above the lunar surface.
 // Notes:
 //   - Mission chronology and orbit-data chronology are far apart here: launch is in `1978`, while the HORIZONS reconstruction used for animation is the `2014` return encounter.
 //   - Pre-data mission events such as launch and 2008 reacquisition are preserved in the config even though the sampled orbit window starts in 2014.

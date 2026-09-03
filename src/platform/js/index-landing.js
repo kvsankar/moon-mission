@@ -937,7 +937,7 @@
             summary: summary,
             images: images,
             image: images[0] || null,
-            sourceUrl: "docs/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json",
+            sourceUrl: "assets/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json",
             sourceLabel: "HORIZONS metadata"
         };
     }
@@ -980,7 +980,7 @@
                 return fallback;
             }
 
-            var metadataUrl = "docs/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json";
+            var metadataUrl = "assets/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json";
             return fetch(metadataUrl, { cache: "no-store" })
                 .then(function(response) {
                     if (!response.ok) throw new Error("metadata missing");

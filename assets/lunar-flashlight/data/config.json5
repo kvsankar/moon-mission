@@ -7,7 +7,7 @@
 //   Slug: `lunar-flashlight`
 //   Folder: `assets/lunar-flashlight`
 //   HORIZONS ID: `-164`
-//   Name source: `docs/horizons-blurbs/mission-index.json`
+//   Name source: `assets/horizons-blurbs/mission-index.json`
 // Time Window Used:
 //   Launch/reference start: `2022-12-11 07:38:00 UTC`
 //   Orbit data start: `2022-12-11 08:32:33 UTC`
@@ -16,8 +16,8 @@
 //   Original trajectory window from source: `2022-12-11 08:34:00 UTC` to `2038-01-01 00:00:00 UTC`
 //   Selected interesting window strategy: `launch_to_earth_soi_exit_after_failed_lunar_transfer`; coverage follows launch, Earth flyby, Moon close approach, and ends once the spacecraft is beyond Earth's sphere of influence.
 // Primary Source References:
-//   - docs/horizons-blurbs/raw/lunar-flashlight.txt: 'trj_lfl_221211-230627_380101_final_v1 2022-Dec-11 08:34 2038-Jan-01'
-//   - docs/horizons-blurbs/raw/lunar-flashlight.txt: launch/deployment times in background section
+//   - assets/horizons-blurbs/raw/lunar-flashlight.txt: 'trj_lfl_221211-230627_380101_final_v1 2022-Dec-11 08:34 2038-Jan-01'
+//   - assets/horizons-blurbs/raw/lunar-flashlight.txt: launch/deployment times in background section
 //   - https://www.nasa.gov/missions/small-satellite-missions/nasa-calls-end-to-lunar-flashlight-after-some-tech-successes/: mission end article with May 17, 2023 Earth flyby and deep-space departure
 //   - https://robotics.jpl.nasa.gov/media/documents/ASC-23-260.pdf: JPL operations paper noting departure through the Earth-Moon L1 region after the last perigee on May 17, 2023
 // Notes:

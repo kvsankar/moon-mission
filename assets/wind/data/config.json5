@@ -16,8 +16,8 @@
 //   Original trajectory window from source: `1994-Nov-01` to `2026-Jun-02`
 //   Selected interesting window strategy: earliest `92` days, chosen to capture the opening double-lunar swingby phase described in the HORIZONS background.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/wind.txt`: launch time, mission URLs, and the note that the first nine months used a double-lunar swingby orbit.
-//   - `docs/horizons-blurbs/raw/wind.txt`: trajectory coverage table with `Wind_merged 1994-Nov-01 2026-Jun-02`.
+//   - `assets/horizons-blurbs/raw/wind.txt`: launch time, mission URLs, and the note that the first nine months used a double-lunar swingby orbit.
+//   - `assets/horizons-blurbs/raw/wind.txt`: trajectory coverage table with `Wind_merged 1994-Nov-01 2026-Jun-02`.
 //   - Moon-centered HORIZONS vector queries for `-8` around the early mission window show local closest-approach minima at `1994-11-03 06:04 UTC` (~`104,811 km`) and `1994-12-27 14:43 UTC` (~`11,834 km`).
 // Notes:
 //   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.

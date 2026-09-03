@@ -16,8 +16,8 @@
 //   Original trajectory window from source: `2018-Apr-18 23:37` to `2027-Sep-15 13:00`
 //   Selected interesting window strategy: earliest `92` days, chosen to capture deployment, phasing loops, the lunar flyby, and the opening transition into the stable science orbit.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/tess.txt`: launch time, mission overview, and the note that the first `60` days use `11` burns, `3.5` phasing loops, and a lunar flyby to reach the operational orbit.
-//   - `docs/horizons-blurbs/raw/tess.txt`: trajectory table with `2018-Apr-18 23:37` to `2027-Sep-15 13:00`.
+//   - `assets/horizons-blurbs/raw/tess.txt`: launch time, mission overview, and the note that the first `60` days use `11` burns, `3.5` phasing loops, and a lunar flyby to reach the operational orbit.
+//   - `assets/horizons-blurbs/raw/tess.txt`: trajectory table with `2018-Apr-18 23:37` to `2027-Sep-15 13:00`.
 //   - Generated lunar trajectory from `data-generated/tess/lunar-TESS.npz`: closest lunar approach at `2018-05-17 06:35 UTC`, about `8,253 km` above the lunar surface.
 //   - NASA post-launch assessment / commissioning materials: observed lunar flyby at `2018-05-17 06:34:36 UTC` and period-adjust maneuver at `2018-05-30 01:20:23.149 UTC`.
 // Notes:

@@ -16,8 +16,8 @@
 //   Original trajectory window from source: `2023-Apr-14` to `2031-Jul-21`
 //   Selected interesting window strategy: custom Earth-Moon-assist-centered `92` days, because the mission's lunar relevance is the August 2024 gravity-assist passage rather than the launch or Jupiter-arrival phases.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/juice.txt`: mission purpose and flyby list, including `2024 Aug: Earth-Moon system (gravity-assist)`.
-//   - `docs/horizons-blurbs/raw/juice.txt`: trajectory table with `2023-Apr-14` to `2031-Jul-21`.
+//   - `assets/horizons-blurbs/raw/juice.txt`: mission purpose and flyby list, including `2024 Aug: Earth-Moon system (gravity-assist)`.
+//   - `assets/horizons-blurbs/raw/juice.txt`: trajectory table with `2023-Apr-14` to `2031-Jul-21`.
 //   - Generated lunar trajectory from `data-generated/juice/lunar-JUI.npz`: closest lunar approach at `2024-08-19 21:16 UTC`, about `752 km` above the lunar surface.
 // Notes:
 //   - The mission is included here as a cislunar gravity-assist case, not as a lunar science orbiter.

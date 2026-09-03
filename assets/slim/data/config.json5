@@ -7,7 +7,7 @@
 //   Slug: `slim`
 //   Folder: `assets/slim`
 //   HORIZONS ID: `-240`
-//   Name source: `docs/horizons-blurbs/mission-index.json`
+//   Name source: `assets/horizons-blurbs/mission-index.json`
 // Time Window Used:
 //   Launch/reference start: `2023-09-06 23:42:00 UTC`
 //   Orbit data start: `2023-09-07 00:31:51 UTC`
@@ -16,9 +16,9 @@
 //   Original trajectory window from source: `2023-09-07 00:32:00 UTC` to `2024-01-31 00:00:00 UTC`
 //   Selected interesting window strategy: `launch_to_landing`; orbit coverage begins shortly after launch/separation.
 // Primary Source References:
-//   - docs/horizons-blurbs/raw/slim.txt: first listed trajectory segment begins 2023-Sep-07 00:32
-//   - docs/horizons-blurbs/raw/slim.txt: final listed segment ends 2024-Jan-31
-//   - docs/horizons-blurbs/raw/slim.txt: launch and landing times in background
+//   - assets/horizons-blurbs/raw/slim.txt: first listed trajectory segment begins 2023-Sep-07 00:32
+//   - assets/horizons-blurbs/raw/slim.txt: final listed segment ends 2024-Jan-31
+//   - assets/horizons-blurbs/raw/slim.txt: launch and landing times in background
 // Notes:
 //   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
 //   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.

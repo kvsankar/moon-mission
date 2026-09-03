@@ -16,7 +16,7 @@
 //   Original trajectory window from source: `1999-Feb-08 12:01` to `2003-Dec-14 00:00`
 //   Selected interesting window strategy: earliest `92` days of the replanned post-flyby mission extension, because HORIZONS does not provide ephemeris for the 1998 launch and lunar-flyby phase.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/nozomi.txt`: launch time, the two `1998` lunar flyby dates, and the note that the published HORIZONS planning trajectory begins only after the failed Earth-flyby sequence and mission replan.
+//   - `assets/horizons-blurbs/raw/nozomi.txt`: launch time, the two `1998` lunar flyby dates, and the note that the published HORIZONS planning trajectory begins only after the failed Earth-flyby sequence and mission replan.
 //   - HORIZONS vector query for `-178` reports no ephemeris before `1999-Feb-08 12:01:04.1850 TDB`, so the orbit window begins at `12:02 UTC`.
 // Notes:
 //   - The two `1998` lunar flyby events are preserved from the HORIZONS background, but the source text does not provide exact times; config labels make that limitation explicit.

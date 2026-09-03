@@ -1,151 +1,171 @@
-# Mobile Experience V1 Spec
+# Mobile Experience V1
 
-## Objective
+## Scope
 
-Redesign the mobile mission experience to be scene-first, readable, and touch-friendly, while keeping desktop behavior unchanged.
+This specification defines the mobile mission experience at viewport widths of
+`600px` or less. Mobile is scene-first, readable, and touch-friendly. Entering
+or leaving mobile mode must not corrupt the corresponding desktop camera or
+view state.
 
-This spec is tracked on the current repository state and should not treat older feature-branch layouts as the source of truth.
+Structural rationale is documented in [Mobile Experience Design](../designs/mobile-experience.md).
+Unresolved intent and implementation gaps are tracked in
+[Mobile Experience Follow-Ups](../plans/implementation/mobile-experience-followups.md).
 
-## Design Direction
+## Experience Contract
 
-Use a **bottom navigation + focused card screens** model (not carousel-only, not long-scroll-only).
+- The rendered mission scene remains the primary visual surface.
+- Focused cards expose one mobile task at a time without reproducing the full
+  desktop control panel.
+- The bottom navigation exposes only available cards.
+- Critical actions must not depend on undisclosed gestures.
+- Overlays and temporary surfaces require predictable close or back behavior.
+- Desktop-only panels and controls must not remain interactable while hidden.
 
-Rationale:
+## Navigation
 
-- Better discoverability than carousel-only.
-- Lower cognitive load than showing all controls at once.
-- Easier to map mission workflows to predictable destinations.
+The mobile shell supports these card identities:
 
-## Information Architecture
+- `mission`: always available and selected by default.
+- `orbit`: always available.
+- `views`: always available.
+- `compose`: optional; hidden when the mobile composition capability is
+  disabled.
 
-Mobile has 4 primary tabs:
+Selecting an unavailable or unknown card returns to `mission`. Exactly one card
+is active at a time. Navigation state and card visibility must agree.
 
-1. `Mission`
-2. `Orbit`
-3. `Views`
-4. `Compose`
+The current runtime does not yet expose the required Orbit card. That is an
+implementation gap, not an accepted change to this contract.
 
-### 1) Mission Tab
+## Mission Card
 
-Purpose: status and timeline comprehension first.
+The Mission card must provide:
 
-Contains:
+- mission identity and phase;
+- elapsed mission time;
+- distance from Earth and Moon;
+- spacecraft speed and Craft-Moon-Earth angle when available;
+- kilometer/kilometers-per-second and mile/miles-per-hour unit modes;
+- active-event status;
+- play/pause, realtime, speed, slower, and faster controls; and
+- primary and additional mission metrics in compare mode.
 
-- Info card (phase, elapsed time, key metrics)
-- Event countdown / next milestone
-- Compact timeline scrubber
-- Minimal play controls (Play/Pause, speed, realtime)
+The shared timeline dock remains the authoritative mobile timeline surface. It
+need not be duplicated inside the Mission card.
 
-### 2) Orbit Tab
+## Orbit Controls
 
-Purpose: primary orbit exploration.
+The Orbit card provides:
 
-Contains:
+- one orbit surface with a `2D | 3D` mode switch;
+- `Earth | Moon | Relative` origin choices when supported by the mission;
+- essential axes/plane controls; and
+- secondary toggles behind one `More` surface.
 
-- One orbit card with mode switch: `2D | 3D`
-- Origin controls: `Earth | Moon | Relative`
-- Axes controls: show/hide essentials only
-- Advanced toggles moved behind `More`
+The card must control the shared mission scene and runtime state rather than
+create a second orbit renderer or settings model. The desktop settings panel
+may remain unavailable on mobile.
 
-### 3) Views Tab
+The mobile surface must keep control density low. The shared header pill strip
+may remain a temporary implementation path, but it does not satisfy the Orbit
+card requirement.
 
-Purpose: camera composition use cases.
+## Views Card
 
-Contains sub-cards (swipe or segmented switch within tab):
+The Views card provides these presets:
 
-- `Craft -> Earth`
-- `Craft -> Moon`
-- `Earth -> Moon`
+- `Craft to Moon`
+- `Craft to Earth`
+- `Earth to Moon`
 
-Notes:
+The presets operate the shared main camera. Only the selected preset is active;
+mobile must not create or continuously render duplicate desktop auxiliary
+cameras for inactive presets.
 
-- Only one sub-view actively rendering at a time.
-- Others stay paused/snapshot to reduce thermal/load pressure.
+The card also provides field-of-view controls. Moon visibility information and
+the far-side display control are shown only when relevant to the selected view.
+The card repeats the synchronized mobile transport controls.
 
-### 4) Compose Tab
+## Optional Composition Card
 
-Purpose: advanced composition workflows.
+The `compose` card is feature-gated. When disabled, its navigation control and
+card are hidden and requests to open it fall back to Mission.
 
-Contains:
+When enabled, the card provides:
 
-- `Earth Rise Composer` entry and related controls
+- free, Earth, and Moon camera-lock modes;
+- manual and automatic field of view;
+- ambient/Earthshine control;
+- roll control;
+- a short composition timeline; and
+- synchronized mission transport controls.
 
-Note:
+The final user-facing name and relationship to desktop `Frame & Shoot` remain
+open and are tracked in the follow-up plan.
 
-- Feature-gated until composer integration lands from its worktree.
+## Mission-Specific Workflows
 
-## Control Density Rules
+Mission-specific desktop workflows must not leave dead or invisible launchers
+on mobile. Artemis II requires intentional mobile adaptations with the same
+workflow meaning as desktop:
 
-- Keep always-visible controls minimal per tab.
-- Move secondary toggles to a single `More` sheet/drawer.
-- Do not duplicate the full desktop control panel on mobile.
+- `Flyby in Focus` is launched from the Flyby focus control and presents the
+  lunar-flyby composition workflow rather than a generic camera card.
+- `Splashdown in Spotlight` is launched from the Splashdown focus control and
+  opens automatically on initial Artemis II load.
+- Splashdown uses a full-height left timeline/event sidebar and a right-side
+  `2D` map or `3D` globe viewport.
+- Splashdown retains second-level (`-1s`, `+1s`) and minute-level (`-1m`,
+  `+1m`) transport controls.
+- It presents RTC-3 through splashdown return events, dual-unit metrics, and a
+  provenance note for the app-generated final descent.
 
-## Interaction Rules
+Current mobile CSS hides these workflows. Their mobile implementation and any
+updated user-facing names remain follow-up work; the required workflow content
+must not be discarded during that adaptation.
 
-- Minimum touch target size: `44px`.
-- Primary actions reachable with one thumb.
-- Predictable close/back behavior for overlays.
-- No hidden critical actions behind gesture-only discovery.
+## Interaction And Accessibility
 
-## Artemis II Special Panels
+- Interactive touch targets must be at least `44px` in both dimensions or use
+  an equivalent hit area.
+- Primary actions must be reachable with one thumb in ordinary portrait use.
+- Controls require accessible names and visible keyboard focus where keyboard
+  interaction is available.
+- Selected, unavailable, and disabled states must not rely on color alone.
+- Text must remain readable without horizontal page scrolling.
+- The mobile shell and timeline must remain usable with browser chrome and safe
+  area insets.
+- Footer, timeline, and bottom-navigation zones must remain stable enough to
+  prevent accidental input during card changes.
 
-Artemis II currently carries two mission-specific overlay workflows in addition to the generic mobile shell:
+## Rendering And Performance
 
-- `Flyby in Focus`
-  - launched from the `Flyby` focus pill
-  - presents the lunar flyby composer workflow instead of a generic camera card
-- `Splashdown in Spotlight`
-  - launched from the `Splashdown` focus pill
-  - auto-opens on initial Artemis II load
-  - uses a full-height left-hand timeline/event sidebar and a right-hand `2D` map / `3D` globe viewport
-  - keeps second-level (`-1s`, `+1s`) and minute-level (`-1m`, `+1m`) transport controls
-  - shows RTC-3 through splashdown return events, dual-unit metrics, and a provenance note for the app-generated final descent
+- Mobile must avoid duplicate heavy renderers for inactive cards.
+- Off-screen panels and desktop auxiliary views must not perform continuous
+  rendering work.
+- Card and pill-strip layout changes may recenter the shared scene, but must not
+  alter mission time or semantic camera state.
+- The experience must remain responsive on representative mid-tier mobile
+  hardware; measurement and device coverage are owned by the follow-up plan.
 
-Mobile implementations should preserve the same workflow meaning as desktop for these panels, even if the exact placement and sizing rules differ.
+## Desktop Isolation
 
-## Rendering/Performance Rules
+- Mobile-only cards and navigation are hidden above the mobile breakpoint.
+- Entering mobile may apply a mobile presentation preset.
+- Leaving mobile restores the captured desktop camera and view state.
+- Mobile tab changes must not leak simplified presentation state into desktop.
 
-- Single active heavy renderer at a time (especially in `Views`).
-- Defer non-visible panels.
-- Avoid expensive continuous updates for off-screen components.
+## Acceptance Criteria
 
-## Visual Principles
-
-- Scene-first composition (canvas remains dominant).
-- Readability over density (higher hierarchy contrast).
-- Stable footer/nav zones to reduce accidental input.
-
-## Rollout Slices
-
-### Slice A: Shell + Navigation
-
-- Mobile bottom nav scaffold
-- Tab routing/state
-- Placeholder cards
-
-### Slice B: Mission + Orbit Core
-
-- Mission card + compact timeline
-- Orbit tab with 2D/3D and origin/axes essentials
-
-### Slice C: Views
-
-- Three camera view sub-cards
-- Single-active-render policy
-
-### Slice D: Compose Integration
-
-- Earth Rise Composer tab integration (feature-flagged until ready)
-
-### Slice E: Polish + QA
-
-- Accessibility pass
-- Touch ergonomics pass
-- Mobile SSIM-safe verification strategy and smoke tests
-
-## Acceptance Criteria (V1)
-
-- Mobile view no longer presents dense desktop-style control rows.
-- User can complete core workflows from tab structure without opening settings.
-- Runtime remains smooth on mid-tier mobile hardware.
-- Desktop layout and behavior remain unaffected.
+- Mission, Orbit, and Views are reachable from bottom navigation at mobile
+  widths.
+- Compose is either fully available or fully hidden according to its feature
+  gate.
+- Mission, Views, and optional Compose transport controls stay synchronized
+  with the mission clock.
+- The three Views presets update the shared main camera without creating
+  parallel renderers.
+- Desktop state is restored after leaving mobile mode.
+- Essential orbit controls remain reachable without the desktop settings panel.
+- Touch targets meet the `44px` requirement.
+- Hidden desktop workflows cannot intercept mobile input.

@@ -16,7 +16,7 @@
 //   Sampling step: `60` seconds
 //   Selected interesting window strategy: a custom `92`-day lunar-operations slice centered on the 2011 lunar-orbit phase, because the mission's most relevant Moon story is the paired lunar-orbit era rather than the earlier THEMIS launch phase.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/artemis-p1.txt` and `docs/horizons-blurbs/raw/artemis-p2.txt`: definitive-trajectory ranges and identity of the two lunar spacecraft.
+//   - `assets/horizons-blurbs/raw/artemis-p1.txt` and `assets/horizons-blurbs/raw/artemis-p2.txt`: definitive-trajectory ranges and identity of the two lunar spacecraft.
 //   - Explorer audit notes preserved in the config: `ARTEMIS-P1` reaches Earth-Moon `L2` on `2010-08-25` and lunar orbit on `2011-06-27`; `ARTEMIS-P2` reaches Earth-Moon `L1` on `2010-10-22` and lunar orbit on `2011-07-17`.
 //   - Generated trajectory from `data-generated/artemis/lunar-ARTP1.npz` validates the paired lunar-orbit window and supports the combined multi-craft artifact set.
 // Notes:
