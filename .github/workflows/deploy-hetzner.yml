@@ -49,6 +49,7 @@ jobs:
     name: Build and Deploy to Hetzner
     runs-on: ubuntu-latest
     needs: unit-tests
+    environment: sankara-net-production
 
     steps:
       - name: Checkout
