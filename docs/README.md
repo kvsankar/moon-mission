@@ -1,93 +1,114 @@
 # Documentation Guide
 
-This directory is organized by **audience** and **purpose** so operational guides, design notes, sourcing material, and historical archives do not all compete at the same level.
+This directory is organized by each document's primary purpose. Mixed
+documents live in the category that best represents their main use.
 
 ## How To Use This Set
 
 Use the docs in this order when you are getting oriented:
 
-- Start with [developer.md](developer.md) for day-to-day repo workflow, commands, and contribution expectations.
-- Use [operations/repo-sync-playbook.md](operations/repo-sync-playbook.md) for the authoritative app/data boundary rules and no-loss sync procedure.
-- Use [operations/mission-data-current-state.md](operations/mission-data-current-state.md) for the current live boundary state and recent mission-data extraction status.
-- Use [design/design.md](design/design.md) for runtime architecture, product-surface structure, and deeper design notes.
-- Use [design/architecture/target-architecture.md](design/architecture/target-architecture.md) when you need the canonical runtime-architecture record; older refactor plans under [archived/](archived/) are historical only.
+- Start with [operations/contributor/developer.md](operations/contributor/developer.md) for day-to-day repo workflow, commands, and contribution expectations.
+- Use [specs/data/repository-boundary.md](specs/data/repository-boundary.md) for
+  authoritative app/data ownership rules,
+  [operations/data/repo-sync-playbook.md](operations/data/repo-sync-playbook.md)
+  for the sync procedure, and
+  [evidence/baselines/mission-data-state-2026-05-15.md](evidence/baselines/mission-data-state-2026-05-15.md)
+  only for the dated extraction record.
+- Use [designs/README.md](designs/README.md) for runtime architecture, product-surface structure, and deeper design notes.
+- Use [designs/runtime/target-architecture.md](designs/runtime/target-architecture.md) for the runtime target and [plans/implementation/runtime-architecture-followups.md](plans/implementation/runtime-architecture-followups.md) for current reconciliation; older refactor plans under [archive/](archive/) are historical only.
 
 ## Start Here
 
-- Contributor workflow and repo conventions: [developer.md](developer.md)
-- System architecture and design map: [design/design.md](design/design.md)
+- Contributor workflow and repo conventions: [operations/contributor/developer.md](operations/contributor/developer.md)
+- Documentation maintenance: [operations/contributor/documentation-maintenance.md](operations/contributor/documentation-maintenance.md)
+- System architecture and design map: [designs/README.md](designs/README.md)
 
-## Current Workstreams
+## Plans
 
-Use these for active planning and cross-document context:
+Current work, sequencing, and follow-up lists live under [plans/](plans/):
 
-- Current plan and parking lot: [operations/current-plan.md](operations/current-plan.md)
-- Artemis II media, streams, transcripts, attribution, and launch work: [operations/artemis2-media-workstream.md](operations/artemis2-media-workstream.md)
-- Performance and responsiveness optimization queue: [operations/performance-workstream.md](operations/performance-workstream.md)
-- Timekeeping, UTC/TDB, mission-clock, stream, and transcript synchronization: [design/architecture/time-synchronization-and-timekeeping.md](design/architecture/time-synchronization-and-timekeeping.md)
-
-## Guides
-
-How to work in the repo day to day:
-
-- AI/tooling notes: [guides/ai-tools.md](guides/ai-tools.md)
-- Testing strategy and commands: [guides/testing.md](guides/testing.md)
+- Repository roadmap: [plans/roadmap.md](plans/roadmap.md)
+- Documentation classification status: [plans/implementation/documentation-classification-tracker.md](plans/implementation/documentation-classification-tracker.md)
+- Artemis II media, streams, transcripts, attribution, and launch work: [plans/breakdown/artemis2-media.md](plans/breakdown/artemis2-media.md)
+- Performance and responsiveness optimization queue: [plans/breakdown/performance.md](plans/breakdown/performance.md)
+- Timekeeping, mission-clock sync, UTC/TDB, and media clock decisions: [plans/breakdown/time-synchronization.md](plans/breakdown/time-synchronization.md)
 
 ## Operations
 
-Runtime/data boundary, staging, deployment, and asset-process guidance:
+Repeatable contributor, data, deployment, and media procedures live under
+[operations/](operations/):
 
-- Current plan and active workstreams: [operations/current-plan.md](operations/current-plan.md)
-- Repo boundary and sync workflow: [operations/repo-sync-playbook.md](operations/repo-sync-playbook.md)
-- Current mission-data operating model: [operations/mission-data-current-state.md](operations/mission-data-current-state.md)
-- Public R2 asset serving contract: [operations/r2-asset-hosting.md](operations/r2-asset-hosting.md)
-- Moon render asset provenance and maintenance: [operations/moon-render-assets.md](operations/moon-render-assets.md)
-- Artemis II media active workstream: [operations/artemis2-media-workstream.md](operations/artemis2-media-workstream.md)
-- Artemis II media asset source and maintenance notes: [operations/artemis2-media-assets.md](operations/artemis2-media-assets.md)
-- Performance active workstream: [operations/performance-workstream.md](operations/performance-workstream.md)
-- Lunar feature datasets and Artemis II map reference links: [operations/lunar-feature-and-artemis2-reference-sources.md](operations/lunar-feature-and-artemis2-reference-sources.md)
+- Contributor workflow: [operations/contributor/developer.md](operations/contributor/developer.md)
+- AI/tooling notes: [operations/contributor/ai-tools.md](operations/contributor/ai-tools.md)
+- Testing strategy and commands: [operations/contributor/testing.md](operations/contributor/testing.md)
+- Repo boundary and sync workflow: [operations/data/repo-sync-playbook.md](operations/data/repo-sync-playbook.md)
+- Public R2 asset serving contract: [operations/deployment/r2-asset-hosting.md](operations/deployment/r2-asset-hosting.md)
+- Moon render asset provenance and maintenance: [operations/data/moon-render-assets.md](operations/data/moon-render-assets.md)
+- Artemis II media asset source and maintenance notes: [operations/media/artemis2-media-assets.md](operations/media/artemis2-media-assets.md)
 
-## Product Specs
+## Specifications
 
-User-facing or workflow-facing feature specifications:
+Behavioral and ownership contracts live under [specs/](specs/):
 
 - Mobile experience v1: [specs/mobile-experience-v1-spec.md](specs/mobile-experience-v1-spec.md)
+- Orbit milestones: [specs/orbit-milestones-spec.md](specs/orbit-milestones-spec.md)
+- Repository documentation classification: [specs/repository-documentation-classification-and-lifecycle.md](specs/repository-documentation-classification-and-lifecycle.md)
+- Runtime UX: [specs/ui/runtime-ux.md](specs/ui/runtime-ux.md)
+- Artemis real-time experience: [specs/ui/artemis-real-time-experience.md](specs/ui/artemis-real-time-experience.md)
+- Runtime style and interaction: [specs/ui/runtime-style-and-interaction.md](specs/ui/runtime-style-and-interaction.md)
+- Runtime architecture boundaries: [specs/runtime/architecture-boundaries.md](specs/runtime/architecture-boundaries.md)
+- App/data repository boundary: [specs/data/repository-boundary.md](specs/data/repository-boundary.md)
+- Chebyshev ephemeris format: [specs/data/chebyshev-ephemeris-format.md](specs/data/chebyshev-ephemeris-format.md)
+- Relative mode: [specs/modes/relative-mode.md](specs/modes/relative-mode.md)
+- Orbit comparison mode: [specs/modes/orbit-comparison.md](specs/modes/orbit-comparison.md)
+- Camera state transitions: [specs/camera/state-transitions.md](specs/camera/state-transitions.md)
+- Frame and Shoot lighting/exposure: [specs/rendering/frame-and-shoot-lighting-and-exposure.md](specs/rendering/frame-and-shoot-lighting-and-exposure.md)
+- Lunar feature controls: [specs/ui/lunar-feature-controls.md](specs/ui/lunar-feature-controls.md)
+- Panel progressive disclosure: [specs/ui/panel-progressive-disclosure.md](specs/ui/panel-progressive-disclosure.md)
+- Panel System V1: [specs/ui/panel-system-v1.md](specs/ui/panel-system-v1.md)
+- Clock authority: [specs/time/clock-authority.md](specs/time/clock-authority.md)
+- Timeline and media playback: [specs/time/timeline-and-media-playback.md](specs/time/timeline-and-media-playback.md)
 
-## Design
+## Designs
 
-Design documents stay under [design/](design/), grouped further by purpose:
-
-- Architecture and runtime model notes: [design/architecture/](design/architecture/)
-- Feature and behavior specs: [design/specs/](design/specs/)
-- Roadmaps, plans, and backlog notes: [design/roadmap/](design/roadmap/)
-- Research and experiments: [design/research/](design/research/)
-- Reference material: [design/references/](design/references/)
-
-The design hub remains [design/design.md](design/design.md).
+Architecture, component responsibilities, execution flows, and accepted
+technical decisions live under [designs/](designs/). The design hub is
+[designs/README.md](designs/README.md).
 
 Key architecture entry points:
 
-- Runtime architecture record: [design/architecture/target-architecture.md](design/architecture/target-architecture.md)
-- Time synchronization and timekeeping: [design/architecture/time-synchronization-and-timekeeping.md](design/architecture/time-synchronization-and-timekeeping.md)
+- Runtime architecture target: [designs/runtime/target-architecture.md](designs/runtime/target-architecture.md)
+- Runtime system overview: [designs/runtime/system-overview.md](designs/runtime/system-overview.md)
+- Runtime architecture reconciliation: [plans/implementation/runtime-architecture-followups.md](plans/implementation/runtime-architecture-followups.md)
+- Time synchronization architecture: [designs/time/synchronization.md](designs/time/synchronization.md)
 
 ## Mission Sourcing
 
-Mission onboarding, HORIZONS sourcing, and source corpora:
+Mission onboarding, HORIZONS sourcing, and generated product data:
 
-- Worker playbook: [mission-sourcing/horizons-worker-playbook.md](mission-sourcing/horizons-worker-playbook.md)
-- Mission coverage inventory: [mission-sourcing/horizons-lunar-missions.md](mission-sourcing/horizons-lunar-missions.md)
-- HORIZONS blurbs corpus: [horizons-blurbs/](horizons-blurbs/)
+- Worker playbook: [operations/data/horizons-worker-playbook.md](operations/data/horizons-worker-playbook.md)
+- Mission coverage inventory: [research/mission-sourcing/horizons-lunar-missions.md](research/mission-sourcing/horizons-lunar-missions.md)
+- HORIZONS blurb product data: [assets/horizons-blurbs/](../assets/horizons-blurbs/)
 
-## Investigations
+## Research
 
-Focused issue investigations and one-off technical deep dives:
+Scientific investigations, source surveys, implementation experiments, and
+reference corpora:
 
-- [investigations/](investigations/)
+- [research/](research/)
+- Lunar feature datasets and Artemis II map reference links:
+  [research/mission-sourcing/lunar-feature-and-artemis2-reference-sources.md](research/mission-sourcing/lunar-feature-and-artemis2-reference-sources.md)
 
-## Archived
+## Evidence
+
+Point-in-time audits, reviews, handoffs, baselines, and measurements:
+
+- [evidence/](evidence/)
+
+## Archive
 
 Historical proposals and superseded planning material:
 
-- [archived/](archived/)
+- [archive/](archive/)
 
 Most refactor-era plans and architecture proposals now live only here. Keep them for context, but prefer the active docs above for current guidance.

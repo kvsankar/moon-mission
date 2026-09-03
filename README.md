@@ -37,7 +37,7 @@ I created this animation for educational purposes. It has the following features
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
 * A Joy Ride feature which lets you fly along with the spacecraft
 * Relative-frame mode (`mode=relative`) to view Earth-Moon transfer geometry with Earth->Moon axis fixed
-* Mission comparison mode (`mode=compare`) to overlay two missions in a single animation with a shared comparison clock and normalized Earth-Moon distance — see [Orbit Comparison Mode](docs/design/architecture/orbit-comparison-mode.md)
+* Mission comparison mode (`mode=compare`) to overlay two missions in a single animation with a shared comparison clock and normalized Earth-Moon distance — see [Orbit Comparison Mode](docs/specs/modes/orbit-comparison.md)
 * Selectable orbit styles (`Trail` and `Classic`) with background-loaded style sidecars for authored missions such as CH3
 * On startup, if current wall-clock time is within mission data span, runtime can auto-seek to `Now`, switch to realtime speed, and start playback
 * Mission brief panels with authored Mission and HORIZONS Data text, programmatic timeline bars, a pilot orbit preview, and curated CC BY-SA image carousels
@@ -69,7 +69,7 @@ URL parameters:
 - `index.html` - Landing page
 - `<mission>/` - Open a mission directly using its folder slug from `assets/mission-catalog.json`
 - `<mission>/?mode=relative` - Relative-frame mode
-- `<mission>/?mode=compare&compareMission=<other>` - Mission comparison mode (see [Orbit Comparison Mode](docs/design/architecture/orbit-comparison-mode.md) for the full URL contract)
+- `<mission>/?mode=compare&compareMission=<other>` - Mission comparison mode (see [Orbit Comparison Mode](docs/specs/modes/orbit-comparison.md) for the full URL contract)
 - `<mission>/?testMode=true` - Test harness mode for deterministic test behavior
 - `mission.html?mission=<folder-slug>` - Legacy shared link form; redirects to the matching clean mission URL
 
@@ -88,8 +88,8 @@ Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `E
 For NPZ debugging, set `"ephemeris_source": "npz"` (or per-body overrides), and stage matching `.npz` files (for example `geo-<SC>.npz`, `lunar-<SC>.npz`, and `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz` when used).
 
 Documentation hub: [docs/README.md](docs/README.md)  
-Developer workflow/build/CI guide: [docs/developer.md](docs/developer.md)  
-System design index: [docs/design/design.md](docs/design/design.md)
+Developer workflow/build/CI guide: [developer.md](docs/operations/contributor/developer.md)
+System design index: [docs/designs/README.md](docs/designs/README.md)
 
 Shared authored mission panel content lives in:
 
@@ -114,7 +114,9 @@ Generated orbit/ephemeris artifacts are maintained in the sibling data repositor
 - `*-meta.json`
 - authored style sidecars such as `geo-style.json` / `lunar-style.json`
 
-App-managed tracked exceptions that stay in this repo include the current Moon runtime profile images under `images/moon/` and social/share images under `images/social/`.
+Social/share images under `images/social/` are app-managed. Moon runtime profile
+images under `images/moon/` are mirrored across the app and data repositories
+and must remain byte-identical.
 
 CI/deploy workflows stage those artifacts into this app during build/deploy.
 
@@ -127,29 +129,24 @@ npm run audit:data-boundary
 ```
 
 Repo-boundary process details:
-- [docs/operations/repo-sync-playbook.md](docs/operations/repo-sync-playbook.md)
-- [docs/operations/mission-data-current-state.md](docs/operations/mission-data-current-state.md)
+- [Repo sync playbook](docs/operations/data/repo-sync-playbook.md)
+- [App and data repository boundary](docs/specs/data/repository-boundary.md)
 
-## Design
+## Architecture And Data
 
-The animation has 2D and 3D rendering modes. 
+The 2D renderer uses SVG and D3.js; the 3D renderer uses Three.js. Mission
+ephemerides are sourced offline from JPL HORIZONS or SPICE and converted to
+Chebyshev products for efficient runtime interpolation. The runtime also
+retains NPZ and Astronomy Engine body providers.
 
-The 2D mode uses SVG and D3 JS. Planetary orbits are rendered as ellipses
-based on orbital elements. Spacecraft orbits are rendered using line segments
-using position data.
+**Time Systems:** Runtime ephemeris sampling converts UTC epoch milliseconds to
+TDB Julian dates for Chebyshev and NPZ lookups. UTC remains the authority for
+user-facing event times and display. See the
+[Chebyshev ephemeris specification](docs/specs/data/chebyshev-ephemeris-format.md)
+and [time synchronization design](docs/designs/time/synchronization.md).
 
-The 3D mode uses THREE JS.
-
-jQuery is used in parts of the UI, with a lightweight compatibility dialog shim (`src/platform/js/ui/jquery-ui-dialog-stub.js`) instead of full jQuery UI.
-
-Orbit data is fetched offline from JPL/NASA HORIZONS.
-This data is processed and converted into Chebyshev polynomial format for efficient interpolation.
-The runtime supports Chebyshev/NPZ/Astronomy body providers, and current mission configs default to Chebyshev for all major bodies.
-
-**Time Systems:** Runtime ephemeris sampling currently uses UTC-based Julian date helpers for
-Chebyshev/NPZ lookups, while TDB-based helpers are used for astronomical orientation math
-(for example lunar pole calculations). UTC is used for user-facing event times and display.
-See [docs/design/design.md](docs/design/design.md) for detailed technical/design notes.
+See the [system design map](docs/designs/README.md) for component boundaries
+and deeper technical documentation.
 
 ## Testing
 
@@ -166,7 +163,7 @@ Current CI gate:
 - `npm run test:unit`
 
 For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy`), see:
-- [docs/guides/testing.md](docs/guides/testing.md)
+- [Testing guide](docs/operations/contributor/testing.md)
 
 ### Hosting
 
@@ -175,9 +172,17 @@ However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CO
 
 ### Deployment Data Repository
 
+The operational sources of truth are the
+[contributor guide](docs/operations/contributor/developer.md), the
+[repository-boundary specification](docs/specs/data/repository-boundary.md),
+and the deployment workflow itself. The summary below describes the public
+deployment shape.
+
 CI workflows stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, optional `.npz` / `*-meta.json`, and orbit-style sidecars such as `geo-style.json` / `lunar-style.json`), mission screenshots (`assets/*/images/`), additional shared runtime media, and optional vendored runtime libraries (`third-party/`).
 
-Tracked app-managed exceptions such as the Moon profile textures under `images/moon/` and share images under `images/social/` are copied from this repo during deploy rather than staged from `moon-mission-data`.
+Deployment stages the data repository and then copies the app repository's
+`images/` tree. Social/share images are app-owned; mirrored Moon profile images
+must pass the repository-boundary hash checks.
 
 By default workflows use:
 
@@ -203,12 +208,14 @@ For development, you can use the Vite dev server:
 npm run dev
 ```
 
-Or Python's built-in server:
+For simple static-file checks, Python's built-in server can also serve the
+files, but it does not reproduce Vite's clean mission-route behavior or the
+deployment data-staging workflow:
 ```bash
 python -m http.server 7274
 ```
 
-Or Node.js http-server:
+The same limitation applies to Node.js `http-server`:
 ```bash
 npx http-server
 ``` 
@@ -299,10 +306,6 @@ Current catalog missions are grouped below using the same broad families as the 
 - **[LCROSS Shepherd](https://sankara.net/astro/lunar-missions/lcross-shepherd/)** (United States - 2009)
 - **[LCROSS Centaur](https://sankara.net/astro/lunar-missions/lcross-centaur/)** (United States - 2009)
 
-### More Missions
-
-- **[HGS-1](https://sankara.net/astro/lunar-missions/hgs1/)** (United States - 1997)
-
 ## Credits
 
 * Jon D. Giorgini for helping with the JPL/HORIZONS interface and data. 
@@ -314,19 +317,21 @@ Current catalog missions are grouped below using the same broad families as the 
 
 * Members of the Reddit r/isro (https://www.reddit.com/r/ISRO/) community for their valuable feedback
   
-## Planning Notes
+## Project Documentation
 
 Current planning/docs split:
 
-- Runtime architecture and the completed refactor record: [docs/design/architecture/target-architecture.md](docs/design/architecture/target-architecture.md)
-- Active product/backlog planning: [docs/design/roadmap/orbit-ux-and-refactor-roadmap.md](docs/design/roadmap/orbit-ux-and-refactor-roadmap.md)
-- Historical modernization/refactor plan: [docs/archived/modernization-plan-2026.md](docs/archived/modernization-plan-2026.md)
+- Runtime architecture target: [docs/designs/runtime/target-architecture.md](docs/designs/runtime/target-architecture.md)
+- Dated architecture reconciliation: [docs/evidence/reviews/runtime-architecture-reconciliation-2026-09-03.md](docs/evidence/reviews/runtime-architecture-reconciliation-2026-09-03.md)
+- Active product/backlog planning: [docs/plans/roadmap.md](docs/plans/roadmap.md)
+- Historical modernization/refactor plan: [modernization-plan-2026.md](docs/archive/plans/modernization-plan-2026.md)
 
-The broad runtime rearchitecture is effectively complete, so the archived modernization plan is kept for history rather than as the current source of direction.
+The dated reconciliation records what was found at review time; the roadmap is
+the source for outstanding work.
 
 ## AI assistance
 
-See [docs/guides/ai-tools.md](docs/guides/ai-tools.md) for how AI tools are used in this repo (and where tool-specific notes live).
+See [ai-tools.md](docs/operations/contributor/ai-tools.md) for how AI tools are used in this repo (and where tool-specific notes live).
 
 ## Inspirations
 

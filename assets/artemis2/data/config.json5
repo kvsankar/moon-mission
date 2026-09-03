@@ -17,8 +17,8 @@
 //   Original trajectory window from source: `2026-Apr-02 01:59` to `2026-Apr-10 23:51` (HORIZONS blurb, Apr 10 19:28 UTC revision)
 //   Selected interesting window strategy: full currently published HORIZONS trajectory, because the public data set already corresponds to the complete post-separation lunar-flyby mission arc.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: launch at `2026-04-01 22:35:12 UTC` and the updated Apr 10 major-event timeline.
-//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: updated trajectory table split into 14 OEM segments ending at `2026-Apr-10 23:51` (TDB minute-rounded).
+//   - `assets/horizons-blurbs/raw/artemis-2-orion.txt`: launch at `2026-04-01 22:35:12 UTC` and the updated Apr 10 major-event timeline.
+//   - `assets/horizons-blurbs/raw/artemis-2-orion.txt`: updated trajectory table split into 14 OEM segments ending at `2026-Apr-10 23:51` (TDB minute-rounded).
 //   - `data-generated/artemis2/horizons-live-artemis2-obj.txt`: live HORIZONS capture fetched on 2026-04-10 for verification against in-repo mission events.
 //   - `https://www.nasa.gov/missions/artemis/artemis-2/nasa-sets-coverage-for-artemis-ii-moon-mission/`: public lunar-flyby broadcast milestones (Earthset/Earthrise/eclipse and flyby media timings).
 // Notes:

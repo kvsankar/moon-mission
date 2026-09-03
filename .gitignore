@@ -5,6 +5,8 @@
 # are not part of the repo. They go stale immediately as fixes land.
 *-review.md
 *-review-round*.md
+!docs/operations/contributor/ui-review.md
+!docs/archive/**/*.md
 
 # =========================
 # Generated Data Files
@@ -27,7 +29,7 @@ assets/*/data/*-jq.json
 
 # Archive folders (per-mission and global)
 assets/*/archive/
-archive/
+/archive/
 
 # Large models
 assets/chandrayaan3/models/cy3.glb

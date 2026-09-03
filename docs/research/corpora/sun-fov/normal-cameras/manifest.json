@@ -1,0 +1,53 @@
+{
+  "generated_utc": "2026-04-06T05:43:45.811616+00:00",
+  "items": [
+    {
+      "id": "nasa_dark_sky_bright_sun",
+      "name": "Dark Sky, Bright Sun (NASA image article)",
+      "url": "https://www.nasa.gov/wp-content/uploads/2023/03/187921main_image_feature_900_ys_full.jpg",
+      "filename": "nasa_dark_sky_bright_sun_full.jpg",
+      "camera_class": "crew/mission camera (non-solar observatory instrument)",
+      "source_page": "https://www.nasa.gov/image-article/dark-sky-bright-sun/",
+      "note": "Reference for perceived Sun intensity versus black sky from space photography.",
+      "downloaded_utc": "2026-04-06T05:43:40.576028+00:00",
+      "bytes": 84709,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "apollo16_earthrise2_as16_120_19187",
+      "name": "Apollo 16 Earthrise (NASA article image)",
+      "url": "https://www.nasa.gov/wp-content/uploads/2023/03/331786main_as16-120-19187_full.jpg",
+      "filename": "apollo16_earthrise2_as16_120_19187_full.jpg",
+      "camera_class": "Hasselblad 70mm era crew camera",
+      "source_page": "https://www.nasa.gov/image-article/earthrise-2/",
+      "note": "Crew-camera cislunar frame useful for exposure and glare context.",
+      "downloaded_utc": "2026-04-06T05:43:41.471557+00:00",
+      "bytes": 60138,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "apod_sts82_sunview",
+      "name": "Shuttle Sun View (APOD, STS-82 crew photo)",
+      "url": "https://apod.nasa.gov/apod/image/9709/sunview_sts82_big.jpg",
+      "filename": "apod_sts82_sunview_big.jpg",
+      "camera_class": "Shuttle crew photography",
+      "source_page": "https://apod.nasa.gov/apod/ap970902.html",
+      "note": "Useful for human-camera Sun glare/flare behavior in space.",
+      "downloaded_utc": "2026-04-06T05:43:44.999030+00:00",
+      "bytes": 257868,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "iss_sunglint_iss058e007722",
+      "name": "ISS crew Earth sunglint image",
+      "url": "https://images-assets.nasa.gov/image/iss058e007722/iss058e007722~medium.jpg",
+      "filename": "iss058e007722_medium.jpg",
+      "camera_class": "ISS crew DSLR class camera",
+      "source_page": "https://images.nasa.gov/details/iss058e007722",
+      "note": "Sun is off-frame; useful for harsh directional-light exposure behavior.",
+      "downloaded_utc": "2026-04-06T05:43:45.811605+00:00",
+      "bytes": 94111,
+      "content_type": "image/jpeg"
+    }
+  ]
+}

@@ -16,7 +16,7 @@
 //   Sampling step: `60` seconds
 //   Selected interesting window strategy: earliest `92` days, chosen to capture both lunar redirect flybys and the split into leading and trailing heliocentric orbits.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/stereo-a.txt` and `docs/horizons-blurbs/raw/stereo-b.txt`: shared mission background, launch time, and the note that the first three months use two lunar encounters to redirect the observatories.
+//   - `assets/horizons-blurbs/raw/stereo-a.txt` and `assets/horizons-blurbs/raw/stereo-b.txt`: shared mission background, launch time, and the note that the first three months use two lunar encounters to redirect the observatories.
 //   - Generated lunar trajectory from `data-generated/stereo/lunar-STRA.npz`: `STEREO-A` closest lunar approach at `2006-12-15 21:29 UTC`, about `5,621 km` above the lunar surface.
 //   - Generated lunar trajectory from `data-generated/stereo/lunar-STRA.npz`: `STEREO-B` closest lunar approach at `2007-01-21 09:05 UTC`, about `7,083 km` above the lunar surface.
 // Notes:

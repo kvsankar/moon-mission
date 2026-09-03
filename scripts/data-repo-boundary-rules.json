@@ -4,9 +4,7 @@
     "config.json",
     "media-manifest.json"
   ],
-  "app_only_globs": [
-    "README*.md"
-  ],
+  "app_only_globs": [],
   "mirrored_names": [
     "ephemeris-manifest.json"
   ],
@@ -16,6 +14,7 @@
     "*-cheb.json.gz",
     "*-meta.json",
     "*-style.json",
+    "README-spice-export.md",
     "geo-style.json",
     "lunar-style.json"
   ]

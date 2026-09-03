@@ -1,8 +1,8 @@
 # Moon Rendering Techniques: Survey of Established Implementations
 
 > Research note - 2026-05-10. Author: Claude (Opus 4.7, 1M context).
-> Companion document to `docs/design/research/moon-rendering-research-and-plan.md`
-> and `docs/operations/moon-render-assets.md`. The goal of this survey is to
+> Companion document to `docs/research/moon-rendering/research-and-plan.md`
+> and `docs/operations/data/moon-render-assets.md`. The goal of this survey is to
 > inform a planned rewrite of the photometric portion of
 > `src/platform/js/rendering/moon-renderer.js`.
 
@@ -1802,9 +1802,9 @@ to re-fetch and quote verbatim.
 
 ### Existing in-tree project documents
 
-- `docs/design/research/moon-rendering-research-and-plan.md` -
+- `docs/research/moon-rendering/research-and-plan.md` -
   prior moon rendering plan and decision log.
-- `docs/operations/moon-render-assets.md` - texture provenance
+- `docs/operations/data/moon-render-assets.md` - texture provenance
   and pipeline.
 - `src/platform/js/rendering/moon-renderer.js` - current shader
   source, including the soft-disk integral and L-S blend

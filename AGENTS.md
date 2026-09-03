@@ -3,10 +3,10 @@
 ## Project Structure & Module Organization
 
 - Agent/Contributor reference docs:
-  - `docs/developer.md` (repo workflow, commands, CI, conventions)
-  - `docs/design/design.md` (system design and architecture map)
+  - `docs/operations/contributor/developer.md` (repo workflow, commands, CI, conventions)
+  - `docs/designs/README.md` (system design and architecture map)
 - Workspace setup first (required before debugging server/runtime issues):
-  - Read `docs/developer.md`, especially **Section 2) Local Setup**.
+  - Read `docs/operations/contributor/developer.md`, especially **Section 2) Local Setup**.
   - Run `npm install`, then start the app with `npm run dev` (default `http://localhost:7274/`).
   - For a non-default port in PowerShell, run Vite directly instead of passing `--port` through npm, for example:
     - `.\node_modules\.bin\vite.cmd --port 7275 --strictPort --host 127.0.0.1`

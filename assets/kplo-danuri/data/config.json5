@@ -7,7 +7,7 @@
 //   Slug: `kplo-danuri`
 //   Folder: `assets/kplo-danuri`
 //   HORIZONS ID: `-155`
-//   Name source: `docs/horizons-blurbs/mission-index.json`
+//   Name source: `assets/horizons-blurbs/mission-index.json`
 // Time Window Used:
 //   Launch/reference start: `2022-08-04 23:08:00 UTC`
 //   Orbit data start: `2022-08-04 23:51:10 UTC`
@@ -16,8 +16,8 @@
 //   Original trajectory window from source: `2022-08-04 23:19:00 UTC` to `2026-07-02 23:33:00 UTC`
 //   Selected interesting window strategy: `launch_to_lunar_orbit_stabilization`; orbit coverage begins shortly after launch.
 // Primary Source References:
-//   - docs/horizons-blurbs/raw/kplo-danuri.txt: 'Concatenated trajectory solutions (828) 2022-Aug-04 23:19 2026-Jul-02 23:33'
-//   - docs/horizons-blurbs/raw/kplo-danuri.txt: launch timeline with 2022-Aug-04 23:08 UTC
+//   - assets/horizons-blurbs/raw/kplo-danuri.txt: 'Concatenated trajectory solutions (828) 2022-Aug-04 23:19 2026-Jul-02 23:33'
+//   - assets/horizons-blurbs/raw/kplo-danuri.txt: launch timeline with 2022-Aug-04 23:08 UTC
 //   - https://www.kari.re.kr/eng/article/BBSMSTR_000000000031/17979: target mission orbit reached 2022-Dec-27 18:00 KST
 // Notes:
 //   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.

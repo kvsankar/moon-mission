@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-INDEX_PATH = PROJECT_ROOT / "docs" / "horizons-blurbs" / "mission-index.json"
+INDEX_PATH = PROJECT_ROOT / "assets" / "horizons-blurbs" / "mission-index.json"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 
 
@@ -66,8 +66,8 @@ MISSIONS: list[dict] = [
             {"key": "tli", "time": "1968-Dec-21 16:05", "label": "TLI Arc Start", "info": "Start of reconstructed departure arc"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/apollo-8-s-ivb.txt: 'trajectory spans ... from 1968-Dec-21 16:05 to December 31 @ 00:05 GMT/UTC'",
-            "docs/horizons-blurbs/raw/apollo-8-s-ivb.txt: 'Launched: December 21, 1968 @ 12:51 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-8-s-ivb.txt: 'trajectory spans ... from 1968-Dec-21 16:05 to December 31 @ 00:05 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-8-s-ivb.txt: 'Launched: December 21, 1968 @ 12:51 GMT/UTC'",
         ],
     },
     {
@@ -81,8 +81,8 @@ MISSIONS: list[dict] = [
             {"key": "arcStart", "time": "1969-Mar-03 23:38", "label": "Departure Arc Start", "info": "Start of reconstructed departure arc"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/apollo-9-s-ivb.txt: 'trajectory spans ... from 1969-Mar-03 23:38 to March 11 @ 00:05 GMT/UTC'",
-            "docs/horizons-blurbs/raw/apollo-9-s-ivb.txt: 'Launched: March 3, 1969 @ 16:00 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-9-s-ivb.txt: 'trajectory spans ... from 1969-Mar-03 23:38 to March 11 @ 00:05 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-9-s-ivb.txt: 'Launched: March 3, 1969 @ 16:00 GMT/UTC'",
         ],
     },
     {
@@ -96,8 +96,8 @@ MISSIONS: list[dict] = [
             {"key": "arcStart", "time": "1969-May-18 19:44", "label": "Departure Arc Start", "info": "Start of reconstructed departure arc"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/apollo-10-s-ivb.txt: 'trajectory spans ... from 1969-May-18 19:44 to May 29 @ 00:06 GMT/UTC'",
-            "docs/horizons-blurbs/raw/apollo-10-s-ivb.txt: 'Launched: May 18, 1969 @ 16:49 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-10-s-ivb.txt: 'trajectory spans ... from 1969-May-18 19:44 to May 29 @ 00:06 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-10-s-ivb.txt: 'Launched: May 18, 1969 @ 16:49 GMT/UTC'",
         ],
     },
     {
@@ -111,8 +111,8 @@ MISSIONS: list[dict] = [
             {"key": "arcStart", "time": "1969-Nov-14 19:33", "label": "Departure Arc Start", "info": "Start of reconstructed departure arc"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/apollo-12-s-ivb.txt: 'trajectory spans ... from 1969-Nov-14 19:33 to December 06 @ 00:06 GMT/UTC'",
-            "docs/horizons-blurbs/raw/apollo-12-s-ivb.txt: 'Launched: November 14, 1969 @ 16:22 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-12-s-ivb.txt: 'trajectory spans ... from 1969-Nov-14 19:33 to December 06 @ 00:06 GMT/UTC'",
+            "assets/horizons-blurbs/raw/apollo-12-s-ivb.txt: 'Launched: November 14, 1969 @ 16:22 GMT/UTC'",
         ],
     },
     {
@@ -127,8 +127,8 @@ MISSIONS: list[dict] = [
             {"key": "lunarDeparture", "time": "1994-May-03 12:59", "label": "Lunar Departure", "info": "Departure from lunar mapping orbit"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/clementine.txt: 'clem_nrl 1994-Feb-19 12:59 1994-May-03 12:59'",
-            "docs/horizons-blurbs/raw/clementine.txt: 'was launched 1994-Jan-25 @ 16:34 UTC'",
+            "assets/horizons-blurbs/raw/clementine.txt: 'clem_nrl 1994-Feb-19 12:59 1994-May-03 12:59'",
+            "assets/horizons-blurbs/raw/clementine.txt: 'was launched 1994-Jan-25 @ 16:34 UTC'",
         ],
     },
     {
@@ -142,8 +142,8 @@ MISSIONS: list[dict] = [
             {"key": "loi", "time": "1998-Jan-11 12:18:03", "label": "LOI Arc Boundary", "info": "Transfer to LOI segment boundary"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/lunar-prospector.txt: 'lpm-transfer.bsp (1998-Jan-07 03:00:00 -> 1998-Jan-11 12:18:03)'",
-            "docs/horizons-blurbs/raw/lunar-prospector.txt: 'lpm-loi.bsp (1998-Jan-11 12:18:03 -> 1998-Jan-20 00:05:00)'",
+            "assets/horizons-blurbs/raw/lunar-prospector.txt: 'lpm-transfer.bsp (1998-Jan-07 03:00:00 -> 1998-Jan-11 12:18:03)'",
+            "assets/horizons-blurbs/raw/lunar-prospector.txt: 'lpm-loi.bsp (1998-Jan-11 12:18:03 -> 1998-Jan-20 00:05:00)'",
         ],
     },
     {
@@ -158,9 +158,9 @@ MISSIONS: list[dict] = [
             {"key": "predictStart", "time": "2025-Sep-15 00:01", "label": "Predict Updates", "info": "Start of periodic tag-up prediction segment"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/lro.txt: 'Reconstructed trajectory 2009-Jun-18 22:16 2025-Sep-15 00:01'",
-            "docs/horizons-blurbs/raw/lro.txt: '558day_20260107_01 2026-Jan-07 00:01 2027-Jul-18 23:59'",
-            "docs/horizons-blurbs/raw/lro.txt: 'launched 2009-Jun-18 9:32 UTC'",
+            "assets/horizons-blurbs/raw/lro.txt: 'Reconstructed trajectory 2009-Jun-18 22:16 2025-Sep-15 00:01'",
+            "assets/horizons-blurbs/raw/lro.txt: '558day_20260107_01 2026-Jan-07 00:01 2027-Jul-18 23:59'",
+            "assets/horizons-blurbs/raw/lro.txt: 'launched 2009-Jun-18 9:32 UTC'",
         ],
     },
     {
@@ -174,8 +174,8 @@ MISSIONS: list[dict] = [
             {"key": "impact", "time": "2009-Oct-09 11:35:36", "label": "Impact", "info": "Shepherd stage impact"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/lcross-shepherd.txt: trajectory table begins at 2009-Jun-18 and ends 2009-Oct-09",
-            "docs/horizons-blurbs/raw/lcross-shepherd.txt: '* Shepherd impact : 2009-Oct-09 11:35:36.116 UTC'",
+            "assets/horizons-blurbs/raw/lcross-shepherd.txt: trajectory table begins at 2009-Jun-18 and ends 2009-Oct-09",
+            "assets/horizons-blurbs/raw/lcross-shepherd.txt: '* Shepherd impact : 2009-Oct-09 11:35:36.116 UTC'",
         ],
     },
     {
@@ -189,8 +189,8 @@ MISSIONS: list[dict] = [
             {"key": "impact", "time": "2009-Oct-09 11:31:19", "label": "Centaur Impact", "info": "Centaur impact on lunar surface"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/lcross-centaur.txt: '18_lx091009c_centaur_impact 2009-Oct-09 01:50 2009-Oct-09 11:32'",
-            "docs/horizons-blurbs/raw/lcross-centaur.txt: '* Centaur impact : 2009-Oct-09 11:31:19.506 UTC'",
+            "assets/horizons-blurbs/raw/lcross-centaur.txt: '18_lx091009c_centaur_impact 2009-Oct-09 01:50 2009-Oct-09 11:32'",
+            "assets/horizons-blurbs/raw/lcross-centaur.txt: '* Centaur impact : 2009-Oct-09 11:31:19.506 UTC'",
         ],
     },
     {
@@ -204,8 +204,8 @@ MISSIONS: list[dict] = [
             {"key": "depletionBurn", "time": "2011-Sep-12 15:08:23", "label": "Depletion Burn", "info": "Nominal depletion burn"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/grail-ss-stage.txt: 'GRSS_0910_99_50yr-stratcom 2011 SEP 12 2061 AUG 30'",
-            "docs/horizons-blurbs/raw/grail-ss-stage.txt: '* Nominal time of depletion burn: 2011-Sep-12 15:08:23 UTC'",
+            "assets/horizons-blurbs/raw/grail-ss-stage.txt: 'GRSS_0910_99_50yr-stratcom 2011 SEP 12 2061 AUG 30'",
+            "assets/horizons-blurbs/raw/grail-ss-stage.txt: '* Nominal time of depletion burn: 2011-Sep-12 15:08:23 UTC'",
         ],
     },
     {
@@ -219,8 +219,8 @@ MISSIONS: list[dict] = [
             {"key": "plannedImpact", "time": "2014-Apr-18 00:00", "label": "Planned Impact", "info": "End of listed trajectory interval"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/ladee.txt: trajectory rows span 2013-Sep-07 to 2014-Apr-18",
-            "docs/horizons-blurbs/raw/ladee.txt: 'Launch : 2013-Sep-07 03:27 UTC'",
+            "assets/horizons-blurbs/raw/ladee.txt: trajectory rows span 2013-Sep-07 to 2014-Apr-18",
+            "assets/horizons-blurbs/raw/ladee.txt: 'Launch : 2013-Sep-07 03:27 UTC'",
         ],
     },
     {
@@ -234,9 +234,9 @@ MISSIONS: list[dict] = [
             {"key": "separation", "time": "2022-Jul-04 17:15", "label": "Separation", "info": "Photon-CAPSTONE trajectory segment boundary"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/capstone.txt: 'photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15'",
-            "docs/horizons-blurbs/mission-index.json: trajectory_end=2026-Feb-03 15:29",
-            "docs/horizons-blurbs/raw/capstone.txt: launch section with 2022-Jun-28 09:55:52 UTC",
+            "assets/horizons-blurbs/raw/capstone.txt: 'photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15'",
+            "assets/horizons-blurbs/mission-index.json: trajectory_end=2026-Feb-03 15:29",
+            "assets/horizons-blurbs/raw/capstone.txt: launch section with 2022-Jun-28 09:55:52 UTC",
         ],
     },
     {
@@ -250,8 +250,8 @@ MISSIONS: list[dict] = [
             {"key": "deployment", "time": "2022-Dec-11 08:31", "label": "Deployment", "info": "Lunar Flashlight deployment"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/lunar-flashlight.txt: 'trj_lfl_221211-230627_380101_final_v1 2022-Dec-11 08:34 2038-Jan-01'",
-            "docs/horizons-blurbs/raw/lunar-flashlight.txt: launch/deployment times in background section",
+            "assets/horizons-blurbs/raw/lunar-flashlight.txt: 'trj_lfl_221211-230627_380101_final_v1 2022-Dec-11 08:34 2038-Jan-01'",
+            "assets/horizons-blurbs/raw/lunar-flashlight.txt: launch/deployment times in background section",
         ],
     },
     {
@@ -265,9 +265,9 @@ MISSIONS: list[dict] = [
             {"key": "missionEnded", "time": "2025-Jul-31 00:00", "label": "Mission End", "info": "Mission formally ended after loss of contact"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/lunar-trailblazer.txt: 'ltb_trj_od007v1 2025-Feb-27 2051-Jan-01'",
-            "docs/horizons-blurbs/raw/lunar-trailblazer.txt: mission launch date line 2025-Feb-27 00:16:32 UTC",
-            "docs/horizons-blurbs/raw/lunar-trailblazer.txt: NOTE with mission end on 2025-Jul-31",
+            "assets/horizons-blurbs/raw/lunar-trailblazer.txt: 'ltb_trj_od007v1 2025-Feb-27 2051-Jan-01'",
+            "assets/horizons-blurbs/raw/lunar-trailblazer.txt: mission launch date line 2025-Feb-27 00:16:32 UTC",
+            "assets/horizons-blurbs/raw/lunar-trailblazer.txt: NOTE with mission end on 2025-Jul-31",
         ],
     },
     {
@@ -281,9 +281,9 @@ MISSIONS: list[dict] = [
             {"key": "softLanding", "time": "2024-Jan-19 15:19:57", "label": "Soft Landing", "info": "SLIM landed on the Moon"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/slim.txt: first listed trajectory segment begins 2023-Sep-07 00:32",
-            "docs/horizons-blurbs/raw/slim.txt: final listed segment ends 2024-Jan-31",
-            "docs/horizons-blurbs/raw/slim.txt: launch and landing times in background",
+            "assets/horizons-blurbs/raw/slim.txt: first listed trajectory segment begins 2023-Sep-07 00:32",
+            "assets/horizons-blurbs/raw/slim.txt: final listed segment ends 2024-Jan-31",
+            "assets/horizons-blurbs/raw/slim.txt: launch and landing times in background",
         ],
     },
     {
@@ -297,8 +297,8 @@ MISSIONS: list[dict] = [
             {"key": "moonArrival", "time": "2022-Dec-16 00:00", "label": "Moon Arrival", "info": "Arrival at Moon after BLT"},
         ],
         "sources": [
-            "docs/horizons-blurbs/raw/kplo-danuri.txt: 'Concatenated trajectory solutions (828) 2022-Aug-04 23:19 2026-Jul-02 23:33'",
-            "docs/horizons-blurbs/raw/kplo-danuri.txt: launch timeline with 2022-Aug-04 23:08 UTC",
+            "assets/horizons-blurbs/raw/kplo-danuri.txt: 'Concatenated trajectory solutions (828) 2022-Aug-04 23:19 2026-Jul-02 23:33'",
+            "assets/horizons-blurbs/raw/kplo-danuri.txt: launch timeline with 2022-Aug-04 23:08 UTC",
         ],
     },
 ]

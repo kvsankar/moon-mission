@@ -15,7 +15,7 @@
 //   Sampling step: `120` seconds
 //   Selected interesting window strategy: custom flyby-centered `92` days so the two lunar gravity assists are both visible in one animation window.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/hgs-1.txt`: launch details and the note that two successive lunar flybys were used to rescue the satellite into geosynchronous orbit.
+//   - `assets/horizons-blurbs/raw/hgs-1.txt`: launch details and the note that two successive lunar flybys were used to rescue the satellite into geosynchronous orbit.
 //   - Moon-centered HORIZONS vector queries for `-125126` show local closest-approach minima at `1998-05-13 08:33 UTC` (~`8,219 km` altitude) and `1998-06-06 19:34 UTC` (~`38,782 km` altitude).
 // Notes:
 //   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.

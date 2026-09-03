@@ -8,7 +8,7 @@
  * implementation exists. They define the acceptance criteria that the
  * compression algorithm must meet.
  *
- * Format Specification: docs/chebyshev-format-spec.md
+ * Format Specification: docs/specs/data/chebyshev-ephemeris-format.md
  */
 
 import { existsSync, readFileSync } from 'fs';
@@ -148,6 +148,37 @@ const AVAILABLE_DATA_FILES = DATA_FILES.filter((dataFile) =>
   existsSync(dataFile.npzPath)
 );
 const HAS_NPZ_DATA = AVAILABLE_DATA_FILES.length > 0;
+const RELATIVE_CHEB_PATH = join(DATA_DIR, 'relative-CH3L-cheb.json');
+const RELATIVE_GENERATOR_PATH = join(process.cwd(), 'scripts', 'generate-relative-orbits.py');
+
+describe('Chebyshev metadata variants', () => {
+  it('accepts the current ordinary inertial metadata contract', () => {
+    const ordinaryPath = DATA_FILES.find((entry) => existsSync(entry.chebPath))?.chebPath;
+    expect(ordinaryPath).toBeTruthy();
+    const data = JSON.parse(readFileSync(ordinaryPath, 'utf-8'));
+
+    expect(data.metadata.coordinate_frame).toBe('J2000');
+    expect(data.metadata.units.time).toMatch(/^julian_date(_tdb)?$/);
+    expect(data.metadata.units.position).toBe('km');
+  });
+
+  it('accepts the derived Earth-Moon relative metadata contract', () => {
+    if (existsSync(RELATIVE_CHEB_PATH)) {
+      const data = JSON.parse(readFileSync(RELATIVE_CHEB_PATH, 'utf-8'));
+
+      expect(data.metadata.coordinate_frame).toBe('relative-earth-moon');
+      expect(data.metadata.units.time).toMatch(/^julian_date(_tdb)?$/);
+      expect(data.metadata.mode).toBe('relative');
+      expect(data.metadata.units.position).toBe('km');
+      return;
+    }
+
+    const generatorSource = readFileSync(RELATIVE_GENERATOR_PATH, 'utf-8');
+    expect(generatorSource).toContain('"coordinate_frame": "relative-earth-moon"');
+    expect(generatorSource).toContain('"units": {"time": "julian_date", "position": "km"}');
+    expect(generatorSource).toContain('"mode": "relative"');
+  });
+});
 
 // ============================================================================
 // NPZ File Parsing (adapted from npyreader.js for Node.js)

@@ -260,6 +260,10 @@ def build(
     copied_files += copy_tree(platform_source, dist_path / "src" / "platform")
     copied_files += copy_tree(project_root_path / "third-party", dist_path / "third-party")
     copied_files += copy_tree(project_root_path / "images", dist_path / "images")
+    copied_files += copy_tree(
+        project_root_path / "assets" / "horizons-blurbs",
+        dist_path / "assets" / "horizons-blurbs",
+    )
 
     # Mission assets (exclude raw archives by default)
     ignore_archives = shutil.ignore_patterns("archive")

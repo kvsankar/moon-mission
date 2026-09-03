@@ -1,0 +1,137 @@
+{
+  "generated_utc": "2026-04-06T05:54:41.923394+00:00",
+  "items": [
+    {
+      "id": "sdo_hmi_continuum",
+      "name": "SDO HMI Continuum (full-disk visible-light)",
+      "url": "https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_HMIIC.jpg",
+      "filename": "sdo_hmi_continuum_latest_1024.jpg",
+      "fov_note": "~34-41 arcmin class full-disk context (AIA/HMI platform)",
+      "instrument": "SDO/HMI",
+      "source_page": "https://sdo.gsfc.nasa.gov/data/",
+      "downloaded_utc": "2026-04-06T05:26:49.308281+00:00",
+      "bytes": 206233,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "sdo_aia_171",
+      "name": "SDO AIA 171A (EUV full-disk)",
+      "url": "https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0171.jpg",
+      "filename": "sdo_aia_0171_latest_1024.jpg",
+      "fov_note": "AIA nominal FoV ~41 arcmin (instrument FoV)",
+      "instrument": "SDO/AIA",
+      "source_page": "https://sdo.gsfc.nasa.gov/data/",
+      "downloaded_utc": "2026-04-06T05:26:52.083122+00:00",
+      "bytes": 187434,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "soho_lasco_c2",
+      "name": "SOHO LASCO C2 coronagraph",
+      "url": "https://soho.nascom.nasa.gov/data/realtime/c2/1024/latest.jpg",
+      "filename": "soho_lasco_c2_latest_1024.jpg",
+      "fov_note": "C2 FoV roughly inner corona (~1.5-6 solar radii class)",
+      "instrument": "SOHO/LASCO C2",
+      "source_page": "https://soho.nascom.nasa.gov/data/realtime/image-description.html",
+      "downloaded_utc": "2026-04-06T05:26:54.933935+00:00",
+      "bytes": 453100,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "soho_lasco_c3",
+      "name": "SOHO LASCO C3 coronagraph",
+      "url": "https://soho.nascom.nasa.gov/data/realtime/c3/1024/latest.jpg",
+      "filename": "soho_lasco_c3_latest_1024.jpg",
+      "fov_note": "C3 wide FoV (to ~30 solar radii class)",
+      "instrument": "SOHO/LASCO C3",
+      "source_page": "https://soho.nascom.nasa.gov/data/realtime/image-description.html",
+      "downloaded_utc": "2026-04-06T05:26:58.824597+00:00",
+      "bytes": 784537,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "stereo_cor2_ahead",
+      "name": "STEREO SECCHI COR2 (Ahead)",
+      "url": "https://stereo-ssc.nascom.nasa.gov/beacon/latest_256/ahead_cor2_latest.jpg",
+      "filename": "stereo_ahead_cor2_latest_256.jpg",
+      "fov_note": "COR2 FoV (coronagraph range; see SECCHI FoV docs)",
+      "instrument": "STEREO/SECCHI COR2",
+      "source_page": "https://stereo.gsfc.nasa.gov/classroom/secchi_fov.shtml",
+      "downloaded_utc": "2026-04-06T05:27:00.052830+00:00",
+      "bytes": 15114,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "stereo_hi1_ahead",
+      "name": "STEREO SECCHI HI-1 (Ahead)",
+      "url": "https://stereo-ssc.nascom.nasa.gov/beacon/latest_256/ahead_hi1_latest.jpg",
+      "filename": "stereo_ahead_hi1_latest_256.jpg",
+      "fov_note": "HI-1 FoV ~20 degrees",
+      "instrument": "STEREO/SECCHI HI-1",
+      "source_page": "https://stereo.gsfc.nasa.gov/classroom/secchi_fov.shtml",
+      "downloaded_utc": "2026-04-06T05:27:01.690390+00:00",
+      "bytes": 49212,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "stereo_hi2_ahead",
+      "name": "STEREO SECCHI HI-2 (Ahead)",
+      "url": "https://stereo-ssc.nascom.nasa.gov/beacon/latest_256/ahead_hi2_latest.jpg",
+      "filename": "stereo_ahead_hi2_latest_256.jpg",
+      "fov_note": "HI-2 FoV ~70 degrees",
+      "instrument": "STEREO/SECCHI HI-2",
+      "source_page": "https://stereo.gsfc.nasa.gov/classroom/secchi_fov.shtml",
+      "downloaded_utc": "2026-04-06T05:27:02.844066+00:00",
+      "bytes": 15355,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "apollo16_inflight_s72_37001",
+      "name": "Apollo 16 inflight photo (NASA image archive)",
+      "url": "https://images-assets.nasa.gov/image/S72-37001/S72-37001~medium.jpg",
+      "filename": "apollo16_s72_37001_medium.jpg",
+      "fov_note": "Crew camera image from cislunar space (human optics + film/camera response)",
+      "instrument": "Apollo crew camera",
+      "source_page": "https://images.nasa.gov/details/S72-37001",
+      "downloaded_utc": "2026-04-06T05:32:27.873349+00:00",
+      "bytes": 87284,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "iss_ocean_sunglint_iss058e007722",
+      "name": "ISS Earth observation with sunglint (ISS crew image)",
+      "url": "https://images-assets.nasa.gov/image/iss058e007722/iss058e007722~medium.jpg",
+      "filename": "iss058e007722_medium.jpg",
+      "fov_note": "ISS crew camera capture; demonstrates harsh specular sunlight and black-space contrast",
+      "instrument": "ISS crew camera",
+      "source_page": "https://images.nasa.gov/details/iss058e007722",
+      "downloaded_utc": "2026-04-06T05:32:29.184763+00:00",
+      "bytes": 94111,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "iss_solar_transit_nhq202106250004",
+      "name": "ISS solar transit image (ground camera through solar filter)",
+      "url": "https://images-assets.nasa.gov/image/NHQ202106250004/NHQ202106250004~medium.jpg",
+      "filename": "iss_solar_transit_nhq202106250004_medium.jpg",
+      "fov_note": "Ground-based filtered solar imaging; useful for perceived solar edge/halo behavior",
+      "instrument": "Ground telescope + solar filter (ISS transit)",
+      "source_page": "https://images.nasa.gov/details/NHQ202106250004",
+      "downloaded_utc": "2026-04-06T05:32:30.149079+00:00",
+      "bytes": 50110,
+      "content_type": "image/jpeg"
+    },
+    {
+      "id": "iss_sunfromspace_c",
+      "name": "ISS Sun from space reference (user-provided URL)",
+      "url": "https://cosmic-watch.com/cosmicbeta/wp-content/uploads/2015/07/sunfromspace_c.jpg",
+      "filename": "iss_sunfromspace_c.jpg",
+      "fov_note": "Crew-camera style optics with strong starburst and flare artifacts",
+      "instrument": "ISS/crew camera style reference",
+      "source_page": "https://cosmic-watch.com/cosmicbeta/wp-content/uploads/2015/07/sunfromspace_c.jpg",
+      "downloaded_utc": "2026-04-06T05:54:41.923236+00:00",
+      "bytes": 82654,
+      "content_type": "image/jpeg"
+    }
+  ]
+}

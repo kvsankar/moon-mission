@@ -12,7 +12,7 @@ Usage:
     python scripts/compress-orbits.py --validate                   # Validate after compression
     python scripts/compress-orbits.py --dry-run                    # Show what would be done
 
-Output Format Specification: docs/chebyshev-format-spec.md
+Output Format Specification: docs/specs/data/chebyshev-ephemeris-format.md
 """
 
 import argparse

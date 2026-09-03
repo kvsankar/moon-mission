@@ -534,6 +534,23 @@ def save_blurb(
     return paths
 
 
+def rebuild_index(output_dir: Path) -> tuple[Path, int]:
+    """Rebuild the combined index from every generated metadata file."""
+    metadata_dir = output_dir / "metadata"
+    all_metadata = []
+    for metadata_path in sorted(metadata_dir.glob("*.json")):
+        all_metadata.append(json.loads(metadata_path.read_text(encoding="utf-8")))
+
+    index_path = output_dir / "mission-index.json"
+    index_data = {
+        'generated_at': datetime.now().isoformat(),
+        'mission_count': len(all_metadata),
+        'missions': all_metadata,
+    }
+    index_path.write_text(json.dumps(index_data, indent=2, default=str), encoding='utf-8')
+    return index_path, len(all_metadata)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Fetch mission blurbs from JPL HORIZONS",
@@ -543,8 +560,8 @@ def main():
     parser.add_argument(
         '--output-dir', '-o',
         type=Path,
-        default=Path('docs/horizons-blurbs'),
-        help='Output directory for blurb files (default: docs/horizons-blurbs)'
+        default=Path('assets/horizons-blurbs'),
+        help='Output directory for blurb files (default: assets/horizons-blurbs)'
     )
     parser.add_argument(
         '--missions', '-m',
@@ -561,6 +578,11 @@ def main():
         '--quiet', '-q',
         action='store_true',
         help='Suppress progress output'
+    )
+    parser.add_argument(
+        '--rebuild-index-only',
+        action='store_true',
+        help='Rebuild mission-index.json from existing metadata without fetching HORIZONS'
     )
 
     args = parser.parse_args()
@@ -579,12 +601,16 @@ def main():
     # Create output directory
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
+    if args.rebuild_index_only:
+        index_path, mission_count = rebuild_index(args.output_dir)
+        print(f"Rebuilt {index_path} from {mission_count} metadata files.")
+        return
+
     print(f"Fetching blurbs for {len(missions)} missions...")
     print(f"Output directory: {args.output_dir}")
     print()
 
     # Fetch and process each mission
-    all_metadata = []
     success_count = 0
     error_count = 0
 
@@ -601,7 +627,6 @@ def main():
             # Save files
             paths = save_blurb(raw_text, metadata, args.output_dir)
 
-            all_metadata.append(asdict(metadata))
             success_count += 1
 
             if not args.quiet:
@@ -613,14 +638,8 @@ def main():
         if i < len(missions) - 1:
             time.sleep(args.delay)
 
-    # Save combined metadata index
-    index_path = args.output_dir / "mission-index.json"
-    index_data = {
-        'generated_at': datetime.now().isoformat(),
-        'mission_count': len(all_metadata),
-        'missions': all_metadata
-    }
-    index_path.write_text(json.dumps(index_data, indent=2, default=str), encoding='utf-8')
+    # Rebuild from all metadata files so a filtered fetch does not truncate the index.
+    index_path, indexed_count = rebuild_index(args.output_dir)
 
     # Summary
     print()
@@ -630,6 +649,7 @@ def main():
     print(f"  Missions processed: {len(missions)}")
     print(f"  Successful:         {success_count}")
     print(f"  Errors:             {error_count}")
+    print(f"  Indexed missions:   {indexed_count}")
     print(f"  Output directory:   {args.output_dir}")
     print(f"  Index file:         {index_path}")
     print()
