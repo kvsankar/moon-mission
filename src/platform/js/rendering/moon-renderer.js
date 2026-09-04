@@ -659,6 +659,8 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     #endif
     vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color * moonSunShadowFactor
                                    * RECIPROCAL_PI * material.diffuseColor;
+    vec3 moonSunDiffuseUnit = directionalLights[0].color * moonSunShadowFactor
+                           * RECIPROCAL_PI * material.diffuseColor;
 
     // Start from the smooth-sphere visibility used by Current. Physical may
     // replace it with the displaced geometric normal in the narrow
@@ -774,15 +776,32 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     moonEarthshineDirectKept = max( reflectedLight.directDiffuse - moonSunDirectContribution, vec3(0.0) );
     reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;
 
-    float moonLsScale = 1.0;
-    if ( moonNdotL > 1e-4 ) {
-        float moonLs = moonNdotL / max( moonNdotL + moonNdotV, 1e-4 );
-        moonLsScale = moonLs / moonNdotL;
+    if ( moonPhysicalModelActive ) {
+        // USGS lunar-Lambert: (1-L)*mu0 + 2*L*mu0/(mu0+mu).
+        // Evaluate the reflectance directly so the single-scattering term can
+        // preserve real low-incidence terrain without a divergent scale ratio.
+        float moonPhysicalLsResponse = 2.0 * moonNdotL
+            / max( moonNdotL + moonNdotV, 1e-4 );
+        float moonPhysicalDiffuseResponse = mix(
+            moonNdotL,
+            moonPhysicalLsResponse,
+            clamp( uMoonLsBlend, 0.0, 1.0 )
+        );
+        reflectedLight.directDiffuse = moonSunDiffuseUnit
+            * moonPhysicalDiffuseResponse
+            * moonSunVisibility;
     } else {
-        moonLsScale = 0.0;
+        // Preserve Current's established, deliberately bounded response.
+        float moonLsScale = 1.0;
+        if ( moonNdotL > 1e-4 ) {
+            float moonLs = moonNdotL / max( moonNdotL + moonNdotV, 1e-4 );
+            moonLsScale = moonLs / moonNdotL;
+        } else {
+            moonLsScale = 0.0;
+        }
+        moonLsScale = clamp( moonLsScale, min(uMoonLsClampMin, uMoonLsClampMax), max(uMoonLsClampMin, uMoonLsClampMax) );
+        reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
     }
-    moonLsScale = clamp( moonLsScale, min(uMoonLsClampMin, uMoonLsClampMax), max(uMoonLsClampMin, uMoonLsClampMax) );
-    reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
 
     float moonPhaseAlignment = clamp( dot( moonLightDir, moonViewDir ), 0.0, 1.0 );
     float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
@@ -955,7 +974,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v34-physical-blocker-threshold",
+            "moon-photometric-v35-physical-lunar-lambert",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

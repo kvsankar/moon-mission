@@ -183,7 +183,7 @@ function createHarness(options = {}) {
     const moonPhysicalNormalValue = createElement("moon-render-physical-physicalNormalScale-value");
     const moonPhysicalShadows = createElement("moon-render-physical-physicalShadowStrength", { value: "1.1" });
     const moonPhysicalShadowsValue = createElement("moon-render-physical-physicalShadowStrength-value");
-    const moonPhysicalExposure = createElement("moon-render-physical-physicalExposure", { value: "0.6" });
+    const moonPhysicalExposure = createElement("moon-render-physical-physicalExposure", { value: "0.45" });
     const moonPhysicalExposureValue = createElement("moon-render-physical-physicalExposure-value");
     const moonPhysicalToneGamma = createElement("moon-render-physical-physicalToneGamma", { value: "1" });
     const moonPhysicalToneGammaValue = createElement("moon-render-physical-physicalToneGamma-value");
@@ -660,13 +660,13 @@ describe("createViewSettingsPillController", function () {
         });
 
         expect(harness.moonRenderPipelineSetter).toHaveBeenCalledWith({
-            schemaVersion: 3,
+            schemaVersion: 4,
             lightingModel: "current",
             physicalBrdfBlend: 0.2,
             physicalNormalScale: 0.8,
             physicalReliefScale: 0.45,
             physicalShadowStrength: 1.1,
-            physicalExposure: 0.6,
+            physicalExposure: 0.45,
             physicalToneGamma: 1,
             colorTexture: false,
             generatedNormalMap: false,
