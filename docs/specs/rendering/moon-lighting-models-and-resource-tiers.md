@@ -26,16 +26,16 @@ Preserve the corrected production stack and its diagnostic stage controls.
 - Use the DEM height field for horizon/cast shadows when the selected tier supplies a DEM.
 - Retain a restrained Lommel-Seeliger/Lambert blend and Earthshine.
 - Exclude Current-model terminator contrast, terminator tone, cavity relief, indirect occlusion, opposition boost, and shadow crushing.
-- Keep normal scale, physical relief scale, DEM-shadow strength, BRDF blend, exposure, and lunar tone response independently tunable.
+- Keep normal scale, physical relief scale, geometry-shadow strength, BRDF blend, exposure, and lunar tone response independently tunable.
 - Always enable the color, DEM-normal, displacement, terrain-shadow, and Earthshine stages when their selected resource tier supplies the required data; never inherit a Smooth or Geometric diagnostic preset.
 
 ## Resource Tiers
 
-| Tier | Color | DEM | Geometry | Normal generation | Horizon samples |
+| Tier | Color | DEM | Geometry | Normal generation | Physical horizon samples |
 | --- | --- | --- | --- | --- | --- |
 | Low | 4K | None | 128 x 64 | None | 0 |
-| Medium | 4K | Standard | 384 x 192 | Up to 2048 wide | 6 |
-| High | 16K | Detailed | 512 x 512 | Up to 5760 wide | 12 |
+| Medium | 4K | Standard | 384 x 192 | Up to 2048 wide | 0 |
+| High | 16K | Detailed | 1024 x 512 | 5760 wide, worker-prepared | 20 |
 
 Low must not request the DEM, bind the neutral placeholder as displacement, or schedule generated-normal work. Switching down must release replaced DEM-derived textures and geometry. Switching up may load and build assets lazily.
 
@@ -53,6 +53,7 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 - Calibrate the default Physical display response against the Artemis II Earthset crew sequence without encoding a specific camera exposure into the geometry or DEM lighting stages; Frame & Shoot exposure compensation remains the per-shot control.
 - Preserve crater-shadow separation near the terminator by calibrating local DEM-normal gain and cast-shadow strength separately from exposure; cast-shadow sensitivity must fall away rapidly outside the low-Sun band.
 - Physical must evaluate the lunar-Lambert reflectance directly as `(1-L)*mu0 + 2*L*mu0/(mu0+mu)`; Current retains its established bounded photometric response.
+- Detailed Physical must decode the NASA uint DEM in half-meter units relative to the 1737.4 km reference sphere, derive normals using spherical surface metrics, and combine displaced light-space depth with a unit-aware, curvature-correct horizon ray instead of the legacy UV blocker-threshold march.
 - Confirm the geometric mask against finite-distance projected illumination.
 - Compare Current and Physical DEM at `art002e009277`, `art002e009281`, `art002e010208`, and the Earthset sequence `art002e009288`/`art002e009289`.
 - At Earthset, evaluate visible crater detail inside the lit-side terminator band, not only whole-disc luminance.

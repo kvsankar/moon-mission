@@ -532,7 +532,7 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v35-physical-lunar-lambert");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v37-physical-spherical-horizon");
         expect(shader.fragmentShader).toContain("float moonSunDiskVisibleFraction(float rawNdotL)");
         expect(shader.fragmentShader)
             .toContain("float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );");
@@ -543,7 +543,14 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader)
             .toContain("moonNdotL * directionalLights[0].color * moonSunShadowFactor");
         expect(shader.fragmentShader)
-            .toContain("vec3 moonSunDiffuseUnit = directionalLights[0].color * moonSunShadowFactor");
+            .toContain("vec3 moonSunDiffuseUnit = directionalLights[0].color * moonSunShadowFactorForDiffuse");
+        expect(shader.fragmentShader).toContain(`if ( moonPhysicalModelActive ) {
+        moonSunShadowFactorForDiffuse = mix(
+            1.0,
+            moonSunShadowFactor,
+            clamp( uMoonTerrainShadowStrength, 0.0, 1.0 )
+        );
+    }`);
         // Earthshine isolation: held aside and restored AFTER all Sun-side
         // terminator multipliers + the dark-side crush.
         expect(shader.fragmentShader)
@@ -591,18 +598,31 @@ describe("MoonRenderer", () => {
         reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
     }`);
         expect(shader.fragmentShader).toContain("clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 )");
+        expect(shader.fragmentShader).toContain("float moonShadowRiseStart = 0.0012;");
+        expect(shader.fragmentShader).toContain("float moonShadowRiseFull = 0.0065;");
         expect(shader.fragmentShader).toContain(
-            "float moonShadowRiseStart = moonPhysicalModelActive ? 0.0007 : 0.0012;",
+            "if ( !moonPhysicalModelActive && uMoonTerrainShadowStrength > 0.0",
+        );
+        expect(shader.fragmentShader).toContain("uMoonPhysicalHeightScale > 0.0");
+        expect(shader.fragmentShader).toContain(
+            "float moonPhysicalBaseHeight = texture2D( uMoonHeightMap, moonHeightUv ).r",
         );
         expect(shader.fragmentShader).toContain(
-            "float moonShadowRiseFull = moonPhysicalModelActive ? 0.0045 : 0.0065;",
+            "float moonSampleRadialRise = moonSampleRadius * cos( moonSampleAngle )",
+        );
+        expect(shader.fragmentShader).toContain(
+            "float moonSampleLongitudeOffset = atan(",
+        );
+        expect(shader.fragmentShader).toContain(
+            "fract( moonHeightUv.x + moonSampleLongitudeOffset / 6.283185307179586 + 1.0 )",
+        );
+        expect(shader.fragmentShader).toContain(
+            "for ( int moonSampleIndex = 1; moonSampleIndex <= 20; moonSampleIndex += 1 )",
         );
         expect(shader.fragmentShader).toContain(
             "float moonTerrainShadowBandCurrent = moonTerrainReliefBand\n        * pow( 1.0 - moonSmoothNdotL, 1.4 );",
         );
-        expect(shader.fragmentShader).toContain(
-            "if ( moonPhysicalModelActive ) {\n        moonTerrainShadowBand = pow(\n            clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 ),\n            8.0\n        );\n    }",
-        );
+        expect(shader.fragmentShader).not.toContain("moonTerrainShadowBand = pow(");
         expect(shader.vertexShader).toContain("varying vec3 vMoonGeometricNormalView;");
         expect(shader.fragmentShader)
             .toContain("step( 0.0001, dot( normalize( vMoonGeometricNormalView ), moonLightDir ) )");
@@ -773,13 +793,127 @@ describe("MoonRenderer", () => {
         expect(material.userData.moonTerrainReliefStrength).toBe(0.0);
         expect(material.userData.moonTerminatorIndirectOcclusion).toBe(0.0);
         expect(material.userData.moonShadowCrushBlend).toBe(0.0);
-        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(1.10, 4);
+        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(1.0, 4);
+        expect(material.userData.moonPhysicalHeightScale).toBe(0);
         expect(material.userData.moonPhysicalExposure).toBeCloseTo(0.45, 4);
         expect(material.userData.moonPhysicalToneGamma).toBeCloseTo(1.00, 4);
-        expect(material.normalScale.x).toBeCloseTo(2.2 * 0.80, 4);
-        expect(material.displacementScale).toBeCloseTo(0.013 * 0.45, 4);
+        expect(material.shadowSide).toBe(THREE.FrontSide);
+        expect(material.normalScale.x).toBeCloseTo(2.2, 4);
+        expect(material.displacementScale).toBeCloseTo(0.013, 4);
 
         moonRenderer.dispose();
+    });
+
+    it("uses NASA DEM units and denser geometry for the Detailed Physical path", () => {
+        const moonRenderer = new MoonRenderer(2);
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 5760, height: 2880 };
+        moonRenderer.setRenderPipeline({ lightingModel: "physical-dem" });
+        moonRenderer.setRenderSettings({
+            physicalGeometryWidthSegments: 1024,
+            physicalGeometryHeightSegments: 512,
+            physicalDisplacementScale: 0.018860078277886497,
+            physicalDisplacementBias: -0.005755726948313572,
+            physicalNormalHeightScale: 0.018860078277886497,
+        });
+        moonRenderer.setTextures(new THREE.Texture(), displacementTexture, new THREE.Texture());
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        expect(moonRenderer.mesh.geometry.parameters.widthSegments).toBe(1024);
+        expect(moonRenderer.mesh.geometry.parameters.heightSegments).toBe(512);
+        expect(material.displacementScale).toBeCloseTo(2 * 0.018860078277886497, 8);
+        expect(material.displacementBias).toBeCloseTo(2 * -0.005755726948313572, 8);
+        expect(material.normalScale.x).toBeCloseTo(1, 8);
+        expect(material.shadowSide).toBe(THREE.FrontSide);
+        expect(material.userData.moonPhysicalHeightScale).toBeCloseTo(0.018860078277886497, 8);
+        expect(material.userData.moonPhysicalHeightBias).toBeCloseTo(-0.005755726948313572, 8);
+
+        moonRenderer.dispose();
+    });
+
+    it("binds Physical's forced maps after a stored smooth preset", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+        const legacyDisplacementTexture = new THREE.Texture();
+        legacyDisplacementTexture.image = { width: 2, height: 2 };
+        displacementTexture.userData.legacyTexture = legacyDisplacementTexture;
+        const normalTexture = new THREE.Texture();
+        moonRenderer.setRenderPipeline({
+            lightingModel: "current",
+            colorTexture: false,
+            generatedNormalMap: false,
+            displacement: false,
+            terrainShadows: false,
+        });
+        moonRenderer.setTextures(colorTexture, displacementTexture, normalTexture);
+        moonRenderer.create();
+
+        moonRenderer.setRenderPipeline({
+            ...moonRenderer.renderPipeline,
+            lightingModel: "physical-dem",
+        });
+
+        expect(moonRenderer.mesh.material.map).toBe(colorTexture);
+        expect(moonRenderer.mesh.material.normalMap).toBe(normalTexture);
+        expect(moonRenderer.mesh.material.displacementMap).toBe(displacementTexture);
+        expect(moonRenderer.mesh.material.userData.moonTerrainShadowStrength).toBe(1);
+
+        moonRenderer.setRenderPipeline({
+            ...moonRenderer.renderPipeline,
+            lightingModel: "current",
+            generatedNormalMap: true,
+            displacement: true,
+        });
+        expect(moonRenderer.mesh.material.displacementMap).toBe(legacyDisplacementTexture);
+
+        moonRenderer.dispose();
+    });
+
+    it("defers a High model-switch normal rebuild and never reuses the legacy map", () => {
+        let idleCallback = null;
+        vi.stubGlobal("requestIdleCallback", vi.fn((callback) => {
+            idleCallback = callback;
+            return 17;
+        }));
+        vi.stubGlobal("cancelIdleCallback", vi.fn());
+        const moonRenderer = new MoonRenderer(1);
+        const requestRender = vi.fn();
+        moonRenderer.setRenderInvalidationCallback(requestRender);
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = {
+            data: new Float32Array([0.3, 0.4, 0.5, 0.6]),
+            width: 2,
+            height: 2,
+        };
+        moonRenderer.setRenderSettings({
+            physicalNormalHeightScale: 0.018860078277886497,
+        });
+        moonRenderer.setTextures(new THREE.Texture(), displacementTexture);
+        moonRenderer.create(false, false, { deferGeneratedNormalMap: true });
+        const legacyNormalMap = new THREE.Texture();
+        const disposeLegacy = vi.spyOn(legacyNormalMap, "dispose");
+        moonRenderer.generatedNormalMap = legacyNormalMap;
+        moonRenderer.generatedNormalMapMode = "legacy-artistic";
+
+        moonRenderer.setRenderPipeline({ lightingModel: "physical-dem" });
+
+        expect(globalThis.requestIdleCallback).toHaveBeenCalledOnce();
+        expect(disposeLegacy).toHaveBeenCalledOnce();
+        expect(moonRenderer.generatedNormalMap).toBeNull();
+        expect(moonRenderer.mesh.material.normalMap).toBeNull();
+        expect(moonRenderer.mesh.material.bumpMap).toBe(displacementTexture);
+
+        idleCallback();
+
+        expect(moonRenderer.generatedNormalMapMode).toBe("physical-spherical");
+        expect(moonRenderer.mesh.material.normalMap).toBe(moonRenderer.generatedNormalMap);
+        expect(requestRender).toHaveBeenCalledOnce();
+
+        moonRenderer.dispose();
+        vi.unstubAllGlobals();
     });
 
     it("rebuilds Moon geometry when the resource budget changes", () => {
@@ -836,6 +970,39 @@ describe("MoonRenderer", () => {
         expect(moonRenderer.mesh.material.bumpMap).toBeNull();
         expect(moonRenderer.mesh.material.displacementMap).toBeNull();
         expect(moonRenderer.mesh.geometry.parameters.widthSegments).toBe(128);
+
+        moonRenderer.dispose();
+    });
+
+    it("drops the previous tier normal while a deferred replacement is pending", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const highDem = new THREE.Texture();
+        highDem.image = { width: 4, height: 2 };
+        const highNormal = new THREE.Texture();
+        highDem.userData.physicalNormalTexture = highNormal;
+        moonRenderer.setRenderPipeline({ lightingModel: "physical-dem" });
+        moonRenderer.setRenderSettings({
+            physicalNormalHeightScale: 0.018860078277886497,
+        });
+        moonRenderer.setTextures(new THREE.Texture(), highDem);
+        moonRenderer.create(false, false, { deferGeneratedNormalMap: true });
+        moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+        expect(moonRenderer.mesh.material.normalMap).toBe(highNormal);
+
+        const mediumDem = new THREE.Texture();
+        mediumDem.image = { width: 2, height: 2 };
+        moonRenderer.updateTextures(new THREE.Texture(), mediumDem, null, {
+            disposePrevious: true,
+            deferGeneratedNormalMap: true,
+            renderSettings: {
+                physicalNormalHeightScale: 0,
+            },
+        });
+
+        expect(moonRenderer.generatedNormalMap).toBeNull();
+        expect(moonRenderer.generatedNormalMapMode).toBeNull();
+        expect(moonRenderer.mesh.material.normalMap).toBeNull();
+        expect(moonRenderer.mesh.material.bumpMap).toBe(mediumDem);
 
         moonRenderer.dispose();
     });

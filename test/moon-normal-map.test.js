@@ -29,6 +29,12 @@ function decodeGreen(normalTexture, width, x, y) {
     return DataUtils.fromHalfFloat(halfBits);
 }
 
+function decodeRed(normalTexture, width, x, y) {
+    const data = normalTexture.image.data;
+    const halfBits = data[(y * width + x) * 4];
+    return DataUtils.fromHalfFloat(halfBits);
+}
+
 describe("moon-normal-map", () => {
     afterEach(() => {
         vi.unstubAllGlobals();
@@ -98,5 +104,60 @@ describe("moon-normal-map", () => {
         expect(greenFlipYFalse).toBeLessThan(0.5);
         // The two should be reflections about 0.5 (within FP16 precision).
         expect(greenFlipYTrue + greenFlipYFalse).toBeCloseTo(1.0, 2);
+    });
+
+    it("derives Physical normals from DEM radius units and spherical texel spacing", () => {
+        const pixels = [];
+        for (let row = 0; row < 4; row += 1) {
+            for (let col = 0; col < 4; col += 1) {
+                const value = Math.round((col / 3) * 255);
+                pixels.push(value, value, value, 255);
+            }
+        }
+        stubDocumentWithPixels(new Uint8ClampedArray(pixels));
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 4, height: 4 };
+        displacementTexture.flipY = true;
+
+        const weak = buildMoonNormalMapFromHeightTexture(displacementTexture, {
+            physicalNormalHeightScale: 0.1,
+        });
+        const strong = buildMoonNormalMapFromHeightTexture(displacementTexture, {
+            physicalNormalHeightScale: 0.2,
+        });
+        const weakRed = decodeRed(weak, 4, 1, 1);
+        const strongRed = decodeRed(strong, 4, 1, 1);
+        const longitudeRadiansPerPixel = (Math.PI * 2) / 4;
+        const latitude = (Math.PI * 0.5) - (1.5 * Math.PI / 4);
+        const expectedGradient = (2 / 3) * 0.1
+            / (2 * longitudeRadiansPerPixel * Math.cos(latitude));
+        const expectedRed = (-expectedGradient / Math.hypot(expectedGradient, 1)) * 0.5 + 0.5;
+
+        expect(weakRed).toBeLessThan(0.5);
+        expect(weakRed).toBeCloseTo(expectedRed, 3);
+        expect(strongRed).toBeLessThan(weakRed);
+    });
+
+    it("wraps Physical normal derivatives across the longitude seam", () => {
+        const row = [0.5, 0.75, 0.5, 0.25];
+        const heightData = new Float32Array(16);
+        for (let y = 0; y < 4; y += 1) {
+            heightData.set(row, y * 4);
+        }
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { data: heightData, width: 4, height: 4 };
+        displacementTexture.flipY = true;
+
+        const normalTexture = buildMoonNormalMapFromHeightTexture(displacementTexture, {
+            physicalNormalHeightScale: 0.1,
+        });
+        const redAtSeam = decodeRed(normalTexture, 4, 0, 1);
+        const longitudeRadiansPerPixel = (Math.PI * 2) / 4;
+        const latitude = (Math.PI * 0.5) - (1.5 * Math.PI / 4);
+        const expectedGradient = (0.75 - 0.25) * 0.1
+            / (2 * longitudeRadiansPerPixel * Math.cos(latitude));
+        const expectedRed = (-expectedGradient / Math.hypot(expectedGradient, 1)) * 0.5 + 0.5;
+
+        expect(redAtSeam).toBeCloseTo(expectedRed, 3);
     });
 });

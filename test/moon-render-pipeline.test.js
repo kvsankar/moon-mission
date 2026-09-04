@@ -33,7 +33,7 @@ describe("moon render pipeline", () => {
             ...MOON_RENDER_PIPELINE_PRESETS.smooth.state,
             shadowCrush: true,
         });
-        expect(legacySmooth.physicalShadowStrength).toBe(1.1);
+        expect(legacySmooth.physicalShadowStrength).toBe(1);
     });
 
     it("migrates a stored seven-stage full state to the corrected full preset", () => {
@@ -112,15 +112,15 @@ describe("moon render pipeline", () => {
             physicalNormalScale: 0.55,
             physicalShadowStrength: 0.75,
         })).toMatchObject({
-            schemaVersion: 4,
-            physicalNormalScale: 0.8,
-            physicalShadowStrength: 1.1,
+            schemaVersion: 5,
+            physicalNormalScale: 1,
+            physicalShadowStrength: 1,
         });
         expect(createMoonRenderPipelineState({
             physicalNormalScale: 0.55,
             physicalShadowStrength: 0.75,
         })).toMatchObject({
-            schemaVersion: 4,
+            schemaVersion: 5,
             physicalNormalScale: 0.55,
             physicalShadowStrength: 0.75,
         });
@@ -133,7 +133,7 @@ describe("moon render pipeline", () => {
             physicalExposure: 0.6,
             physicalToneGamma: 1,
         })).toMatchObject({
-            schemaVersion: 4,
+            schemaVersion: 5,
             physicalBrdfBlend: 0.2,
             physicalExposure: 0.45,
             physicalToneGamma: 1,
@@ -143,7 +143,7 @@ describe("moon render pipeline", () => {
             physicalExposure: 0.6,
             physicalToneGamma: 1,
         })).toMatchObject({
-            schemaVersion: 4,
+            schemaVersion: 5,
             physicalBrdfBlend: 0.2,
             physicalExposure: 0.6,
             physicalToneGamma: 1,
@@ -154,10 +154,34 @@ describe("moon render pipeline", () => {
             physicalExposure: 0.6,
             physicalToneGamma: 1,
         })).toMatchObject({
-            schemaVersion: 4,
+            schemaVersion: 5,
             physicalBrdfBlend: 0.4,
             physicalExposure: 0.6,
             physicalToneGamma: 1,
+        });
+    });
+
+    it("migrates the superseded Physical geometry defaults once", () => {
+        expect(normalizeMoonRenderPipelineState({
+            schemaVersion: 4,
+            physicalNormalScale: 0.8,
+            physicalReliefScale: 0.45,
+            physicalShadowStrength: 1.1,
+        })).toMatchObject({
+            schemaVersion: 5,
+            physicalNormalScale: 1,
+            physicalReliefScale: 1,
+            physicalShadowStrength: 1,
+        });
+        expect(createMoonRenderPipelineState({
+            physicalNormalScale: 0.8,
+            physicalReliefScale: 0.45,
+            physicalShadowStrength: 1.1,
+        })).toMatchObject({
+            schemaVersion: 5,
+            physicalNormalScale: 0.8,
+            physicalReliefScale: 0.45,
+            physicalShadowStrength: 1,
         });
     });
 
@@ -177,20 +201,20 @@ describe("moon render pipeline", () => {
         };
 
         expect(resolveMoonRenderPipelineState({ globalObject })).toMatchObject({
-            schemaVersion: 4,
-            physicalNormalScale: 0.8,
-            physicalShadowStrength: 1.1,
+            schemaVersion: 5,
+            physicalNormalScale: 1,
+            physicalShadowStrength: 1,
         });
         expect(JSON.parse(storedText)).toMatchObject({
-            schemaVersion: 4,
-            physicalNormalScale: 0.8,
-            physicalShadowStrength: 1.1,
+            schemaVersion: 5,
+            physicalNormalScale: 1,
+            physicalShadowStrength: 1,
         });
     });
 
     it("does not overwrite settings from a future schema", () => {
         const futureState = {
-            schemaVersion: 5,
+            schemaVersion: 6,
             physicalNormalScale: 0.9,
             physicalShadowStrength: 1.2,
             futureControl: true,

@@ -207,7 +207,18 @@ function updateReadout(geometry) {
         const material = moonRenderer.mesh.material;
         const segments = moonRenderer.mesh.geometry?.parameters;
         const textureLabel = material?.map?.image?.width ? `${material.map.image.width}px` : "none";
-        const demLabel = material?.displacementMap?.image?.width ? ` + DEM ${material.displacementMap.image.width}px` : "";
+        const demEncoding = material?.displacementMap?.userData?.moonDemEncoding === "nasa-uint16-float"
+            ? " uint16"
+            : "";
+        const decodeMs = Number(material?.displacementMap?.userData?.decodeMilliseconds);
+        const fetchMs = Number(material?.displacementMap?.userData?.fetchMilliseconds);
+        const normalMs = Number(material?.normalMap?.userData?.buildMilliseconds);
+        const timingLabel = Number.isFinite(fetchMs) || Number.isFinite(decodeMs) || Number.isFinite(normalMs)
+            ? ` (${Number.isFinite(fetchMs) ? Math.round(fetchMs) : "-"}/${Number.isFinite(decodeMs) ? Math.round(decodeMs) : "-"}/${Number.isFinite(normalMs) ? Math.round(normalMs) : "-"} ms)`
+            : "";
+        const demLabel = material?.displacementMap?.image?.width
+            ? ` + DEM ${material.displacementMap.image.width}px${demEncoding}${timingLabel}`
+            : "";
         document.getElementById("observer-resources").textContent = `${segments?.widthSegments || 0}x${segments?.heightSegments || 0} / ${textureLabel}${demLabel}`;
     }
 }
@@ -302,6 +313,7 @@ const profileLoader = createMoonObserverProfileLoader({
     applyResources: async ({ profile, resources: textures, isCurrent }) => {
         if (!moonRenderer) {
             moonRenderer = new MoonRenderer(1);
+            moonRenderer.setRenderInvalidationCallback(renderFrame);
             moonRenderer.setTextures(textures.moonMap, textures.moonDisplacementMap, null);
             moonRenderer.setRenderSettings(textures.moonRenderSettings);
             moonRenderer.setRenderPipeline(buildPipelineState());

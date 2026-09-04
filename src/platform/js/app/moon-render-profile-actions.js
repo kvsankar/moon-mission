@@ -38,6 +38,28 @@ function persistActiveProfile(globalObject, profile) {
     return normalized;
 }
 
+function beginProfileLoad(globalObject) {
+    const activeLoads = globalObject.__moonRenderProfileLoadControllers instanceof Set
+        ? globalObject.__moonRenderProfileLoadControllers
+        : new Set();
+    globalObject.__moonRenderProfileLoadControllers = activeLoads;
+    activeLoads.forEach((controller) => controller?.abort?.());
+    activeLoads.clear();
+    const controller = typeof AbortController === "function"
+        ? new AbortController()
+        : null;
+    if (controller) activeLoads.add(controller);
+    return controller;
+}
+
+function finishProfileLoad(globalObject, controller) {
+    const activeLoads = globalObject.__moonRenderProfileLoadControllers;
+    activeLoads?.delete?.(controller);
+    if (activeLoads?.size === 0) {
+        delete globalObject.__moonRenderProfileLoadControllers;
+    }
+}
+
 export function createMoonRenderProfileActions({
     THREE,
     animationScenes,
@@ -51,45 +73,83 @@ export function createMoonRenderProfileActions({
         ? loadMoonRenderProfileTextures
         : loadSceneTextures;
     let latestProfileLoadId = 0;
+    let latestProfileLoadPromise = null;
 
-    async function setMoonRenderProfile(profile) {
-        const normalized = persistActiveProfile(globalObject, profile);
+    function setMoonRenderProfile(profile) {
+        const normalized = normalizeProfile(profile);
         latestProfileLoadId += 1;
         const profileLoadId = latestProfileLoadId;
+        const loadController = beginProfileLoad(globalObject);
         const sceneMap = animationScenes || {};
-        const initializedScenes = Object.values(sceneMap).filter((scene) => !!scene?.initialized3D);
+        globalObject.__moonRenderPendingProfile = normalized;
 
-        if (!initializedScenes.length) {
-            return normalized;
-        }
+        let profileLoadPromise;
+        const resolveWinningProfile = async () => {
+            if (latestProfileLoadPromise && latestProfileLoadPromise !== profileLoadPromise) {
+                try {
+                    await latestProfileLoadPromise;
+                } catch {
+                    // The winning load owns its own failure; this call reports the retained profile.
+                }
+            }
+            return getMoonRenderProfile();
+        };
+        profileLoadPromise = (async () => {
+            let textures;
+            try {
+                textures = await loadMoonTextures({
+                    THREE,
+                    minFilter: THREE.LinearFilter,
+                    moonRenderProfile: normalized,
+                    globalObject,
+                    signal: loadController?.signal,
+                });
+            } catch (error) {
+                if (profileLoadId !== latestProfileLoadId || error?.name === "AbortError") {
+                    return resolveWinningProfile();
+                }
+                throw error;
+            } finally {
+                finishProfileLoad(globalObject, loadController);
+            }
 
-        const textures = await loadMoonTextures({
-            THREE,
-            minFilter: THREE.LinearFilter,
-            moonRenderProfile: normalized,
-            globalObject,
-        });
+            if (profileLoadId !== latestProfileLoadId) {
+                disposeLoadedMoonTextures(textures);
+                return resolveWinningProfile();
+            }
 
-        const activeProfile = getMoonRenderProfile();
-        if (profileLoadId !== latestProfileLoadId || activeProfile !== normalized) {
-            disposeLoadedMoonTextures(textures);
-            return activeProfile;
-        }
+            const initializedScenes = Object.values(sceneMap)
+                .filter((scene) => !!scene?.initialized3D);
+            if (!initializedScenes.length) {
+                disposeLoadedMoonTextures(textures);
+                return persistActiveProfile(globalObject, normalized);
+            }
 
-        Object.values(sceneMap).filter((scene) => !!scene?.initialized3D).forEach((scene) => {
-            // Pass `render` so that when the deferred normal-map rebuild
-            // completes (asynchronously, via requestIdleCallback), it can
-            // trigger a redraw. Without this the new textures wouldn't show
-            // up until the next user interaction woke the on-demand render
-            // loop — visible to the user as the profile switch "hanging."
-            applyAndRefreshSceneTextures(scene, textures, {
-                disposePrevious: true,
-                requestRender: render,
+            initializedScenes.forEach((scene) => {
+                // Pass `render` so that when the deferred normal-map rebuild
+                // completes (asynchronously, via requestIdleCallback), it can
+                // trigger a redraw. Without this the new textures wouldn't show
+                // up until the next user interaction woke the on-demand render
+                // loop — visible to the user as the profile switch "hanging."
+                applyAndRefreshSceneTextures(scene, textures, {
+                    disposePrevious: true,
+                    requestRender: render,
+                });
             });
-        });
 
-        render?.();
-        return normalized;
+            persistActiveProfile(globalObject, normalized);
+            render?.();
+            return normalized;
+        })().finally(() => {
+            if (
+                profileLoadId === latestProfileLoadId &&
+                globalObject.__moonRenderPendingProfile === normalized
+            ) {
+                delete globalObject.__moonRenderPendingProfile;
+            }
+        });
+        latestProfileLoadPromise = profileLoadPromise;
+        return profileLoadPromise;
     }
 
     function getMoonRenderProfile() {

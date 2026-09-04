@@ -22,6 +22,35 @@ function createDeferred() {
 }
 
 describe("scene-3d-init-actions", () => {
+    it("uses a profile selection that is still being validated", async () => {
+        const scene = createScene();
+        const loadSceneTextures = vi.fn().mockResolvedValue({
+            moonMap: "quality-map",
+            moonDisplacementMap: "quality-height",
+            moonRenderProfile: "quality",
+            moonRenderSettings: {},
+        });
+        const actions = createScene3dInitActions({
+            THREE: { LinearFilter: "linear" },
+            createPlaceholderSceneTextures: vi.fn(() => ({ moonRenderProfile: "fast" })),
+            loadSceneTextures,
+            loadMoonRenderProfileTextures: vi.fn(),
+            applyAndRefreshSceneTextures: vi.fn(),
+            render: vi.fn(),
+            globalObject: {
+                MOON_RENDER_ASSET_PROFILE: "fast",
+                __moonRenderPendingProfile: "quality",
+            },
+        });
+
+        actions.init3d(scene, vi.fn());
+        await scene.beginTextureLoad();
+
+        expect(loadSceneTextures).toHaveBeenCalledWith(expect.objectContaining({
+            moonRenderProfile: "quality",
+        }));
+    });
+
     it("loads the requested detailed Moon profile during scene texture startup", async () => {
         const scene = createScene();
         const callback = vi.fn();

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { DataUtils } from "three";
+import { buildPhysicalMoonNormalData } from "./moon-physical-normal-data.js";
 
 export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
@@ -10,6 +11,7 @@ export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
     // smooth maria don't get smeared out (which read as "JPEG"-like blocky
     // artifacts at radius=5).
     normalDetailRadius: 4,
+    physicalNormalHeightScale: 0.0,
 });
 
 function resolveNormalMapSetting(value, fallback) {
@@ -17,12 +19,42 @@ function resolveNormalMapSetting(value, fallback) {
     return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function createNormalTexture(heightTexture, normalData, width, height, startedAt) {
+    const normalTexture = new THREE.DataTexture(
+        normalData,
+        width,
+        height,
+        THREE.RGBAFormat,
+        THREE.HalfFloatType,
+    );
+    normalTexture.wrapS = heightTexture.wrapS;
+    normalTexture.wrapT = heightTexture.wrapT;
+    normalTexture.magFilter = THREE.LinearFilter;
+    normalTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    normalTexture.generateMipmaps = true;
+    normalTexture.flipY = heightTexture?.flipY !== false;
+    normalTexture.userData = {
+        ...(normalTexture.userData || {}),
+        buildMilliseconds: (globalThis.performance?.now?.() ?? Date.now()) - startedAt,
+        sourceEncoding: heightTexture?.userData?.moonDemEncoding || "browser-image",
+    };
+    normalTexture.needsUpdate = true;
+    return normalTexture;
+}
+
 export function buildMoonNormalMapFromHeightTexture(
     heightTexture,
     renderSettings = DEFAULT_MOON_NORMAL_MAP_SETTINGS,
 ) {
+    const startedAt = globalThis.performance?.now?.() ?? Date.now();
     const image = heightTexture?.image;
-    if (!image || typeof document === "undefined") {
+    const directHeightData = image?.data && image.data.length >= (Number(image.width) || 0) * (Number(image.height) || 0)
+        ? image.data
+        : null;
+    const directHeightDivisor = directHeightData instanceof Uint8Array || directHeightData instanceof Uint8ClampedArray
+        ? 255
+        : 1;
+    if (!image || (!directHeightData && typeof document === "undefined")) {
         return null;
     }
 
@@ -49,30 +81,35 @@ export function buildMoonNormalMapFromHeightTexture(
         height = Math.max(2, Math.round(height * scale));
     }
 
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) {
-        return null;
-    }
-
-    context.drawImage(image, 0, 0, width, height);
-    const sourceData = context.getImageData(0, 0, width, height).data;
     const grayscale = new Float32Array(width * height);
     let minHeight = Infinity;
     let maxHeight = -Infinity;
-    for (let index = 0, pixel = 0; index < sourceData.length; index += 4, pixel += 1) {
-        const r = sourceData[index] / 255;
-        const g = sourceData[index + 1] / 255;
-        const b = sourceData[index + 2] / 255;
-        const heightValue = 0.299 * r + 0.587 * g + 0.114 * b;
-        grayscale[pixel] = heightValue;
-        if (heightValue < minHeight) {
-            minHeight = heightValue;
+    if (directHeightData && width === sourceWidth && height === sourceHeight) {
+        for (let pixel = 0; pixel < grayscale.length; pixel += 1) {
+            const heightValue = Number(directHeightData[pixel]) / directHeightDivisor;
+            grayscale[pixel] = heightValue;
+            minHeight = Math.min(minHeight, heightValue);
+            maxHeight = Math.max(maxHeight, heightValue);
         }
-        if (heightValue > maxHeight) {
-            maxHeight = heightValue;
+    } else {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) {
+            return null;
+        }
+
+        context.drawImage(image, 0, 0, width, height);
+        const sourceData = context.getImageData(0, 0, width, height).data;
+        for (let index = 0, pixel = 0; index < sourceData.length; index += 4, pixel += 1) {
+            const r = sourceData[index] / 255;
+            const g = sourceData[index + 1] / 255;
+            const b = sourceData[index + 2] / 255;
+            const heightValue = 0.299 * r + 0.587 * g + 0.114 * b;
+            grayscale[pixel] = heightValue;
+            minHeight = Math.min(minHeight, heightValue);
+            maxHeight = Math.max(maxHeight, heightValue);
         }
     }
 
@@ -103,6 +140,14 @@ export function buildMoonNormalMapFromHeightTexture(
         renderSettings?.normalMapStrength,
         DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalMapStrength,
     );
+    const physicalNormalHeightScale = Math.max(
+        0,
+        resolveNormalMapSetting(
+            renderSettings?.physicalNormalHeightScale,
+            DEFAULT_MOON_NORMAL_MAP_SETTINGS.physicalNormalHeightScale,
+        ),
+    );
+    const usePhysicalSphericalNormals = physicalNormalHeightScale > 0;
 
     // Image-row-0 maps to V=1 (north pole) when flipY=true (three.js default),
     // OR to V=0 (south pole) when flipY=false. This flips the relationship
@@ -116,10 +161,26 @@ export function buildMoonNormalMapFromHeightTexture(
     const sourceFlipY = heightTexture?.flipY !== false;
     const gradientYSign = sourceFlipY ? 1.0 : -1.0;
 
+    if (usePhysicalSphericalNormals) {
+        return createNormalTexture(
+            heightTexture,
+            buildPhysicalMoonNormalData({
+                heightData: grayscale,
+                width,
+                height,
+                physicalHeightScale: physicalNormalHeightScale,
+                flipY: sourceFlipY,
+            }),
+            width,
+            height,
+            startedAt,
+        );
+    }
+
     const sampleHeight = (x, y) => {
-        const clampedX = Math.max(0, Math.min(width - 1, x));
+        const wrappedX = ((x % width) + width) % width;
         const clampedY = Math.max(0, Math.min(height - 1, y));
-        const sample = grayscale[clampedY * width + clampedX];
+        const sample = grayscale[clampedY * width + wrappedX];
         return (sample - minHeight) * invHeightRange;
     };
 
@@ -137,8 +198,12 @@ export function buildMoonNormalMapFromHeightTexture(
             const gradientYFine = hD - hU;
             const gradientXWide = (hRWide - hLWide) / detailRadius;
             const gradientYWide = (hDWide - hUWide) / detailRadius;
-            const gradientX = gradientXWide + (gradientXFine - gradientXWide) * detailBoost;
-            const gradientY = gradientYWide + (gradientYFine - gradientYWide) * detailBoost;
+            const gradientX = (
+                gradientXWide + (gradientXFine - gradientXWide) * detailBoost
+            ) * normalStrength;
+            const gradientY = (
+                gradientYWide + (gradientYFine - gradientYWide) * detailBoost
+            ) * normalStrength;
 
             // Image-space gradient -> tangent-space normal:
             //   image X axis runs +east  (matches +U / +tangent), so nx = -dh/du = -gradientX.
@@ -151,8 +216,8 @@ export function buildMoonNormalMapFromHeightTexture(
             // flipY=true case, so for any non-flipped height texture the green
             // channel was inverted — crater rims appeared to tilt north/south
             // backwards when the moon was viewed obliquely.
-            let nx = -1 * gradientX * normalStrength;
-            let ny = gradientYSign * gradientY * normalStrength;
+            let nx = -gradientX;
+            let ny = gradientYSign * gradientY;
             let nz = 1.0;
             const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
             nx *= invLen;
@@ -167,19 +232,5 @@ export function buildMoonNormalMapFromHeightTexture(
         }
     }
 
-    const normalTexture = new THREE.DataTexture(
-        normalData,
-        width,
-        height,
-        THREE.RGBAFormat,
-        THREE.HalfFloatType,
-    );
-    normalTexture.wrapS = heightTexture.wrapS;
-    normalTexture.wrapT = heightTexture.wrapT;
-    normalTexture.magFilter = THREE.LinearFilter;
-    normalTexture.minFilter = THREE.LinearMipmapLinearFilter;
-    normalTexture.generateMipmaps = true;
-    normalTexture.flipY = heightTexture?.flipY !== false;
-    normalTexture.needsUpdate = true;
-    return normalTexture;
+    return createNormalTexture(heightTexture, normalData, width, height, startedAt);
 }

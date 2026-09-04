@@ -4,18 +4,19 @@ import {
 } from "./moon-lighting-models.js";
 
 export const MOON_RENDER_PIPELINE_STORAGE_KEY = "moonRenderPipeline";
-export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 4;
+export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 5;
 const MOON_RENDER_TONE_CALIBRATION_VERSION = 2;
 const MOON_RENDER_RELIEF_CALIBRATION_VERSION = 3;
 const MOON_RENDER_REFLECTANCE_CALIBRATION_VERSION = 4;
+const MOON_RENDER_GEOMETRY_CALIBRATION_VERSION = 5;
 
 export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
     lightingModel: MOON_LIGHTING_MODEL_CURRENT,
     physicalBrdfBlend: 0.20,
-    physicalNormalScale: 0.80,
-    physicalReliefScale: 0.45,
-    physicalShadowStrength: 1.10,
+    physicalNormalScale: 1.00,
+    physicalReliefScale: 1.00,
+    physicalShadowStrength: 1.00,
     physicalExposure: 0.45,
     physicalToneGamma: 1.00,
     colorTexture: true,
@@ -164,9 +165,9 @@ export const MOON_RENDER_PIPELINE_STAGE_CONTROLS = Object.freeze([
 
 export const MOON_PHYSICAL_RENDER_CONTROLS = Object.freeze([
     Object.freeze({ key: "physicalBrdfBlend", label: "BRDF", min: 0, max: 1, step: 0.05 }),
-    Object.freeze({ key: "physicalNormalScale", label: "Normal Scale", min: 0.25, max: 1.25, step: 0.05 }),
+    Object.freeze({ key: "physicalNormalScale", label: "Normal Scale", min: 0, max: 1.25, step: 0.05 }),
     Object.freeze({ key: "physicalReliefScale", label: "Relief Scale", min: 0, max: 1, step: 0.05 }),
-    Object.freeze({ key: "physicalShadowStrength", label: "DEM Shadows", min: 0, max: 1.5, step: 0.05 }),
+    Object.freeze({ key: "physicalShadowStrength", label: "Geometry Shadows", min: 0, max: 1, step: 0.05 }),
     Object.freeze({ key: "physicalExposure", label: "Exposure", min: 0.2, max: 1.25, step: 0.05 }),
     Object.freeze({ key: "physicalToneGamma", label: "Tone Gamma", min: 0.6, max: 1.2, step: 0.02 }),
 ]);
@@ -235,6 +236,16 @@ function usesSupersededPhysicalReflectanceDefaults(source) {
         Number(source.physicalToneGamma) === 1.00;
 }
 
+function usesSupersededPhysicalGeometryDefaults(source) {
+    const schemaVersion = Number(source.schemaVersion);
+    if (Number.isFinite(schemaVersion) && schemaVersion >= MOON_RENDER_GEOMETRY_CALIBRATION_VERSION) {
+        return false;
+    }
+    return Number(source.physicalNormalScale) === 0.80 &&
+        Number(source.physicalReliefScale) === 0.45 &&
+        Number(source.physicalShadowStrength) === 1.10;
+}
+
 export function normalizeMoonRenderPipelineState(value = null) {
     const source = value && typeof value === "object" && !Array.isArray(value)
         ? value
@@ -246,6 +257,7 @@ export function normalizeMoonRenderPipelineState(value = null) {
     const migratePhysicalToneDefaults = usesSupersededPhysicalToneDefaults(source);
     const migratePhysicalReliefDefaults = usesSupersededPhysicalReliefDefaults(source);
     const migratePhysicalReflectanceDefaults = usesSupersededPhysicalReflectanceDefaults(source);
+    const migratePhysicalGeometryDefaults = usesSupersededPhysicalGeometryDefaults(source);
     for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
         const migrateControl = (
             migratePhysicalToneDefaults &&
@@ -256,6 +268,13 @@ export function normalizeMoonRenderPipelineState(value = null) {
         ) || (
             migratePhysicalReflectanceDefaults &&
             control.key === "physicalExposure"
+        ) || (
+            migratePhysicalGeometryDefaults &&
+            (
+                control.key === "physicalNormalScale" ||
+                control.key === "physicalReliefScale" ||
+                control.key === "physicalShadowStrength"
+            )
         );
         const sourceValue = migrateControl
             ? undefined

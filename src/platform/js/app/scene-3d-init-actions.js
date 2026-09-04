@@ -31,6 +31,12 @@ export function createScene3dInitActions({
     }
 
     function resolveRequestedMoonProfile() {
+        const pendingProfile = String(globalObject.__moonRenderPendingProfile || "")
+            .trim()
+            .toLowerCase();
+        if (pendingProfile === "fast" || pendingProfile === "quality" || pendingProfile === "low") {
+            return pendingProfile;
+        }
         return resolveMoonRenderAssetProfile({ globalObject });
     }
 
@@ -50,6 +56,26 @@ export function createScene3dInitActions({
         const error = new Error("Texture load was superseded by a newer scene initialization.");
         error.name = "TextureLoadStaleError";
         return error;
+    }
+
+    function beginProfileLoad() {
+        const activeLoads = globalObject.__moonRenderProfileLoadControllers instanceof Set
+            ? globalObject.__moonRenderProfileLoadControllers
+            : new Set();
+        globalObject.__moonRenderProfileLoadControllers = activeLoads;
+        const controller = typeof AbortController === "function"
+            ? new AbortController()
+            : null;
+        if (controller) activeLoads.add(controller);
+        return controller;
+    }
+
+    function finishProfileLoad(controller) {
+        const activeLoads = globalObject.__moonRenderProfileLoadControllers;
+        activeLoads?.delete?.(controller);
+        if (activeLoads?.size === 0) {
+            delete globalObject.__moonRenderProfileLoadControllers;
+        }
     }
 
     function assertTextureLoadCurrent(scene, token, runId) {
@@ -129,6 +155,7 @@ export function createScene3dInitActions({
             minFilter: THREE.LinearFilter,
             moonRenderProfile: requestedProfile,
             globalObject,
+            signal: loadContext.signal,
         }).then(
             async (textures) => {
                 if (resolveRequestedMoonProfile() !== requestedProfile) {
@@ -146,6 +173,10 @@ export function createScene3dInitActions({
                 scene.moonTextureLoadState = "ready";
             },
             (error) => {
+                if (error?.name === "AbortError") {
+                    scene.moonTextureLoadState = "stale";
+                    return;
+                }
                 console.warn("Moon profile refresh after scene init failed:", error);
                 scene.moonTextureLoadState = "error";
             },
@@ -171,6 +202,7 @@ export function createScene3dInitActions({
             minFilter: THREE.LinearFilter,
             moonRenderProfile: requestedProfile,
             globalObject,
+            signal: loadContext.signal,
             beforeLoadGroup: () => waitForTextureWorkSlot({
                 scene,
                 token: loadContext.token,
@@ -197,9 +229,11 @@ export function createScene3dInitActions({
         scene.textureLoadState = "loading";
         scene.textureLoadPending = true;
         const requestedProfile = resolveRequestedMoonProfile();
+        const profileLoadController = beginProfileLoad();
         const loadContext = {
             token: Number.isFinite(scene.textureLoadToken) ? scene.textureLoadToken + 1 : 1,
             runId: scene.deferred3DInitRunId,
+            signal: profileLoadController?.signal || null,
         };
         scene.textureLoadToken = loadContext.token;
         const textureLoad = typeof loadSceneTexturesProgressively === "function"
@@ -209,9 +243,10 @@ export function createScene3dInitActions({
                 minFilter: THREE.LinearFilter,
                 moonRenderProfile: requestedProfile,
                 globalObject,
+                signal: loadContext.signal,
             });
         const handleTextureLoadError = (error) => {
-            if (error?.name === "TextureLoadStaleError") {
+            if (error?.name === "TextureLoadStaleError" || error?.name === "AbortError") {
                 markTextureLoadDone(scene, "stale");
                 return;
             }
@@ -244,7 +279,9 @@ export function createScene3dInitActions({
                 markTextureLoadDone(scene, "ready");
             },
             handleTextureLoadError,
-        ).catch(handleTextureLoadError);
+        ).catch(handleTextureLoadError).finally(() => {
+            finishProfileLoad(profileLoadController);
+        });
         return scene.textureLoadPromise;
     }
 

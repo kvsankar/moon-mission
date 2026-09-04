@@ -46,6 +46,7 @@ export function createMoonActions({
         }
 
         scene.moonRenderer = new MoonRenderer(getMoonRadius());
+        scene.moonRenderer.setRenderInvalidationCallback(render);
         scene.moonRenderer.setTextures(scene.moonMap, scene.moonDisplacementMap);
         scene.moonRenderer.setRenderSettings(scene.moonRenderSettings);
         scene.moonRenderer.setRenderPipeline(resolveMoonRenderPipelineState());

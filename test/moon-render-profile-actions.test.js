@@ -50,6 +50,129 @@ describe("moon-render-profile-actions", () => {
         expect(actions.getMoonRenderProfile()).toBe("low");
     });
 
+    it("does not persist or present a profile whose assets fail to load", async () => {
+        const storage = {
+            getItem: vi.fn(() => "fast"),
+            setItem: vi.fn(),
+        };
+        const globalObject = {
+            MOON_RENDER_ASSET_PROFILE: "fast",
+            localStorage: storage,
+        };
+        const actions = createMoonRenderProfileActions({
+            THREE: { LinearFilter: "LinearFilter" },
+            animationScenes: { geo: { initialized3D: true } },
+            loadSceneTextures: vi.fn(),
+            loadMoonRenderProfileTextures: vi.fn(() => Promise.reject(new Error("decode failed"))),
+            applyAndRefreshSceneTextures: vi.fn(),
+            render: vi.fn(),
+            globalObject,
+        });
+
+        await expect(actions.setMoonRenderProfile("quality")).rejects.toThrow("decode failed");
+        expect(actions.getMoonRenderProfile()).toBe("fast");
+        expect(globalObject.MOON_RENDER_ASSET_PROFILE).toBe("fast");
+        expect(storage.setItem).not.toHaveBeenCalled();
+    });
+
+    it("validates profile assets before persisting when no 3D scene is initialized", async () => {
+        const storage = {
+            getItem: vi.fn(() => "fast"),
+            setItem: vi.fn(),
+        };
+        const globalObject = {
+            MOON_RENDER_ASSET_PROFILE: "fast",
+            localStorage: storage,
+        };
+        const actions = createMoonRenderProfileActions({
+            THREE: { LinearFilter: "LinearFilter" },
+            animationScenes: {},
+            loadSceneTextures: vi.fn(() => Promise.reject(new Error("precision decode failed"))),
+            applyAndRefreshSceneTextures: vi.fn(),
+            render: vi.fn(),
+            globalObject,
+        });
+
+        await expect(actions.setMoonRenderProfile("quality"))
+            .rejects.toThrow("precision decode failed");
+        expect(actions.getMoonRenderProfile()).toBe("fast");
+        expect(globalObject.MOON_RENDER_ASSET_PROFILE).toBe("fast");
+        expect(storage.setItem).not.toHaveBeenCalled();
+    });
+
+    it("applies a validated profile to a scene initialized while the load is pending", async () => {
+        let resolveLoad;
+        const scene = { initialized3D: false };
+        const applyAndRefreshSceneTextures = vi.fn();
+        const loadMoonRenderProfileTextures = vi.fn(() => new Promise((resolve) => {
+            resolveLoad = resolve;
+        }));
+        const actions = createMoonRenderProfileActions({
+            THREE: { LinearFilter: "LinearFilter" },
+            animationScenes: { geo: scene },
+            loadSceneTextures: vi.fn(),
+            loadMoonRenderProfileTextures,
+            applyAndRefreshSceneTextures,
+            render: vi.fn(),
+            globalObject: {},
+        });
+
+        const profileLoad = actions.setMoonRenderProfile("quality");
+        scene.initialized3D = true;
+        resolveLoad({
+            moonMap: "quality-map",
+            moonDisplacementMap: "quality-height",
+            moonRenderProfile: "quality",
+            moonRenderSettings: {},
+        });
+        await profileLoad;
+
+        expect(applyAndRefreshSceneTextures).toHaveBeenCalledWith(
+            scene,
+            expect.objectContaining({ moonRenderProfile: "quality" }),
+            expect.objectContaining({ disposePrevious: true }),
+        );
+    });
+
+    it("aborts an older profile load when a newer selection starts", async () => {
+        const loadSignals = [];
+        const loadMoonRenderProfileTextures = vi.fn(({ moonRenderProfile, signal }) => {
+            loadSignals.push({ moonRenderProfile, signal });
+            if (moonRenderProfile === "quality") {
+                return Promise.resolve({
+                    moonMap: { dispose: vi.fn() },
+                    moonDisplacementMap: { dispose: vi.fn() },
+                    moonRenderProfile: "quality",
+                    moonRenderSettings: {},
+                });
+            }
+            return new Promise((resolve, reject) => {
+                signal.addEventListener("abort", () => {
+                    const error = new Error("superseded");
+                    error.name = "AbortError";
+                    reject(error);
+                }, { once: true });
+            });
+        });
+        const actions = createMoonRenderProfileActions({
+            THREE: { LinearFilter: "LinearFilter" },
+            animationScenes: {},
+            loadSceneTextures: vi.fn(),
+            loadMoonRenderProfileTextures,
+            applyAndRefreshSceneTextures: vi.fn(),
+            render: vi.fn(),
+            globalObject: {},
+        });
+
+        const oldLoad = actions.setMoonRenderProfile("fast");
+        const newLoad = actions.setMoonRenderProfile("quality");
+
+        await expect(newLoad).resolves.toBe("quality");
+        await expect(oldLoad).resolves.toBe("quality");
+        expect(loadSignals[0].signal.aborted).toBe(true);
+        expect(loadSignals[1].signal.aborted).toBe(false);
+    });
+
     it("does not apply an older profile load after a newer choice wins", async () => {
         const scene = { initialized3D: true };
         const pendingLoads = [];

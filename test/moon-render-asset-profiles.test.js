@@ -107,6 +107,13 @@ describe("moon-render-asset-profiles", () => {
         expect(settings.fast).toEqual(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast);
         expect(settings.quality.terrainShadowStrength).toBe(1.2);
         expect(settings.quality.terrainReliefStrength).toBe(2.2);
+        expect(settings.quality.physicalGeometryWidthSegments).toBe(1024);
+        expect(settings.quality.physicalGeometryHeightSegments).toBe(512);
+        expect(settings.quality.physicalDisplacementScale).toBeCloseTo(0.018860078277886497, 12);
+        expect(settings.quality.physicalDisplacementBias).toBeCloseTo(-0.005755726948313572, 12);
+        expect(settings.quality.physicalNormalHeightScale).toBeCloseTo(0.018860078277886497, 12);
+        expect(settings.quality.physicalTerrainShadowTexelStride).toBe(2);
+        expect(settings.quality.physicalTerrainShadowSamples).toBe(20);
     });
 
     it("reads persisted profile and path overrides from local storage", () => {
