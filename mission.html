@@ -1351,6 +1351,7 @@
                         <button id="moon-render-preset-texture" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Texture</button>
                         <button id="moon-render-preset-textureNormal" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Texture + Normal</button>
                         <button id="moon-render-preset-photometric" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Photometric</button>
+                        <button id="moon-render-preset-geometric" type="button" class="moon-render-pipeline-panel__button" aria-pressed="false">Geometric Mask</button>
                         <button id="moon-render-preset-full" type="button" class="moon-render-pipeline-panel__button" aria-pressed="true">Full</button>
                     </div>
                     <div class="moon-render-pipeline-panel__mode-label">Stages</div>
@@ -1369,19 +1370,39 @@
                         </label>
                         <label class="moon-render-pipeline-panel__toggle">
                             <input id="moon-render-stage-photometric" type="checkbox" checked>
-                            <span>Photometric</span>
+                            <span>BRDF</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-terminatorContrast" type="checkbox">
+                            <span>Terminator Contrast</span>
                         </label>
                         <label class="moon-render-pipeline-panel__toggle">
                             <input id="moon-render-stage-terminatorRelief" type="checkbox" checked>
-                            <span>Terminator</span>
+                            <span>Terminator Tone</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-terrainRelief" type="checkbox" checked>
+                            <span>Terrain Relief</span>
                         </label>
                         <label class="moon-render-pipeline-panel__toggle">
                             <input id="moon-render-stage-terrainShadows" type="checkbox" checked>
                             <span>Terrain Shadows</span>
                         </label>
                         <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-indirectOcclusion" type="checkbox" checked>
+                            <span>Indirect Occlusion</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-shadowCrush" type="checkbox" checked>
+                            <span>Shadow Crush</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
                             <input id="moon-render-stage-earthshine" type="checkbox" checked>
                             <span>Earthshine</span>
+                        </label>
+                        <label class="moon-render-pipeline-panel__toggle">
+                            <input id="moon-render-stage-geometricMask" type="checkbox">
+                            <span>Geometric Mask</span>
                         </label>
                     </div>
                 </section>

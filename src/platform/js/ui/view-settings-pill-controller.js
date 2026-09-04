@@ -107,6 +107,8 @@ export function createViewSettingsPillController(deps = {}) {
 
     let bound = false;
     let landingPillSyncScheduled = false;
+    let moonRenderPanelHome = null;
+    let activeMoonRenderPanelTrigger = null;
 
     function getElement(id) {
         return documentRef?.getElementById?.(id) || null;
@@ -228,39 +230,77 @@ export function createViewSettingsPillController(deps = {}) {
         };
     }
 
+    function prepareMoonRenderPanelHost(trigger, panel, pill) {
+        if (!panel) return false;
+        const externalTrigger = trigger && trigger !== pill && trigger.dataset?.moonRenderPanelTrigger === "true";
+        const body = documentRef?.body;
+        if (externalTrigger && body?.appendChild && panel.parentElement !== body) {
+            moonRenderPanelHome ||= {
+                parent: panel.parentElement,
+                nextSibling: panel.nextSibling,
+            };
+            body.appendChild(panel);
+            if (panel.dataset) panel.dataset.portaled = "true";
+            return true;
+        }
+        if (!externalTrigger && moonRenderPanelHome?.parent && panel.parentElement !== moonRenderPanelHome.parent) {
+            const { parent, nextSibling } = moonRenderPanelHome;
+            if (nextSibling && typeof parent.insertBefore === "function") {
+                parent.insertBefore(panel, nextSibling);
+            } else {
+                parent.appendChild?.(panel);
+            }
+            if (panel.dataset) delete panel.dataset.portaled;
+        }
+        return panel.dataset?.portaled === "true";
+    }
+
     function positionMoonRenderPanel(trigger, panel) {
         if (!trigger?.getBoundingClientRect || !panel?.style) return;
-        const strip = getElement("header-pill-strip") || panel.offsetParent || null;
         const triggerRect = trigger.getBoundingClientRect();
-        const stripRect = strip?.getBoundingClientRect?.() || {
-            left: 0,
-            top: 0,
-            width: windowRef?.innerWidth || 0,
-        };
-        const panelWidth = panel.offsetWidth || 292;
-        const maxLeft = Math.max(8, (stripRect.width || windowRef?.innerWidth || panelWidth) - panelWidth - 8);
+        const panelWidth = panel.offsetWidth || 320;
+        const panelHeight = panel.offsetHeight || 330;
+        const viewportWidth = windowRef?.innerWidth || panelWidth;
+        const viewportHeight = windowRef?.innerHeight || panelHeight;
+        const preferredLeft = triggerRect.left + (triggerRect.width / 2) - (panelWidth / 2);
         const nextLeft = Math.min(
-            Math.max(8, triggerRect.left - stripRect.left),
-            maxLeft,
+            Math.max(8, preferredLeft),
+            Math.max(8, viewportWidth - panelWidth - 8),
         );
+        const belowTop = triggerRect.bottom + 6;
+        const aboveTop = triggerRect.top - panelHeight - 6;
+        const preferredTop = belowTop + panelHeight <= viewportHeight - 8
+            ? belowTop
+            : aboveTop;
+        const nextTop = Math.min(
+            Math.max(8, preferredTop),
+            Math.max(8, viewportHeight - panelHeight - 8),
+        );
+        panel.style.position = "fixed";
         panel.style.left = `${nextLeft}px`;
         panel.style.right = "auto";
-        panel.style.top = `${triggerRect.bottom - stripRect.top + 4}px`;
+        panel.style.top = `${Math.round(nextTop)}px`;
     }
 
     function setMoonRenderPanelOpen(open, trigger = null) {
         const { pill, panel } = getMoonRenderPanelElements();
         if (!panel) return;
+        const previousTrigger = activeMoonRenderPanelTrigger;
+        const activeTrigger = trigger || previousTrigger || pill;
+        prepareMoonRenderPanelHost(activeTrigger, panel, pill);
         panel.hidden = open !== true;
-        const activeTrigger = trigger || pill;
         if (open === true) {
+            activeMoonRenderPanelTrigger = activeTrigger;
             positionMoonRenderPanel(activeTrigger, panel);
         }
-        [pill, activeTrigger].forEach((button) => {
+        [pill, activeTrigger, previousTrigger].forEach((button) => {
             if (!button?.setAttribute) return;
             button.classList?.toggle?.("is-open", open === true);
             button.setAttribute("aria-expanded", open === true ? "true" : "false");
         });
+        if (open !== true) {
+            activeMoonRenderPanelTrigger = null;
+        }
     }
 
     function getActiveMoonRenderPipeline() {
@@ -314,6 +354,16 @@ export function createViewSettingsPillController(deps = {}) {
                     [key]: input.checked === true,
                 });
             });
+        });
+        documentRef?.addEventListener?.("moon-mission:moon-render-panel-request", (event) => {
+            const trigger = event?.detail?.trigger;
+            if (!trigger) return;
+            const panel = getMoonRenderPanelElements().panel;
+            setMoonRenderPanelOpen(panel?.hidden !== false, trigger);
+            syncMoonRenderPanelState();
+        });
+        documentRef?.addEventListener?.("moon-mission:moon-render-panel-dismiss", () => {
+            setMoonRenderPanelOpen(false);
         });
         documentRef?.addEventListener?.("click", (event) => {
             const trigger = event?.target?.closest?.("[data-moon-render-panel-trigger]");

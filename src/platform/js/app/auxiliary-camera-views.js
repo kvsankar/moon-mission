@@ -1044,6 +1044,7 @@ class AuxiliaryCameraViewsManager {
         this.chipDock = null;
         this.chipDockLeft = null;
         this.chipDockRight = null;
+        this.lastAnimationScene = null;
         this.panels = [];
         this.panelsEnabled = true;
         this.zIndexCounter = 1;
@@ -1914,8 +1915,18 @@ class AuxiliaryCameraViewsManager {
         panelState.panel.style.zIndex = String(this.zIndexCounter);
     }
 
+    dismissMoonRenderPanelFor(panelState) {
+        if (panelState?.composerMoonRenderPill?.getAttribute?.("aria-expanded") !== "true") {
+            return;
+        }
+        document.dispatchEvent(new CustomEvent("moon-mission:moon-render-panel-dismiss"));
+    }
+
     setPanelMinimized(panelState, minimized, { persist = true, requestRender = true } = {}) {
         const nextMinimized = minimized === true;
+        if (nextMinimized) {
+            this.dismissMoonRenderPanelFor(panelState);
+        }
         if (nextMinimized) {
             panelState.closed = false;
             panelState.deleted = false;
@@ -1992,6 +2003,9 @@ class AuxiliaryCameraViewsManager {
 
     setPanelClosed(panelState, closed, { persist = true, requestRender = true } = {}) {
         const nextClosed = closed === true;
+        if (nextClosed) {
+            this.dismissMoonRenderPanelFor(panelState);
+        }
         panelState.closed = nextClosed;
         if (nextClosed) {
             panelState.minimized = false;
@@ -2018,6 +2032,9 @@ class AuxiliaryCameraViewsManager {
 
     setPanelDeleted(panelState, deleted, { persist = true, requestRender = true } = {}) {
         const nextDeleted = deleted === true;
+        if (nextDeleted) {
+            this.dismissMoonRenderPanelFor(panelState);
+        }
         if (nextDeleted && panelState.maximized === true) {
             this.setPanelMaximized(panelState, false, {
                 persist: false,
@@ -3010,6 +3027,12 @@ class AuxiliaryCameraViewsManager {
             composerMoonRenderPill.dataset.moonRenderPanelTrigger = "true";
             composerMoonRenderPill.dataset.proofId = "moon-render-toggle";
             composerMoonRenderPill.textContent = "Moon Render";
+            composerMoonRenderPill.addEventListener("click", (event) => {
+                event.stopPropagation();
+                document.dispatchEvent(new CustomEvent("moon-mission:moon-render-panel-request", {
+                    detail: { trigger: composerMoonRenderPill },
+                }));
+            });
             composerCraterRow.appendChild(composerMoonRenderPill);
 
             composerSurfacePointsWrap = document.createElement("div");
@@ -5421,7 +5444,7 @@ class AuxiliaryCameraViewsManager {
                 if (event.target.closest(".lunar-crater-controls-panel, .surface-points-controls-panel")) {
                     return;
                 }
-                if (event.target.closest(".aux-camera-view__composer-button")) {
+                if (event.target.closest(".aux-camera-view__composer-button, .aux-camera-view__composer-pill")) {
                     return;
                 }
                 if (event.target.closest(".aux-camera-view__header")) {
@@ -10775,6 +10798,7 @@ class AuxiliaryCameraViewsManager {
             return;
         }
 
+        this.lastAnimationScene = animationScene;
         this.syncMissionPanelPolicy(missionConfig);
         this.panelsEnabled = panelsVisible !== false;
         if (!this.panelsEnabled || !isDesktopViewport()) {
@@ -11559,6 +11583,7 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onPanelPointerDown) {
                 panelState.panel.removeEventListener("pointerdown", panelState.onPanelPointerDown);
             }
+            this.lastAnimationScene?.moonRenderer?.unregisterShaderRenderer?.(panelState.renderer);
             panelState.renderer.dispose();
             panelState.chipButton.remove();
         }
@@ -11568,6 +11593,7 @@ class AuxiliaryCameraViewsManager {
         this.chipDock = null;
         this.chipDockLeft = null;
         this.chipDockRight = null;
+        this.lastAnimationScene = null;
     }
 }
 

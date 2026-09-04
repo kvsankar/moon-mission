@@ -1408,7 +1408,9 @@ textarea {
     z-index: 43;
     display: grid;
     width: min(320px, calc(100vw - 18px));
+    max-height: calc(100vh - 16px);
     box-sizing: border-box;
+    overflow-y: auto;
     gap: 8px;
     padding: 8px;
     border: 1px solid rgba(121, 171, 255, 0.34);
@@ -1421,6 +1423,11 @@ textarea {
 
 .moon-render-pipeline-panel[hidden] {
     display: none !important;
+}
+
+.moon-render-pipeline-panel[data-portaled="true"] {
+    z-index: var(--ui-config-popover-z);
+    pointer-events: auto;
 }
 
 .moon-render-pipeline-panel__header {

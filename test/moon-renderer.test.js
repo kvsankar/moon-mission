@@ -177,9 +177,13 @@ describe("MoonRenderer", () => {
 
         const material = moonRenderer.mesh.material;
         expect(material.userData.moonHighlightBoost).toBeCloseTo(1.20, 4);
+        expect(material.userData.moonTerminatorContrastBlend).toBe(0.0);
         expect(material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 4);
         expect(material.userData.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 4);
-        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(2.2, 4);
+        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(1.2, 4);
+        expect(material.userData.moonTerrainReliefStrength).toBeCloseTo(2.2, 4);
+        expect(material.userData.moonShadowCrushBlend).toBe(1.0);
+        expect(material.userData.moonGeometricMask).toBe(0.0);
         expect(material.userData.moonTerrainShadowTexelStride).toBeCloseTo(7.0, 4);
         expect(material.userData.moonTerrainShadowSlopeBias).toBeCloseTo(0.0014, 4);
         expect(material.userData.moonHeightTexelSize.x).toBeCloseTo(0.5, 4);
@@ -459,6 +463,44 @@ describe("MoonRenderer", () => {
         moonRenderer.dispose();
     });
 
+    it("refreshes every renderer-specific Moon shader instance", () => {
+        const moonRenderer = new MoonRenderer(1);
+        moonRenderer.setTextures(new THREE.Texture(), null);
+        moonRenderer.create();
+        const material = moonRenderer.mesh.material;
+        const makeShader = () => ({
+            uniforms: {},
+            vertexShader: [
+                "#include <common>",
+                "#include <beginnormal_vertex>",
+            ].join("\n"),
+            fragmentShader: [
+                "#include <common>",
+                "#include <lights_fragment_begin>",
+                "#include <lights_fragment_end>",
+                "vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;",
+            ].join("\n"),
+        });
+        const mainShader = makeShader();
+        const auxiliaryShader = makeShader();
+        const mainRenderer = { name: "main-renderer" };
+        const auxiliaryRenderer = { name: "auxiliary-renderer" };
+
+        material.onBeforeCompile(mainShader, mainRenderer);
+        material.onBeforeCompile(auxiliaryShader, auxiliaryRenderer);
+        material.userData.moonGeometricMask = 1;
+        material.userData.refreshMoonShaderUniforms();
+
+        for (const shader of [mainShader, auxiliaryShader]) {
+            expect(shader.uniforms.uMoonGeometricMask.value).toBe(1);
+        }
+        expect(moonRenderer.unregisterShaderRenderer(auxiliaryRenderer)).toBe(true);
+        expect(material.userData.moonPhotometricShaders.size).toBe(1);
+        expect(moonRenderer.unregisterShaderRenderer(auxiliaryRenderer)).toBe(false);
+
+        moonRenderer.dispose();
+    });
+
     it("injects Moon artificial ambient outside the directional-light guard", () => {
         const moonRenderer = new MoonRenderer(1);
         const colorTexture = new THREE.Texture();
@@ -472,6 +514,10 @@ describe("MoonRenderer", () => {
         const material = moonRenderer.mesh.material;
         const shader = {
             uniforms: {},
+            vertexShader: [
+                "#include <common>",
+                "#include <beginnormal_vertex>",
+            ].join("\n"),
             fragmentShader: [
                 "#include <common>",
                 "#include <lights_fragment_begin>",
@@ -502,6 +548,13 @@ describe("MoonRenderer", () => {
             .toContain("outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone * clamp( uMoonEarthshineBlend, 0.0, 1.0 );");
         expect(shader.fragmentShader).toContain("uniform float uMoonEarthshineBlend;");
         expect(shader.uniforms.uMoonEarthshineBlend.value).toBe(1.0);
+        expect(shader.fragmentShader).toContain("uniform float uMoonTerrainReliefStrength;");
+        expect(shader.fragmentShader).toContain("uniform float uMoonTerminatorContrastBlend;");
+        expect(shader.fragmentShader).toContain("uniform float uMoonShadowCrushBlend;");
+        expect(shader.fragmentShader).toContain("uniform float uMoonGeometricMask;");
+        expect(shader.vertexShader).toContain("varying vec3 vMoonGeometricNormalView;");
+        expect(shader.fragmentShader)
+            .toContain("step( 0.0001, dot( normalize( vMoonGeometricNormalView ), moonLightDir ) )");
         // Old approaches must not leak back in.
         expect(shader.fragmentShader).not.toContain("reflectedLight.directDiffuse *= moonSunVisibility");
         expect(shader.fragmentShader)
@@ -547,9 +600,14 @@ describe("MoonRenderer", () => {
             generatedNormalMap: false,
             displacement: false,
             photometric: false,
+            terminatorContrast: false,
             terminatorRelief: false,
+            terrainRelief: false,
             terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
             earthshine: false,
+            geometricMask: false,
         });
         moonRenderer.setTextures(colorTexture, displacementTexture);
         moonRenderer.create();
@@ -562,7 +620,64 @@ describe("MoonRenderer", () => {
         expect(material.color.getHex()).toBe(0x8f969e);
         expect(material.userData.moonLsBlend).toBe(0.0);
         expect(material.userData.moonTerrainShadowStrength).toBe(0.0);
+        expect(material.userData.moonTerrainReliefStrength).toBe(0.0);
+        expect(material.userData.moonShadowCrushBlend).toBe(0.0);
+        expect(material.userData.moonGeometricMask).toBe(0.0);
         expect(material.userData.moonEarthshineBlend).toBe(0.0);
+
+        moonRenderer.dispose();
+    });
+
+    it("keeps diagnostic lighting stages independently switchable", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setRenderPipeline({
+            colorTexture: false,
+            generatedNormalMap: false,
+            displacement: false,
+            photometric: false,
+            terminatorContrast: true,
+            terminatorRelief: false,
+            terrainRelief: false,
+            terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: true,
+            earthshine: false,
+            geometricMask: true,
+        });
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        expect(material.userData.moonLsBlend).toBe(0.0);
+        expect(material.userData.moonTerminatorContrast).toBeCloseTo(1.8, 4);
+        expect(material.userData.moonTerminatorReliefStrength).toBe(0.0);
+        expect(material.userData.moonTerminatorIndirectOcclusion).toBe(0.0);
+        expect(material.userData.moonTerrainReliefStrength).toBe(0.0);
+        expect(material.userData.moonTerrainShadowStrength).toBe(0.0);
+        expect(material.userData.moonShadowCrushBlend).toBe(1.0);
+        expect(material.userData.moonGeometricMask).toBe(1.0);
+
+        moonRenderer.setRenderPipeline({
+            colorTexture: false,
+            generatedNormalMap: false,
+            displacement: false,
+            photometric: false,
+            terminatorContrast: false,
+            terminatorRelief: true,
+            terrainRelief: false,
+            terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
+            earthshine: false,
+            geometricMask: false,
+        });
+        expect(material.userData.moonTerminatorContrast).toBeCloseTo(1.8, 4);
+        expect(material.userData.moonTerminatorContrastBlend).toBe(0.0);
+        expect(material.userData.moonTerminatorReliefStrength).toBeCloseTo(7.5, 4);
 
         moonRenderer.dispose();
     });

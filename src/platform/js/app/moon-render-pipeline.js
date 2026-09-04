@@ -5,9 +5,14 @@ export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     generatedNormalMap: true,
     displacement: true,
     photometric: true,
+    terminatorContrast: false,
     terminatorRelief: true,
+    terrainRelief: true,
     terrainShadows: true,
+    indirectOcclusion: true,
+    shadowCrush: true,
     earthshine: true,
+    geometricMask: false,
 });
 
 export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
@@ -18,9 +23,14 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
             generatedNormalMap: false,
             displacement: false,
             photometric: false,
+            terminatorContrast: false,
             terminatorRelief: false,
+            terrainRelief: false,
             terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
             earthshine: false,
+            geometricMask: false,
         }),
     }),
     normal: Object.freeze({
@@ -30,9 +40,14 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
             generatedNormalMap: true,
             displacement: false,
             photometric: false,
+            terminatorContrast: false,
             terminatorRelief: false,
+            terrainRelief: false,
             terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
             earthshine: false,
+            geometricMask: false,
         }),
     }),
     texture: Object.freeze({
@@ -42,9 +57,14 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
             generatedNormalMap: false,
             displacement: false,
             photometric: false,
+            terminatorContrast: false,
             terminatorRelief: false,
+            terrainRelief: false,
             terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
             earthshine: false,
+            geometricMask: false,
         }),
     }),
     textureNormal: Object.freeze({
@@ -54,9 +74,14 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
             generatedNormalMap: true,
             displacement: false,
             photometric: false,
+            terminatorContrast: false,
             terminatorRelief: false,
+            terrainRelief: false,
             terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
             earthshine: false,
+            geometricMask: false,
         }),
     }),
     photometric: Object.freeze({
@@ -66,9 +91,31 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
             generatedNormalMap: true,
             displacement: false,
             photometric: true,
+            terminatorContrast: true,
             terminatorRelief: true,
+            terrainRelief: false,
             terrainShadows: false,
+            indirectOcclusion: true,
+            shadowCrush: true,
             earthshine: true,
+            geometricMask: false,
+        }),
+    }),
+    geometric: Object.freeze({
+        label: "Geometric Mask",
+        state: Object.freeze({
+            colorTexture: false,
+            generatedNormalMap: false,
+            displacement: false,
+            photometric: false,
+            terminatorContrast: false,
+            terminatorRelief: false,
+            terrainRelief: false,
+            terrainShadows: false,
+            indirectOcclusion: false,
+            shadowCrush: false,
+            earthshine: false,
+            geometricMask: true,
         }),
     }),
     full: Object.freeze({
@@ -81,11 +128,21 @@ export const MOON_RENDER_PIPELINE_STAGE_CONTROLS = Object.freeze([
     ["colorTexture", "Color Texture"],
     ["generatedNormalMap", "Normal Map"],
     ["displacement", "Displacement"],
-    ["photometric", "Photometric"],
-    ["terminatorRelief", "Terminator"],
+    ["photometric", "BRDF"],
+    ["terminatorContrast", "Terminator Contrast"],
+    ["terminatorRelief", "Terminator Tone"],
+    ["terrainRelief", "Terrain Relief"],
     ["terrainShadows", "Terrain Shadows"],
+    ["indirectOcclusion", "Indirect Occlusion"],
+    ["shadowCrush", "Shadow Crush"],
     ["earthshine", "Earthshine"],
+    ["geometricMask", "Geometric Mask"],
 ]);
+
+const LEGACY_STAGE_FALLBACKS = Object.freeze({
+    terrainRelief: "terrainShadows",
+    indirectOcclusion: "terminatorRelief",
+});
 
 function safeGetStorage(globalObject) {
     try {
@@ -105,7 +162,11 @@ export function normalizeMoonRenderPipelineState(value = null) {
         : {};
     const normalized = {};
     for (const key of Object.keys(DEFAULT_MOON_RENDER_PIPELINE_STATE)) {
-        normalized[key] = normalizeBoolean(source[key], DEFAULT_MOON_RENDER_PIPELINE_STATE[key]);
+        const legacyKey = LEGACY_STAGE_FALLBACKS[key];
+        const fallback = legacyKey
+            ? normalizeBoolean(source[legacyKey], DEFAULT_MOON_RENDER_PIPELINE_STATE[key])
+            : DEFAULT_MOON_RENDER_PIPELINE_STATE[key];
+        normalized[key] = normalizeBoolean(source[key], fallback);
     }
     return normalized;
 }

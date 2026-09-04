@@ -76,6 +76,8 @@ describe("moon-render-asset-profiles", () => {
         expect(settings.quality.normalMapStrength).toBe(1.48);
         expect(settings.quality.terminatorContrast).toBe(2.18);
         expect(settings.fast).toEqual(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast);
+        expect(settings.quality.terrainShadowStrength).toBe(1.2);
+        expect(settings.quality.terrainReliefStrength).toBe(2.2);
     });
 
     it("reads persisted profile and path overrides from local storage", () => {
@@ -103,6 +105,21 @@ describe("moon-render-asset-profiles", () => {
             moonMap: "/persisted/moon-color.jpg",
             moonDisplacementMap: "/persisted/moon-height.png",
         });
+    });
+
+    it("uses a legacy terrain-shadow override as the relief fallback", () => {
+        const settings = resolveMoonRenderProfileSettings({
+            globalObject: {
+                MOON_RENDER_PROFILE_SETTINGS: {
+                    quality: {
+                        terrainShadowStrength: 0.9,
+                    },
+                },
+            },
+        });
+
+        expect(settings.quality.terrainShadowStrength).toBe(0.9);
+        expect(settings.quality.terrainReliefStrength).toBe(0.9);
     });
 
     it("resolves active and fallback assets together", () => {

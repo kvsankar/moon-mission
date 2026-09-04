@@ -25,7 +25,8 @@ const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     terminatorReliefStrength: 7.0,
     terminatorShadowFloor: 0.04,
     terminatorIndirectOcclusion: 0.96,
-    terrainShadowStrength: 1.8,
+    terrainReliefStrength: 1.8,
+    terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 6.0,
     terrainShadowSlopeBias: 0.0014,
     shadowNormalBias: 0.00022,
@@ -54,7 +55,8 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     terminatorReliefStrength: 7.5,
     terminatorShadowFloor: 0.0,
     terminatorIndirectOcclusion: 1.0,
-    terrainShadowStrength: 2.2,
+    terrainReliefStrength: 2.2,
+    terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 7.0,
     terrainShadowSlopeBias: 0.0014,
     shadowNormalBias: 0.00018,
@@ -235,6 +237,13 @@ function mergeRenderSettings(defaultSettings, overrides) {
         terminatorIndirectOcclusion: normalizeFiniteNumber(
             overrides.terminatorIndirectOcclusion,
             defaultSettings.terminatorIndirectOcclusion,
+        ),
+        terrainReliefStrength: normalizeFiniteNumber(
+            overrides.terrainReliefStrength,
+            normalizeFiniteNumber(
+                overrides.terrainShadowStrength,
+                defaultSettings.terrainReliefStrength,
+            ),
         ),
         terrainShadowStrength: normalizeFiniteNumber(
             overrides.terrainShadowStrength,
