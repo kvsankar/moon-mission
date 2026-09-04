@@ -55,17 +55,22 @@ export function createMoonActions({
         // fidelity pre-computed normal map is ready, then upgrades. On the
         // 5760-wide "quality" profile (Artemis II default) the synchronous
         // build was costing ~300-500ms of main-thread time on initial load.
+        const hasMoonDem = scene.moonRenderProfile !== "low" &&
+            Number(scene.moonDisplacementMap?.image?.width) > 1 &&
+            Number(scene.moonDisplacementMap?.image?.height) > 1;
         scene.moonRenderer.create(
             getViewMoonPolarAxes(),
             getViewMoonPoles(),
             {
-                deferGeneratedNormalMap: true,
+                deferGeneratedNormalMap: hasMoonDem,
                 latLonGridVisible: getViewMoonLatLonGrid(),
                 latLonLabelsVisible: getViewMoonLatLonLabels(),
                 latLonHoverEnabled: getViewMoonLatLonHover(),
             },
         );
-        scheduleDeferredNormalMapUpgrade(scene, render);
+        if (hasMoonDem) {
+            scheduleDeferredNormalMapUpgrade(scene, render);
+        }
 
         scene.moonContainer = scene.moonRenderer.container;
         scene.moon = scene.moonRenderer.mesh;

@@ -1480,6 +1480,10 @@ textarea {
     background: rgba(5, 10, 17, 0.8);
 }
 
+.moon-render-pipeline-panel__presets--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .moon-render-pipeline-panel__button {
     min-height: 25px;
     min-width: 0;
@@ -1526,6 +1530,32 @@ textarea {
     height: 13px;
     margin: 0;
     accent-color: #7fe3ff;
+}
+
+.moon-render-pipeline-panel__physical-controls {
+    display: grid;
+    gap: 6px;
+}
+
+.moon-render-pipeline-panel__range {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr) 30px;
+    align-items: center;
+    gap: 6px;
+    color: #d4deee;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.moon-render-pipeline-panel__range input {
+    width: 100%;
+    min-width: 0;
+    accent-color: #7fe3ff;
+}
+
+.moon-render-pipeline-panel__range output {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .lunar-crater-controls-panel__search {

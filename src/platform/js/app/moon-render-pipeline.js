@@ -1,6 +1,17 @@
+import {
+    MOON_LIGHTING_MODEL_CURRENT,
+    normalizeMoonLightingModel,
+} from "./moon-lighting-models.js";
+
 export const MOON_RENDER_PIPELINE_STORAGE_KEY = "moonRenderPipeline";
 
 export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
+    lightingModel: MOON_LIGHTING_MODEL_CURRENT,
+    physicalBrdfBlend: 0.20,
+    physicalNormalScale: 0.55,
+    physicalReliefScale: 0.45,
+    physicalShadowStrength: 0.45,
+    physicalExposure: 0.80,
     colorTexture: true,
     generatedNormalMap: true,
     displacement: true,
@@ -19,6 +30,7 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
     smooth: Object.freeze({
         label: "Smooth",
         state: Object.freeze({
+            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
             colorTexture: false,
             generatedNormalMap: false,
             displacement: false,
@@ -36,6 +48,7 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
     normal: Object.freeze({
         label: "Normal",
         state: Object.freeze({
+            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
             colorTexture: false,
             generatedNormalMap: true,
             displacement: false,
@@ -53,6 +66,7 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
     texture: Object.freeze({
         label: "Texture",
         state: Object.freeze({
+            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
             colorTexture: true,
             generatedNormalMap: false,
             displacement: false,
@@ -70,6 +84,7 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
     textureNormal: Object.freeze({
         label: "Texture + Normal",
         state: Object.freeze({
+            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
             colorTexture: true,
             generatedNormalMap: true,
             displacement: false,
@@ -87,6 +102,7 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
     photometric: Object.freeze({
         label: "Photometric",
         state: Object.freeze({
+            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
             colorTexture: true,
             generatedNormalMap: true,
             displacement: false,
@@ -104,6 +120,7 @@ export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
     geometric: Object.freeze({
         label: "Geometric Mask",
         state: Object.freeze({
+            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
             colorTexture: false,
             generatedNormalMap: false,
             displacement: false,
@@ -139,10 +156,23 @@ export const MOON_RENDER_PIPELINE_STAGE_CONTROLS = Object.freeze([
     ["geometricMask", "Geometric Mask"],
 ]);
 
+export const MOON_PHYSICAL_RENDER_CONTROLS = Object.freeze([
+    Object.freeze({ key: "physicalBrdfBlend", label: "BRDF", min: 0, max: 1, step: 0.05 }),
+    Object.freeze({ key: "physicalNormalScale", label: "Normal Scale", min: 0.25, max: 1.25, step: 0.05 }),
+    Object.freeze({ key: "physicalReliefScale", label: "Relief Scale", min: 0, max: 1, step: 0.05 }),
+    Object.freeze({ key: "physicalShadowStrength", label: "DEM Shadows", min: 0, max: 1.5, step: 0.05 }),
+    Object.freeze({ key: "physicalExposure", label: "Exposure", min: 0.5, max: 1.25, step: 0.05 }),
+]);
+
 const LEGACY_STAGE_FALLBACKS = Object.freeze({
     terrainRelief: "terrainShadows",
     indirectOcclusion: "terminatorRelief",
 });
+
+export const MOON_RENDER_PIPELINE_STAGE_KEYS = Object.freeze(
+    Object.keys(DEFAULT_MOON_RENDER_PIPELINE_STATE)
+        .filter((key) => typeof DEFAULT_MOON_RENDER_PIPELINE_STATE[key] === "boolean"),
+);
 
 function safeGetStorage(globalObject) {
     try {
@@ -156,12 +186,29 @@ function normalizeBoolean(value, fallback) {
     return typeof value === "boolean" ? value : fallback;
 }
 
+function normalizeNumber(value, fallback, min, max) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric)
+        ? Math.min(max, Math.max(min, numeric))
+        : fallback;
+}
+
 export function normalizeMoonRenderPipelineState(value = null) {
     const source = value && typeof value === "object" && !Array.isArray(value)
         ? value
         : {};
-    const normalized = {};
-    for (const key of Object.keys(DEFAULT_MOON_RENDER_PIPELINE_STATE)) {
+    const normalized = {
+        lightingModel: normalizeMoonLightingModel(source.lightingModel),
+    };
+    for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
+        normalized[control.key] = normalizeNumber(
+            source[control.key],
+            DEFAULT_MOON_RENDER_PIPELINE_STATE[control.key],
+            control.min,
+            control.max,
+        );
+    }
+    for (const key of MOON_RENDER_PIPELINE_STAGE_KEYS) {
         const legacyKey = LEGACY_STAGE_FALLBACKS[key];
         const fallback = legacyKey
             ? normalizeBoolean(source[legacyKey], DEFAULT_MOON_RENDER_PIPELINE_STATE[key])
@@ -176,7 +223,7 @@ export function resolveMoonRenderPipelinePresetId(state = null) {
     const entries = Object.entries(MOON_RENDER_PIPELINE_PRESETS);
     for (const [presetId, preset] of entries) {
         const presetState = normalizeMoonRenderPipelineState(preset.state);
-        const matches = Object.keys(DEFAULT_MOON_RENDER_PIPELINE_STATE)
+        const matches = MOON_RENDER_PIPELINE_STAGE_KEYS
             .every((key) => normalized[key] === presetState[key]);
         if (matches) {
             return presetId;

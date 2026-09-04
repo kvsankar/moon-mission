@@ -29,6 +29,8 @@ const TUNER_VIEW_DEFAULTS = Object.freeze({
 function createTunerStateFromRenderSettings(renderSettings) {
     const normalized = renderSettings || DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast;
     return {
+        geometryWidthSegments: normalized.geometryWidthSegments,
+        geometryHeightSegments: normalized.geometryHeightSegments,
         normalMapMaxWidth: normalized.normalMapMaxWidth,
         normalMapStrength: normalized.normalMapStrength,
         normalDetailBoost: normalized.normalDetailBoost,
@@ -153,7 +155,14 @@ let defaultsState = createTunerStateFromRenderSettings(renderSettingsByProfile[a
 const state = { ...defaultsState };
 
 function describeAssetProfile(profileName) {
-    return profileName === "quality" ? "Detailed" : "Standard";
+    if (profileName === "low") return "Low";
+    if (profileName === "quality") return "High";
+    return "Medium";
+}
+
+function normalizeAssetProfile(profileName) {
+    if (profileName === "low" || profileName === "quality") return profileName;
+    return "fast";
 }
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
@@ -224,6 +233,8 @@ function syncDefaultsStateFromActiveProfile() {
 
 function applyActiveProfilePreset() {
     syncDefaultsStateFromActiveProfile();
+    state.geometryWidthSegments = defaultsState.geometryWidthSegments;
+    state.geometryHeightSegments = defaultsState.geometryHeightSegments;
     state.terminatorReliefStrength = defaultsState.terminatorReliefStrength;
     state.terminatorShadowFloor = defaultsState.terminatorShadowFloor;
     state.terminatorIndirectOcclusion = defaultsState.terminatorIndirectOcclusion;
@@ -280,7 +291,7 @@ function getAssetProfilesFromControls() {
 
 function persistAssetControls() {
     assetProfiles = getAssetProfilesFromControls();
-    activeAssetProfile = assetProfileSelect?.value === "quality" ? "quality" : "fast";
+    activeAssetProfile = normalizeAssetProfile(assetProfileSelect?.value);
     window.MOON_RENDER_ASSET_PATHS = assetProfiles;
     window.MOON_RENDER_ASSET_PROFILE = activeAssetProfile;
 
@@ -330,6 +341,9 @@ function updateCamera() {
 }
 
 function buildTunerNormalMap(heightTex) {
+    if (!heightTex?.image || Number(heightTex.image.width) <= 1 || Number(heightTex.image.height) <= 1) {
+        return null;
+    }
     return buildMoonNormalMapFromHeightTexture(heightTex, {
         normalMapStrength: state.normalMapStrength,
         normalMapMaxWidth: Math.max(512, Math.round(state.normalMapMaxWidth)),
@@ -857,7 +871,7 @@ function attachButtons() {
     });
 
     assetProfileSelect?.addEventListener("change", () => {
-        activeAssetProfile = assetProfileSelect.value === "quality" ? "quality" : "fast";
+        activeAssetProfile = normalizeAssetProfile(assetProfileSelect.value);
         applyActiveProfilePreset();
         updateOpenMissionLink();
         setAssetStatusMessage(
@@ -932,8 +946,10 @@ function configureLoadedMoonTextures(nextBaseTexture, nextHeightTexture) {
     nextBaseTexture.colorSpace = THREE.SRGBColorSpace;
     nextBaseTexture.wrapS = THREE.ClampToEdgeWrapping;
     nextBaseTexture.wrapT = THREE.ClampToEdgeWrapping;
-    nextHeightTexture.wrapS = THREE.ClampToEdgeWrapping;
-    nextHeightTexture.wrapT = THREE.ClampToEdgeWrapping;
+    if (nextHeightTexture) {
+        nextHeightTexture.wrapS = THREE.ClampToEdgeWrapping;
+        nextHeightTexture.wrapT = THREE.ClampToEdgeWrapping;
+    }
 }
 
 function disposeIfDifferent(previousTexture, nextTexture) {
@@ -943,7 +959,11 @@ function disposeIfDifferent(previousTexture, nextTexture) {
 }
 
 function createMoon() {
-    const geometry = new THREE.SphereGeometry(1, 256, 256);
+    const geometry = new THREE.SphereGeometry(
+        1,
+        state.geometryWidthSegments,
+        state.geometryHeightSegments,
+    );
     moonMaterial = new THREE.MeshStandardMaterial({
         map: baseTexture,
         displacementMap: heightTexture,
@@ -962,6 +982,17 @@ function createMoon() {
     moonContainer.add(moonMesh);
 }
 
+function refreshMoonGeometry() {
+    if (!moonMesh) return;
+    const previousGeometry = moonMesh.geometry;
+    moonMesh.geometry = new THREE.SphereGeometry(
+        1,
+        state.geometryWidthSegments,
+        state.geometryHeightSegments,
+    );
+    previousGeometry?.dispose?.();
+}
+
 function loadTexture(url) {
     return new Promise((resolve, reject) => {
         const loader = new THREE.TextureLoader();
@@ -970,6 +1001,9 @@ function loadTexture(url) {
 }
 
 async function loadTextureWithFallback(primaryUrl, fallbackUrl, label) {
+    if (!primaryUrl) {
+        return null;
+    }
     try {
         return await loadTexture(primaryUrl);
     } catch (primaryError) {
@@ -1019,6 +1053,7 @@ async function reloadMoonAssets() {
         baseTexture = nextBaseTexture;
         heightTexture = nextHeightTexture;
         generatedNormalMap = nextNormalTexture;
+        refreshMoonGeometry();
 
         if (moonMaterial) {
             moonMaterial.map = baseTexture;

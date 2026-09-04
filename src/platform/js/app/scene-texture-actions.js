@@ -1,5 +1,7 @@
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
+const moonNormalRefreshGeneration = new WeakMap();
+
 function hasTextureKey(textures, key) {
     return Object.prototype.hasOwnProperty.call(textures, key);
 }
@@ -173,6 +175,12 @@ export function applyAndRefreshSceneTextures(scene, textures, {
         hasTextureKey(textures, "skyTexture") ||
         hasTextureKey(textures, "skyMilkyWayTexture") ||
         hasTextureKey(textures, "skyConstellationTexture");
+    const normalRefreshGeneration = hasMoonTextureUpdate
+        ? (moonNormalRefreshGeneration.get(scene) || 0) + 1
+        : null;
+    if (normalRefreshGeneration != null) {
+        moonNormalRefreshGeneration.set(scene, normalRefreshGeneration);
+    }
 
     let earthHandled = false;
     if (hasEarthTextureUpdate && scene.earthRenderer?.updateTextures) {
@@ -194,18 +202,27 @@ export function applyAndRefreshSceneTextures(scene, textures, {
             {
                 disposePrevious,
                 renderSettings: scene.moonRenderSettings,
-                deferGeneratedNormalMap: disposePrevious === true,
+                deferGeneratedNormalMap: disposePrevious === true && !!scene.moonDisplacementMap,
             },
         );
         moonHandled = true;
-        if (disposePrevious === true && scene.moonRenderer?.refreshGeneratedNormalMap) {
+        if (
+            disposePrevious === true &&
+            scene.moonRenderProfile !== "low" &&
+            Number(scene.moonDisplacementMap?.image?.width) > 1 &&
+            Number(scene.moonDisplacementMap?.image?.height) > 1 &&
+            scene.moonRenderer?.refreshGeneratedNormalMap
+        ) {
             // Capture the renderer instance at scheduling time. A subsequent
             // scene/profile change before the idle fires can replace
             // scene.moonRenderer; without this guard the callback would
             // refresh the wrong (or null) renderer.
             const capturedMoonRenderer = scene.moonRenderer;
             scheduleGeneratedMoonNormalMapRefresh(() => {
-                if (scene.moonRenderer !== capturedMoonRenderer) {
+                if (
+                    scene.moonRenderer !== capturedMoonRenderer ||
+                    moonNormalRefreshGeneration.get(scene) !== normalRefreshGeneration
+                ) {
                     return;
                 }
                 capturedMoonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });

@@ -5,7 +5,11 @@ import {
 } from "./moon-render-asset-profiles.js";
 
 function normalizeProfile(value) {
-    return String(value || "").trim().toLowerCase() === "quality" ? "quality" : "fast";
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "quality" || normalized === "low") {
+        return normalized;
+    }
+    return "fast";
 }
 
 function safeGetStorage(globalObject) {
@@ -14,6 +18,16 @@ function safeGetStorage(globalObject) {
     } catch {
         return null;
     }
+}
+
+function disposeLoadedMoonTextures(textures) {
+    const uniqueTextures = new Set([
+        textures?.moonMap,
+        textures?.moonDisplacementMap,
+    ]);
+    uniqueTextures.delete(null);
+    uniqueTextures.delete(undefined);
+    uniqueTextures.forEach((texture) => texture?.dispose?.());
 }
 
 function persistActiveProfile(globalObject, profile) {
@@ -58,6 +72,7 @@ export function createMoonRenderProfileActions({
 
         const activeProfile = getMoonRenderProfile();
         if (profileLoadId !== latestProfileLoadId || activeProfile !== normalized) {
+            disposeLoadedMoonTextures(textures);
             return activeProfile;
         }
 

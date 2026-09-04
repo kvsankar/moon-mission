@@ -172,6 +172,17 @@ function createHarness(options = {}) {
     const moonRenderClose = createElement("moon-render-pipeline-close");
     const moonRenderAuxTrigger = createElement("composer-moon-render");
     moonRenderAuxTrigger.dataset.moonRenderPanelTrigger = "true";
+    const moonRenderCurrentModel = createElement("moon-render-model-current");
+    const moonRenderPhysicalModel = createElement("moon-render-model-physical-dem");
+    const moonRenderLowTier = createElement("moon-render-tier-low");
+    const moonRenderMediumTier = createElement("moon-render-tier-medium");
+    const moonRenderHighTier = createElement("moon-render-tier-high");
+    const moonPhysicalBrdf = createElement("moon-render-physical-physicalBrdfBlend", { value: "0.2" });
+    const moonPhysicalBrdfValue = createElement("moon-render-physical-physicalBrdfBlend-value");
+    const moonPhysicalShadows = createElement("moon-render-physical-physicalShadowStrength", { value: "0.45" });
+    const moonPhysicalShadowsValue = createElement("moon-render-physical-physicalShadowStrength-value");
+    const moonPhysicalExposure = createElement("moon-render-physical-physicalExposure", { value: "0.85" });
+    const moonPhysicalExposureValue = createElement("moon-render-physical-physicalExposure-value");
     const moonRenderSmoothPreset = createElement("moon-render-preset-smooth");
     const moonRenderNormalPreset = createElement("moon-render-preset-normal");
     const moonRenderTexturePreset = createElement("moon-render-preset-texture");
@@ -286,6 +297,17 @@ function createHarness(options = {}) {
         ["moon-render-pill", moonRenderPill],
         ["moon-render-pipeline-panel", moonRenderPanel],
         ["moon-render-pipeline-close", moonRenderClose],
+        ["moon-render-model-current", moonRenderCurrentModel],
+        ["moon-render-model-physical-dem", moonRenderPhysicalModel],
+        ["moon-render-tier-low", moonRenderLowTier],
+        ["moon-render-tier-medium", moonRenderMediumTier],
+        ["moon-render-tier-high", moonRenderHighTier],
+        ["moon-render-physical-physicalBrdfBlend", moonPhysicalBrdf],
+        ["moon-render-physical-physicalBrdfBlend-value", moonPhysicalBrdfValue],
+        ["moon-render-physical-physicalShadowStrength", moonPhysicalShadows],
+        ["moon-render-physical-physicalShadowStrength-value", moonPhysicalShadowsValue],
+        ["moon-render-physical-physicalExposure", moonPhysicalExposure],
+        ["moon-render-physical-physicalExposure-value", moonPhysicalExposureValue],
         ["moon-render-preset-smooth", moonRenderSmoothPreset],
         ["moon-render-preset-normal", moonRenderNormalPreset],
         ["moon-render-preset-texture", moonRenderTexturePreset],
@@ -462,16 +484,28 @@ function createHarness(options = {}) {
         moonRenderClose,
         moonRenderAuxTrigger,
         moonRenderColorTextureStage,
+        moonRenderCurrentModel,
         moonRenderEarthshineStage,
         moonRenderFullPreset,
         moonRenderGeometricMaskStage,
         moonRenderGeometricPreset,
+        moonRenderHighTier,
+        moonRenderLowTier,
+        moonRenderMediumTier,
         moonRenderPanel,
         moonRenderPanelHome,
+        moonRenderPhotometricStage,
         moonRenderPill,
         moonRenderPipelineSetter: setMoonRenderPipeline,
+        moonRenderPhysicalModel,
+        moonPhysicalBrdf,
+        moonPhysicalBrdfValue,
         moonRenderSmoothPreset,
+        moonRenderShadowCrushStage,
         moonRenderTerminatorContrastStage,
+        moonRenderTerminatorStage,
+        moonRenderTerrainReliefStage,
+        moonRenderIndirectOcclusionStage,
         observerInstances,
         orbitLabel,
         orbitPill,
@@ -614,6 +648,12 @@ describe("createViewSettingsPillController", function () {
         });
 
         expect(harness.moonRenderPipelineSetter).toHaveBeenCalledWith({
+            lightingModel: "current",
+            physicalBrdfBlend: 0.2,
+            physicalNormalScale: 0.55,
+            physicalReliefScale: 0.45,
+            physicalShadowStrength: 0.45,
+            physicalExposure: 0.8,
             colorTexture: false,
             generatedNormalMap: false,
             displacement: false,
@@ -640,6 +680,63 @@ describe("createViewSettingsPillController", function () {
         });
         expect(harness.moonRenderGeometricMaskStage.checked).toBe(true);
         expect(harness.moonRenderGeometricPreset["aria-pressed"]).toBe("true");
+    });
+
+    it("switches Moon lighting model and resource tier independently", async function () {
+        const harness = createHarness();
+        harness.controller.bind();
+
+        expect(harness.moonRenderCurrentModel["aria-pressed"]).toBe("true");
+        expect(harness.moonRenderMediumTier["aria-pressed"]).toBe("true");
+
+        harness.moonRenderPhysicalModel.dispatchEvent({
+            type: "click",
+            target: harness.moonRenderPhysicalModel,
+        });
+        expect(harness.moonRenderPipelineSetter).toHaveBeenLastCalledWith(
+            expect.objectContaining({ lightingModel: "physical-dem" }),
+        );
+        expect(harness.moonRenderPhysicalModel["aria-pressed"]).toBe("true");
+        expect(harness.moonRenderCurrentModel["aria-pressed"]).toBe("false");
+        expect(harness.moonRenderTerminatorContrastStage.disabled).toBe(true);
+        expect(harness.moonRenderFullPreset.disabled).toBe(true);
+        expect(harness.moonRenderPhotometricStage.checked).toBe(true);
+        expect(harness.moonRenderTerminatorStage.checked).toBe(false);
+        expect(harness.moonRenderTerrainReliefStage.checked).toBe(false);
+        expect(harness.moonRenderIndirectOcclusionStage.checked).toBe(false);
+        expect(harness.moonRenderShadowCrushStage.checked).toBe(false);
+        expect(harness.moonRenderGeometricMaskStage.checked).toBe(false);
+        expect(harness.moonPhysicalBrdf.disabled).toBe(false);
+
+        harness.moonPhysicalBrdf.value = "0.4";
+        harness.moonPhysicalBrdf.dispatchEvent({
+            type: "input",
+            target: harness.moonPhysicalBrdf,
+        });
+        expect(harness.moonRenderPipelineSetter).toHaveBeenLastCalledWith(
+            expect.objectContaining({ physicalBrdfBlend: 0.4 }),
+        );
+        expect(harness.moonPhysicalBrdfValue.textContent).toBe("0.40");
+
+        harness.moonRenderLowTier.dispatchEvent({
+            type: "click",
+            target: harness.moonRenderLowTier,
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(harness.moonRenderLowTier["aria-pressed"]).toBe("true");
+        expect(harness.moonRenderMediumTier["aria-pressed"]).toBe("false");
+
+        harness.moonRenderCurrentModel.dispatchEvent({
+            type: "click",
+            target: harness.moonRenderCurrentModel,
+        });
+        expect(harness.moonRenderTerminatorStage.checked).toBe(true);
+        expect(harness.moonRenderFullPreset.disabled).toBe(false);
+        expect(harness.moonRenderTerrainReliefStage.checked).toBe(true);
+        expect(harness.moonRenderIndirectOcclusionStage.checked).toBe(true);
+        expect(harness.moonRenderShadowCrushStage.checked).toBe(true);
     });
 
     it("portals Moon Render controls when opened from an auxiliary panel", function () {

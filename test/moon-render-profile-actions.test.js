@@ -43,9 +43,18 @@ describe("moon-render-profile-actions", () => {
         expect(actions.getMoonRenderProfile()).toBe("fast");
     });
 
+    it("accepts the low resource tier as an explicit profile", async () => {
+        const actions = createHarness({});
+
+        await expect(actions.setMoonRenderProfile("low")).resolves.toBe("low");
+        expect(actions.getMoonRenderProfile()).toBe("low");
+    });
+
     it("does not apply an older profile load after a newer choice wins", async () => {
         const scene = { initialized3D: true };
         const pendingLoads = [];
+        const staleMoonMap = { dispose: vi.fn() };
+        const staleMoonDisplacementMap = { dispose: vi.fn() };
         const applyAndRefreshSceneTextures = vi.fn();
         const actions = createMoonRenderProfileActions({
             THREE: { LinearFilter: "LinearFilter" },
@@ -71,14 +80,16 @@ describe("moon-render-profile-actions", () => {
         await qualityPromise;
 
         pendingLoads.find((load) => load.moonRenderProfile === "fast").resolve({
-            moonMap: "fast-map",
-            moonDisplacementMap: "fast-height",
+            moonMap: staleMoonMap,
+            moonDisplacementMap: staleMoonDisplacementMap,
             moonRenderProfile: "fast",
             moonRenderSettings: {},
         });
         await expect(fastPromise).resolves.toBe("quality");
 
         expect(applyAndRefreshSceneTextures).toHaveBeenCalledTimes(1);
+        expect(staleMoonMap.dispose).toHaveBeenCalledTimes(1);
+        expect(staleMoonDisplacementMap.dispose).toHaveBeenCalledTimes(1);
         expect(applyAndRefreshSceneTextures).toHaveBeenCalledWith(
             scene,
             expect.objectContaining({ moonRenderProfile: "quality" }),

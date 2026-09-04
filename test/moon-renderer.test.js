@@ -186,6 +186,8 @@ describe("MoonRenderer", () => {
         expect(material.userData.moonGeometricMask).toBe(0.0);
         expect(material.userData.moonTerrainShadowTexelStride).toBeCloseTo(7.0, 4);
         expect(material.userData.moonTerrainShadowSlopeBias).toBeCloseTo(0.0014, 4);
+        expect(material.userData.moonTerrainShadowSamples).toBe(12);
+        expect(material.userData.moonPhysicalModelBlend).toBe(0.0);
         expect(material.userData.moonHeightTexelSize.x).toBeCloseTo(0.5, 4);
         expect(material.userData.moonHeightTexelSize.y).toBeCloseTo(0.5, 4);
 
@@ -552,6 +554,8 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader).toContain("uniform float uMoonTerminatorContrastBlend;");
         expect(shader.fragmentShader).toContain("uniform float uMoonShadowCrushBlend;");
         expect(shader.fragmentShader).toContain("uniform float uMoonGeometricMask;");
+        expect(shader.fragmentShader).toContain("uniform float uMoonPhysicalModelBlend;");
+        expect(shader.fragmentShader).toContain("float moonTerrainShadowBandCurrent");
         expect(shader.vertexShader).toContain("varying vec3 vMoonGeometricNormalView;");
         expect(shader.fragmentShader)
             .toContain("step( 0.0001, dot( normalize( vMoonGeometricNormalView ), moonLightDir ) )");
@@ -678,6 +682,104 @@ describe("MoonRenderer", () => {
         expect(material.userData.moonTerminatorContrast).toBeCloseTo(1.8, 4);
         expect(material.userData.moonTerminatorContrastBlend).toBe(0.0);
         expect(material.userData.moonTerminatorReliefStrength).toBeCloseTo(7.5, 4);
+
+        moonRenderer.dispose();
+    });
+
+    it("uses the constrained physical DEM lighting stage set", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setRenderPipeline({
+            lightingModel: "physical-dem",
+            colorTexture: true,
+            generatedNormalMap: true,
+            displacement: true,
+            photometric: false,
+            terminatorContrast: true,
+            terminatorRelief: true,
+            terrainRelief: true,
+            terrainShadows: true,
+            indirectOcclusion: true,
+            shadowCrush: true,
+            earthshine: true,
+            geometricMask: false,
+        });
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        expect(material.userData.moonPhysicalModelBlend).toBe(1.0);
+        expect(material.userData.moonOppositionStrength).toBe(0.0);
+        expect(material.userData.moonHighlightBoost).toBe(1.0);
+        expect(material.userData.moonTerminatorContrastBlend).toBe(0.0);
+        expect(material.userData.moonTerminatorReliefStrength).toBe(0.0);
+        expect(material.userData.moonTerrainReliefStrength).toBe(0.0);
+        expect(material.userData.moonTerminatorIndirectOcclusion).toBe(0.0);
+        expect(material.userData.moonShadowCrushBlend).toBe(0.0);
+        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(0.45, 4);
+        expect(material.normalScale.x).toBeCloseTo(2.2 * 0.55, 4);
+        expect(material.displacementScale).toBeCloseTo(0.013 * 0.45, 4);
+
+        moonRenderer.dispose();
+    });
+
+    it("rebuilds Moon geometry when the resource budget changes", () => {
+        const moonRenderer = new MoonRenderer(1);
+        moonRenderer.setRenderSettings({
+            geometryWidthSegments: 128,
+            geometryHeightSegments: 64,
+        });
+        moonRenderer.setTextures(new THREE.Texture(), null);
+        moonRenderer.create();
+
+        expect(moonRenderer.mesh.geometry.parameters.widthSegments).toBe(128);
+        expect(moonRenderer.mesh.geometry.parameters.heightSegments).toBe(64);
+        const lowGeometry = moonRenderer.mesh.geometry;
+        const disposeLowGeometry = vi.spyOn(lowGeometry, "dispose");
+
+        moonRenderer.setRenderSettings({
+            geometryWidthSegments: 768,
+            geometryHeightSegments: 384,
+        });
+
+        expect(disposeLowGeometry).toHaveBeenCalledOnce();
+        expect(moonRenderer.mesh.geometry).not.toBe(lowGeometry);
+        expect(moonRenderer.mesh.geometry.parameters.widthSegments).toBe(768);
+        expect(moonRenderer.mesh.geometry.parameters.heightSegments).toBe(384);
+
+        moonRenderer.dispose();
+    });
+
+    it("releases DEM-derived material maps when switching to the low tier", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+        const generatedNormal = new THREE.Texture();
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, { deferGeneratedNormalMap: true });
+        moonRenderer.generatedNormalMap = generatedNormal;
+        moonRenderer.refreshGeneratedNormalMap = vi.fn();
+
+        moonRenderer.updateTextures(new THREE.Texture(), null, null, {
+            disposePrevious: true,
+            deferGeneratedNormalMap: false,
+            renderSettings: {
+                geometryWidthSegments: 128,
+                geometryHeightSegments: 64,
+                terrainShadowSamples: 0,
+            },
+        });
+
+        expect(moonRenderer.generatedNormalMap).toBeNull();
+        expect(moonRenderer.mesh.material.normalMap).toBeNull();
+        expect(moonRenderer.mesh.material.bumpMap).toBeNull();
+        expect(moonRenderer.mesh.material.displacementMap).toBeNull();
+        expect(moonRenderer.mesh.geometry.parameters.widthSegments).toBe(128);
 
         moonRenderer.dispose();
     });

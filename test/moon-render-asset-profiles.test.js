@@ -29,6 +29,19 @@ describe("moon-render-asset-profiles", () => {
         ).toBe("quality");
     });
 
+    it("resolves a DEM-free low resource tier", () => {
+        const selection = resolveMoonRenderAssetSelection({
+            profile: "low",
+            globalObject: {},
+        });
+
+        expect(selection.profile).toBe("low");
+        expect(selection.active.moonMap).toBe(DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonMap);
+        expect(selection.active.moonDisplacementMap).toBe("");
+        expect(selection.activeRenderSettings.geometryWidthSegments).toBe(128);
+        expect(selection.activeRenderSettings.terrainShadowSamples).toBe(0);
+    });
+
     it("defaults Artemis II to the quality profile when no explicit override is present", () => {
         expect(
             resolveMoonRenderAssetProfile({
@@ -40,6 +53,22 @@ describe("moon-render-asset-profiles", () => {
                 },
             }),
         ).toBe("quality");
+    });
+
+    it("keeps a saved resource tier ahead of the Artemis II mission default", () => {
+        expect(
+            resolveMoonRenderAssetProfile({
+                search: "?mission=artemis2",
+                globalObject: {
+                    location: {
+                        pathname: "/astro/lunar-missions/mission.html",
+                    },
+                    localStorage: {
+                        getItem: () => "low",
+                    },
+                },
+            }),
+        ).toBe("low");
     });
 
     it("merges global profile path overrides", () => {

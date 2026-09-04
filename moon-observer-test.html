@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Moon Observer Test</title>
+    <link rel="stylesheet" href="src/platform/css/moon-observer-test.css">
+</head>
+<body>
+    <header class="observer-header">
+        <h1>Moon Observer Test</h1>
+        <div class="observer-header__actions">
+            <button id="observer-copy-link" type="button">Copy Link</button>
+            <button id="observer-download" type="button">Download PNG</button>
+        </div>
+    </header>
+
+    <main class="observer-layout">
+        <aside class="observer-controls" aria-label="Moon observation controls">
+            <section class="observer-section">
+                <h2>Observation</h2>
+                <label class="observer-field">
+                    <span>UTC Time</span>
+                    <input id="observer-time" type="datetime-local" step="1">
+                </label>
+                <div class="observer-segmented" role="group" aria-label="Observer location mode">
+                    <button id="observer-mode-geocenter" type="button" aria-pressed="true">Geocenter</button>
+                    <button id="observer-mode-site" type="button" aria-pressed="false">Site</button>
+                </div>
+                <fieldset id="observer-site-fields" class="observer-site-fields" disabled>
+                    <label class="observer-field">
+                        <span>Latitude</span>
+                        <input id="observer-latitude" type="number" min="-90" max="90" step="0.0001">
+                    </label>
+                    <label class="observer-field">
+                        <span>Longitude</span>
+                        <input id="observer-longitude" type="number" min="-180" max="180" step="0.0001">
+                    </label>
+                    <label class="observer-field">
+                        <span>Elevation m</span>
+                        <input id="observer-elevation" type="number" min="-500" max="100000" step="1">
+                    </label>
+                </fieldset>
+            </section>
+
+            <section class="observer-section">
+                <h2>Renderer</h2>
+                <div class="observer-segmented" role="group" aria-label="Moon lighting model">
+                    <button id="observer-model-current" type="button" aria-pressed="true">Current</button>
+                    <button id="observer-model-physical" type="button" aria-pressed="false">Physical DEM</button>
+                </div>
+                <div class="observer-segmented observer-segmented--three" role="group" aria-label="Moon resource tier">
+                    <button id="observer-tier-low" type="button" aria-pressed="false">Low</button>
+                    <button id="observer-tier-medium" type="button" aria-pressed="false">Medium</button>
+                    <button id="observer-tier-high" type="button" aria-pressed="true">High</button>
+                </div>
+            </section>
+
+            <section class="observer-section">
+                <h2>View</h2>
+                <label class="observer-range">
+                    <span>Roll</span>
+                    <input id="observer-roll" type="range" min="-180" max="180" step="1">
+                    <output id="observer-roll-value">0 deg</output>
+                </label>
+                <label class="observer-range">
+                    <span>Disk Size</span>
+                    <input id="observer-disk-size" type="range" min="45" max="94" step="1">
+                    <output id="observer-disk-size-value">82%</output>
+                </label>
+            </section>
+
+            <section class="observer-section">
+                <h2>Physical Tuning</h2>
+                <div id="observer-physical-controls" class="observer-physical-controls"></div>
+            </section>
+        </aside>
+
+        <section class="observer-stage" aria-label="Rendered Moon">
+            <canvas id="observer-canvas"></canvas>
+            <div id="observer-status" class="observer-status" role="status">Loading Moon assets</div>
+            <dl class="observer-readout">
+                <div><dt>Illuminated</dt><dd id="observer-illuminated">-</dd></div>
+                <div><dt>Phase Angle</dt><dd id="observer-phase-angle">-</dd></div>
+                <div><dt>Bright Limb</dt><dd id="observer-bright-limb">-</dd></div>
+                <div><dt>Distance</dt><dd id="observer-distance">-</dd></div>
+                <div><dt>Diameter</dt><dd id="observer-angular-diameter">-</dd></div>
+                <div><dt>Altitude</dt><dd id="observer-altitude">Geocenter</dd></div>
+                <div><dt>Azimuth</dt><dd id="observer-azimuth">Geocenter</dd></div>
+                <div><dt>Resources</dt><dd id="observer-resources">-</dd></div>
+            </dl>
+        </section>
+    </main>
+
+    <script type="module" src="src/platform/js/moon-observer-test.js"></script>
+</body>
+</html>

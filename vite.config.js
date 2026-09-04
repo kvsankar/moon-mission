@@ -163,6 +163,7 @@ export default defineConfig({
                 "orbit-data": resolve(APP_ROOT, "orbit-data.html"),
                 "assets-status": resolve(APP_ROOT, "assets-status.html"),
                 "moon-render-tuner": resolve(APP_ROOT, "moon-render-tuner.html"),
+                "moon-observer-test": resolve(APP_ROOT, "moon-observer-test.html"),
                 popout: resolve(APP_ROOT, "popout.html"),
                 "sky-render-demo": resolve(APP_ROOT, "sky-render-demo.html"),
             },

@@ -89,7 +89,7 @@ describe("scene-texture-actions", () => {
         const earthTexture = { name: "earth" };
         const skyTexture = { name: "sky" };
         const moonMap = { name: "moon-quality" };
-        const moonDisplacementMap = { name: "moon-height-quality" };
+        const moonDisplacementMap = { name: "moon-height-quality", image: { width: 2, height: 2 } };
         const scene = {
             lightManager: {
                 bodyAmbientLight: { intensity: 0.5 },
@@ -137,7 +137,7 @@ describe("scene-texture-actions", () => {
         const requestIdleCallback = vi.fn();
         vi.stubGlobal("requestIdleCallback", requestIdleCallback);
         const moonMap = { name: "moon-quality" };
-        const moonDisplacementMap = { name: "moon-height-quality" };
+        const moonDisplacementMap = { name: "moon-height-quality", image: { width: 2, height: 2 } };
         const scene = {
             lightManager: {
                 bodyAmbientLight: { intensity: 0.5 },
@@ -182,5 +182,78 @@ describe("scene-texture-actions", () => {
         requestIdleCallback.mock.calls[0][0]();
 
         expect(scene.moonRenderer.refreshGeneratedNormalMap).toHaveBeenCalledWith({ disposePrevious: true });
+    });
+
+    it("does not schedule normal-map work when switching to the DEM-free low tier", () => {
+        const requestIdleCallback = vi.fn();
+        vi.stubGlobal("requestIdleCallback", requestIdleCallback);
+        const scene = {
+            lightManager: {
+                bodyAmbientLight: { intensity: 0.5 },
+                primaryLight: null,
+            },
+            lightFill: { intensity: 0 },
+            lightMoonshine: { intensity: 0 },
+            moonRenderSettings: {},
+            moonMap: { name: "moon-medium" },
+            moonDisplacementMap: { name: "moon-height" },
+            moonRenderer: {
+                updateTextures: vi.fn(),
+                refreshGeneratedNormalMap: vi.fn(),
+            },
+        };
+
+        applyAndRefreshSceneTextures(scene, {
+            moonMap: { name: "moon-low" },
+            moonDisplacementMap: null,
+            moonRenderProfile: "low",
+            moonRenderSettings: { terrainShadowSamples: 0 },
+        }, { disposePrevious: true });
+
+        expect(scene.moonRenderer.updateTextures).toHaveBeenCalledWith(
+            scene.moonMap,
+            null,
+            null,
+            expect.objectContaining({ deferGeneratedNormalMap: false }),
+        );
+        expect(requestIdleCallback).not.toHaveBeenCalled();
+        expect(scene.moonRenderer.refreshGeneratedNormalMap).not.toHaveBeenCalled();
+    });
+
+    it("invalidates a deferred normal-map refresh when a newer tier wins", () => {
+        const requestIdleCallback = vi.fn();
+        vi.stubGlobal("requestIdleCallback", requestIdleCallback);
+        const scene = {
+            lightManager: {
+                bodyAmbientLight: { intensity: 0.5 },
+                primaryLight: null,
+            },
+            lightFill: { intensity: 0 },
+            lightMoonshine: { intensity: 0 },
+            moonRenderSettings: {},
+            moonMap: null,
+            moonDisplacementMap: null,
+            moonRenderer: {
+                updateTextures: vi.fn(),
+                refreshGeneratedNormalMap: vi.fn(),
+            },
+        };
+
+        applyAndRefreshSceneTextures(scene, {
+            moonMap: { name: "moon-high" },
+            moonDisplacementMap: { name: "height-high", image: { width: 2, height: 2 } },
+            moonRenderProfile: "quality",
+            moonRenderSettings: {},
+        }, { disposePrevious: true });
+        applyAndRefreshSceneTextures(scene, {
+            moonMap: { name: "moon-low" },
+            moonDisplacementMap: null,
+            moonRenderProfile: "low",
+            moonRenderSettings: { terrainShadowSamples: 0 },
+        }, { disposePrevious: true });
+
+        expect(requestIdleCallback).toHaveBeenCalledTimes(1);
+        requestIdleCallback.mock.calls[0][0]();
+        expect(scene.moonRenderer.refreshGeneratedNormalMap).not.toHaveBeenCalled();
     });
 });

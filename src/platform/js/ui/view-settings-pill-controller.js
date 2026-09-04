@@ -2,10 +2,12 @@ import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles
 import {
     MOON_RENDER_PIPELINE_PRESETS,
     MOON_RENDER_PIPELINE_STAGE_CONTROLS,
+    MOON_PHYSICAL_RENDER_CONTROLS,
     normalizeMoonRenderPipelineState,
     resolveMoonRenderPipelinePresetId,
     resolveMoonRenderPipelineState,
 } from "../app/moon-render-pipeline.js";
+import { resolveMoonLightingModelStages } from "../app/moon-lighting-models.js";
 import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
@@ -70,6 +72,19 @@ const SURFACE_POINT_SETTING_DEFINITIONS = Object.freeze([
     ["viewLunarGlintEarth", "view-lunar-glint-earth", "surface-points-lunar-glint-earth-toggle"],
     ["viewSubCraftEarth", "view-subcraft-earth", "surface-points-subcraft-earth-toggle"],
 ]);
+
+const MOON_RENDER_MODEL_BUTTONS = Object.freeze([
+    ["current", "moon-render-model-current"],
+    ["physical-dem", "moon-render-model-physical-dem"],
+]);
+const MOON_RENDER_TIER_BUTTONS = Object.freeze([
+    ["low", "low", "moon-render-tier-low"],
+    ["medium", "fast", "moon-render-tier-medium"],
+    ["high", "quality", "moon-render-tier-high"],
+]);
+const PHYSICAL_DEM_FORCED_STAGE_KEYS = new Set(
+    MOON_RENDER_PIPELINE_STAGE_CONTROLS.map(([key]) => key),
+);
 
 export function createViewSettingsPillController(deps = {}) {
     const documentRef = deps.documentRef || document;
@@ -221,6 +236,17 @@ export function createViewSettingsPillController(deps = {}) {
             pill: getElement(moonRenderPillId),
             panel,
             close: getElement("moon-render-pipeline-close"),
+            modelButtons: MOON_RENDER_MODEL_BUTTONS
+                .map(([model, id]) => [model, getElement(id)])
+                .filter(([, button]) => !!button),
+            tierButtons: MOON_RENDER_TIER_BUTTONS
+                .map(([tier, profile, id]) => [tier, profile, getElement(id)])
+                .filter(([, , button]) => !!button),
+            physicalControls: MOON_PHYSICAL_RENDER_CONTROLS.map((control) => ({
+                ...control,
+                input: getElement(`moon-render-physical-${control.key}`),
+                value: getElement(`moon-render-physical-${control.key}-value`),
+            })).filter((control) => !!control.input),
             presetButtons: Object.keys(MOON_RENDER_PIPELINE_PRESETS)
                 .map((presetId) => [presetId, getElement(`moon-render-preset-${presetId}`)])
                 .filter(([, button]) => !!button),
@@ -309,15 +335,39 @@ export function createViewSettingsPillController(deps = {}) {
 
     function syncMoonRenderPanelState() {
         const pipeline = getActiveMoonRenderPipeline();
+        const effectivePipeline = resolveMoonLightingModelStages(pipeline);
         const activePresetId = resolveMoonRenderPipelinePresetId(pipeline);
-        const { pill, presetButtons, stageInputs } = getMoonRenderPanelElements();
+        const {
+            pill,
+            modelButtons,
+            tierButtons,
+            physicalControls,
+            presetButtons,
+            stageInputs,
+        } = getMoonRenderPanelElements();
         const isCustom = activePresetId === "custom";
-        syncPressedState(pill, isCustom || activePresetId !== "full");
+        const activeProfile = getActiveMoonRenderProfile();
+        const physicalModel = pipeline.lightingModel === "physical-dem";
+        syncPressedState(pill, physicalModel || isCustom || activePresetId !== "full");
+        modelButtons.forEach(([model, button]) => {
+            syncPressedState(button, model === pipeline.lightingModel);
+        });
+        tierButtons.forEach(([, profile, button]) => {
+            syncPressedState(button, profile === activeProfile);
+        });
+        physicalControls.forEach(({ key, input, value }) => {
+            const numeric = Number(pipeline[key]);
+            input.value = String(numeric);
+            input.disabled = !physicalModel;
+            if (value) value.textContent = numeric.toFixed(2);
+        });
         presetButtons.forEach(([presetId, button]) => {
             syncPressedState(button, presetId === activePresetId);
+            button.disabled = physicalModel;
         });
         stageInputs.forEach(([key, input]) => {
-            input.checked = pipeline[key] === true;
+            input.checked = effectivePipeline[key] === true;
+            input.disabled = physicalModel && PHYSICAL_DEM_FORCED_STAGE_KEYS.has(key);
         });
     }
 
@@ -330,7 +380,15 @@ export function createViewSettingsPillController(deps = {}) {
     }
 
     function bindMoonRenderPanel() {
-        const { pill, close, presetButtons, stageInputs } = getMoonRenderPanelElements();
+        const {
+            pill,
+            close,
+            modelButtons,
+            tierButtons,
+            physicalControls,
+            presetButtons,
+            stageInputs,
+        } = getMoonRenderPanelElements();
         if (pill) {
             pill.addEventListener("click", function (event) {
                 event?.stopPropagation?.();
@@ -340,11 +398,52 @@ export function createViewSettingsPillController(deps = {}) {
             });
         }
         close?.addEventListener?.("click", () => setMoonRenderPanelOpen(false));
+        modelButtons.forEach(([lightingModel, button]) => {
+            button.addEventListener("click", () => {
+                commitMoonRenderPipeline({
+                    ...getActiveMoonRenderPipeline(),
+                    lightingModel,
+                });
+            });
+        });
+        tierButtons.forEach(([, profile, button]) => {
+            button.addEventListener("click", () => {
+                if (getActiveMoonRenderProfile() === profile) return;
+                tierButtons.forEach(([, , tierButton]) => {
+                    tierButton.disabled = true;
+                });
+                Promise.resolve(
+                    typeof setMoonRenderProfile === "function"
+                        ? setMoonRenderProfile(profile)
+                        : profile,
+                ).catch((error) => {
+                    console.error("Failed to switch Moon resource tier:", error);
+                }).finally(() => {
+                    tierButtons.forEach(([, , tierButton]) => {
+                        tierButton.disabled = false;
+                    });
+                    syncMoonRenderPanelState();
+                    syncMoonRenderProfilePillState();
+                });
+            });
+        });
+        physicalControls.forEach(({ key, input }) => {
+            input.addEventListener("input", () => {
+                commitMoonRenderPipeline({
+                    ...getActiveMoonRenderPipeline(),
+                    [key]: Number(input.value),
+                });
+            });
+        });
         presetButtons.forEach(([presetId, button]) => {
             button.addEventListener("click", () => {
                 const preset = MOON_RENDER_PIPELINE_PRESETS[presetId];
                 if (!preset) return;
-                commitMoonRenderPipeline(preset.state);
+                commitMoonRenderPipeline({
+                    ...getActiveMoonRenderPipeline(),
+                    ...preset.state,
+                    lightingModel: getActiveMoonRenderPipeline().lightingModel,
+                });
             });
         });
         stageInputs.forEach(([key, input]) => {

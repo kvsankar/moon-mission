@@ -108,7 +108,9 @@ function resolveSceneTextureFiles({
     const resolvedFiles = {
         ...files,
         moonMap: moonAssets.active.moonMap || files.moonMap,
-        moonDisplacementMap: moonAssets.active.moonDisplacementMap || files.moonDisplacementMap,
+        moonDisplacementMap: Object.prototype.hasOwnProperty.call(moonAssets.active, "moonDisplacementMap")
+            ? moonAssets.active.moonDisplacementMap
+            : files.moonDisplacementMap,
     };
     return { moonAssets, resolvedFiles };
 }
@@ -174,6 +176,10 @@ async function loadProgressiveTextureEntries({
     const textures = [];
     for (const [key, fileName] of entries) {
         const normalizedFileName = normalizeTextureFileName(fileName);
+        if (!normalizedFileName) {
+            textures.push(null);
+            continue;
+        }
         const cacheKey = getSceneTextureCacheKey(key, normalizedFileName, moonAssets);
         if (!promisesByCacheKey.has(cacheKey)) {
             promisesByCacheKey.set(
@@ -383,6 +389,9 @@ export async function loadSceneTexturesProgressively({
 
     if (!finalByKey.skyTexture && finalByKey.skyMilkyWayTexture) {
         finalByKey.skyTexture = finalByKey.skyMilkyWayTexture;
+    }
+    if (!normalizeTextureFileName(moonAssets.active.moonDisplacementMap)) {
+        finalByKey.moonDisplacementMap = null;
     }
     finalByKey.moonRenderProfile = moonAssets.profile;
     finalByKey.moonRenderSettings = moonAssets.activeRenderSettings || null;

@@ -101,6 +101,24 @@ describe("texture-loader", () => {
         expect(textures.earthTexture).toBeUndefined();
     });
 
+    it("does not download a DEM for the low resource tier", async () => {
+        const loadCalls = [];
+        const THREE = createFakeThree(loadCalls);
+
+        const textures = await loadMoonRenderProfileTextures({
+            THREE,
+            moonRenderProfile: "low",
+            globalObject: {},
+        });
+
+        expect(loadCalls).toEqual([
+            `${ASSET_BASE_URL}/images/moon/lroc_color_2025_4k_fast.jpg`,
+        ]);
+        expect(textures.moonRenderProfile).toBe("low");
+        expect(textures.moonDisplacementMap).toBeNull();
+        expect(textures.moonRenderSettings.terrainShadowSamples).toBe(0);
+    });
+
     it("does not share a texture object across Moon color and height roles", async () => {
         const loadCalls = [];
         const THREE = createFakeThree(loadCalls);
@@ -181,5 +199,27 @@ describe("texture-loader", () => {
             moonRenderProfile: "fast",
         });
         expect(textures.skyTexture).toBe(textures.skyMilkyWayTexture);
+    });
+
+    it("skips the DEM in the progressive startup path for Low", async () => {
+        const loadCalls = [];
+        const THREE = createFakeThree(loadCalls);
+
+        const textures = await loadSceneTexturesProgressively({
+            THREE,
+            moonRenderProfile: "low",
+            globalObject: {},
+            textureGroups: [
+                ["moonMap"],
+                ["moonDisplacementMap"],
+            ],
+        });
+
+        expect(loadCalls).toEqual([
+            `${ASSET_BASE_URL}/images/moon/lroc_color_2025_4k_fast.jpg`,
+        ]);
+        expect(textures.moonMap).toBeTruthy();
+        expect(textures.moonDisplacementMap).toBeNull();
+        expect(textures.moonRenderProfile).toBe("low");
     });
 });

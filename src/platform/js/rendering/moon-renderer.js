@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 import { lunar_pole } from '../astro.js';
 import { normalizeMoonRenderPipelineState } from "../app/moon-render-pipeline.js";
+import { resolveMoonLightingModelStages } from "../app/moon-lighting-models.js";
 import { buildMoonNormalMapFromHeightTexture } from "./moon-normal-map.js";
 
 const MOON_GEOMETRY_WIDTH_SEGMENTS = 512;
@@ -33,6 +34,8 @@ const MOON_LAT_LON_GRID_STEPS_BY_SCREEN_RADIUS = Object.freeze([
     { minScreenRadiusPx: 0, stepDegrees: 30 },
 ]);
 const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
+    geometryWidthSegments: MOON_GEOMETRY_WIDTH_SEGMENTS,
+    geometryHeightSegments: MOON_GEOMETRY_HEIGHT_SEGMENTS,
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
     normalDetailBoost: 2.0,
@@ -58,6 +61,7 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 7.0,
     terrainShadowSlopeBias: 0.0014,
+    terrainShadowSamples: 12,
     shadowNormalBias: 0.00018,
     shadowBias: -0.000003,
 });
@@ -367,6 +371,7 @@ function applyMoonRenderSettingsToMaterial(material, renderSettings = DEFAULT_MO
         : 0.0;
     material.userData.moonTerrainShadowTexelStride = normalized.terrainShadowTexelStride;
     material.userData.moonTerrainShadowSlopeBias = normalized.terrainShadowSlopeBias;
+    material.userData.moonTerrainShadowSamples = normalized.terrainShadowSamples;
     material.userData.moonHeightTexelSize = heightTexelSize;
 
     material.displacementScale = normalized.displacementScale;
@@ -378,25 +383,46 @@ function applyMoonRenderSettingsToMaterial(material, renderSettings = DEFAULT_MO
 
 function resolvePipelineRenderSettings(renderSettings, pipelineState) {
     const normalizedSettings = normalizeMoonRenderSettings(renderSettings);
-    const pipeline = normalizeMoonRenderPipelineState(pipelineState);
+    const pipeline = resolveMoonLightingModelStages(
+        normalizeMoonRenderPipelineState(pipelineState),
+    );
     return {
         ...normalizedSettings,
-        lommelSeeligerBlend: pipeline.photometric ? normalizedSettings.lommelSeeligerBlend : 0.0,
-        oppositionStrength: pipeline.photometric ? normalizedSettings.oppositionStrength : 0.0,
-        highlightBoost: pipeline.photometric ? normalizedSettings.highlightBoost : 1.0,
+        normalScale: pipeline.physicalModel
+            ? normalizedSettings.normalScale * pipeline.physicalNormalScale
+            : normalizedSettings.normalScale,
+        displacementScale: pipeline.physicalModel
+            ? normalizedSettings.displacementScale * pipeline.physicalReliefScale
+            : normalizedSettings.displacementScale,
+        displacementBias: pipeline.physicalModel
+            ? normalizedSettings.displacementBias * pipeline.physicalReliefScale
+            : normalizedSettings.displacementBias,
+        lommelSeeligerBlend: pipeline.physicalModel
+            ? pipeline.physicalBrdfBlend
+            : (pipeline.photometric ? normalizedSettings.lommelSeeligerBlend : 0.0),
+        oppositionStrength: pipeline.photometric && !pipeline.physicalModel
+            ? normalizedSettings.oppositionStrength
+            : 0.0,
+        highlightBoost: pipeline.photometric && !pipeline.physicalModel
+            ? normalizedSettings.highlightBoost
+            : 1.0,
         terminatorContrast: pipeline.terminatorContrast || pipeline.terminatorRelief
             ? normalizedSettings.terminatorContrast
             : 1.0,
         terminatorReliefStrength: pipeline.terminatorRelief ? normalizedSettings.terminatorReliefStrength : 0.0,
         terminatorShadowFloor: pipeline.terminatorRelief ? normalizedSettings.terminatorShadowFloor : 0.0,
         terminatorIndirectOcclusion: pipeline.indirectOcclusion ? normalizedSettings.terminatorIndirectOcclusion : 0.0,
-        terrainShadowStrength: pipeline.terrainShadows ? normalizedSettings.terrainShadowStrength : 0.0,
+        terrainShadowStrength: pipeline.terrainShadows
+            ? (pipeline.physicalModel ? pipeline.physicalShadowStrength : normalizedSettings.terrainShadowStrength)
+            : 0.0,
     };
 }
 
 function applyMoonPipelineStagesToMaterial(material, renderSettings, pipelineState) {
     const normalizedSettings = normalizeMoonRenderSettings(renderSettings);
-    const pipeline = normalizeMoonRenderPipelineState(pipelineState);
+    const pipeline = resolveMoonLightingModelStages(
+        normalizeMoonRenderPipelineState(pipelineState),
+    );
     material.userData = material.userData || {};
     material.userData.moonTerrainReliefStrength = material.displacementMap && pipeline.terrainRelief
         ? normalizedSettings.terrainReliefStrength
@@ -404,6 +430,8 @@ function applyMoonPipelineStagesToMaterial(material, renderSettings, pipelineSta
     material.userData.moonTerminatorContrastBlend = pipeline.terminatorContrast ? 1.0 : 0.0;
     material.userData.moonShadowCrushBlend = pipeline.shadowCrush ? 1.0 : 0.0;
     material.userData.moonGeometricMask = pipeline.geometricMask ? 1.0 : 0.0;
+    material.userData.moonPhysicalModelBlend = pipeline.physicalModel ? 1.0 : 0.0;
+    material.userData.moonPhysicalExposure = pipeline.physicalExposure;
 }
 
 function applyMoonPhotometricShader(material) {
@@ -459,6 +487,9 @@ function applyMoonPhotometricShader(material) {
     if (!Number.isFinite(material.userData.moonTerrainShadowSlopeBias)) {
         material.userData.moonTerrainShadowSlopeBias = DEFAULT_MOON_RENDER_SETTINGS.terrainShadowSlopeBias;
     }
+    if (!Number.isFinite(material.userData.moonTerrainShadowSamples)) {
+        material.userData.moonTerrainShadowSamples = DEFAULT_MOON_RENDER_SETTINGS.terrainShadowSamples;
+    }
     if (!Number.isFinite(material.userData.moonEarthshineBlend)) {
         material.userData.moonEarthshineBlend = 1.0;
     }
@@ -467,6 +498,12 @@ function applyMoonPhotometricShader(material) {
     }
     if (!Number.isFinite(material.userData.moonGeometricMask)) {
         material.userData.moonGeometricMask = 0.0;
+    }
+    if (!Number.isFinite(material.userData.moonPhysicalModelBlend)) {
+        material.userData.moonPhysicalModelBlend = 0.0;
+    }
+    if (!Number.isFinite(material.userData.moonPhysicalExposure)) {
+        material.userData.moonPhysicalExposure = 0.80;
     }
     if (!material.userData.moonHeightTexelSize) {
         material.userData.moonHeightTexelSize = new THREE.Vector2(
@@ -495,9 +532,12 @@ function applyMoonPhotometricShader(material) {
         shader.uniforms.uMoonTerrainReliefStrength = { value: material.userData.moonTerrainReliefStrength };
         shader.uniforms.uMoonTerrainShadowTexelStride = { value: material.userData.moonTerrainShadowTexelStride };
         shader.uniforms.uMoonTerrainShadowSlopeBias = { value: material.userData.moonTerrainShadowSlopeBias };
+        shader.uniforms.uMoonTerrainShadowSamples = { value: material.userData.moonTerrainShadowSamples };
         shader.uniforms.uMoonEarthshineBlend = { value: material.userData.moonEarthshineBlend };
         shader.uniforms.uMoonShadowCrushBlend = { value: material.userData.moonShadowCrushBlend };
         shader.uniforms.uMoonGeometricMask = { value: material.userData.moonGeometricMask };
+        shader.uniforms.uMoonPhysicalModelBlend = { value: material.userData.moonPhysicalModelBlend };
+        shader.uniforms.uMoonPhysicalExposure = { value: material.userData.moonPhysicalExposure };
         material.userData.moonPhotometricShader = shader;
         if (!(material.userData.moonPhotometricShaders instanceof Map)) {
             material.userData.moonPhotometricShaders = new Map();
@@ -539,9 +579,12 @@ uniform float uMoonTerrainShadowStrength;
 uniform float uMoonTerrainReliefStrength;
 uniform float uMoonTerrainShadowTexelStride;
 uniform float uMoonTerrainShadowSlopeBias;
+uniform float uMoonTerrainShadowSamples;
 uniform float uMoonEarthshineBlend;
 uniform float uMoonShadowCrushBlend;
 uniform float uMoonGeometricMask;
+uniform float uMoonPhysicalModelBlend;
+uniform float uMoonPhysicalExposure;
 varying vec3 vMoonGeometricNormalView;
 
 // Sun's angular half-radius as seen from the lunar surface (~0.267 deg).
@@ -748,6 +791,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         float moonSlopeScale = max( 0.0002, uMoonTerrainShadowSlopeBias );
         float moonHorizonShadow = 0.0;
         for ( int moonSampleIndex = 1; moonSampleIndex <= 12; moonSampleIndex += 1 ) {
+            if ( float( moonSampleIndex ) > uMoonTerrainShadowSamples ) {
+                break;
+            }
             float moonSampleDistance = float( moonSampleIndex );
             float moonSampleHeight = texture2D( uMoonHeightMap, moonHeightUv + moonLightUvStep * moonSampleDistance ).r;
             float moonRequiredRise = moonSunSlope * moonSlopeScale * moonSampleDistance * 7.0;
@@ -769,8 +815,13 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // moonTerrainReliefBand = 1 at terminator, 0 by NdotL > 0.20, so noise on
     // the lit side cannot produce phantom shadows. Inside the band, give it more
     // headroom (pow 1.4 vs 2.0) so cast-shadow plumes extend visibly inward.
-    float moonTerrainShadowBand = moonTerrainReliefBand
+    float moonTerrainShadowBandCurrent = moonTerrainReliefBand
         * pow( 1.0 - moonSmoothNdotL, 1.4 );
+    float moonTerrainShadowBand = mix(
+        moonTerrainShadowBandCurrent,
+        1.0,
+        clamp( uMoonPhysicalModelBlend, 0.0, 1.0 )
+    );
     float moonTerrainShadow = clamp(
         moonTerrainSelfShadow * moonTerrainShadowBand * uMoonTerrainShadowStrength,
         0.0,
@@ -804,6 +855,11 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // Sun-side darkness baseline, and earthshine is the explicit reason the
     // dark side isn't entirely black on crescent phases.
     outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone * clamp( uMoonEarthshineBlend, 0.0, 1.0 );
+    outgoingLight *= mix(
+        1.0,
+        max( 0.0, uMoonPhysicalExposure ),
+        clamp( uMoonPhysicalModelBlend, 0.0, 1.0 )
+    );
     outgoingLight = mix(
         outgoingLight,
         vec3( step( 0.0001, dot( normalize( vMoonGeometricNormalView ), moonLightDir ) ) ),
@@ -847,9 +903,12 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             data.moonTerrainReliefStrength,
             data.moonTerrainShadowTexelStride,
             data.moonTerrainShadowSlopeBias,
+            data.moonTerrainShadowSamples,
             data.moonEarthshineBlend,
             data.moonShadowCrushBlend,
             data.moonGeometricMask,
+            data.moonPhysicalModelBlend,
+            data.moonPhysicalExposure,
         ].join("-");
     };
 
@@ -882,9 +941,12 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             : 0.0;
         const terrainShadowTexelStride = Number(material.userData.moonTerrainShadowTexelStride);
         const terrainShadowSlopeBias = Number(material.userData.moonTerrainShadowSlopeBias);
+        const terrainShadowSamples = Number(material.userData.moonTerrainShadowSamples);
         const earthshineBlend = Number(material.userData.moonEarthshineBlend);
         const shadowCrushBlend = Number(material.userData.moonShadowCrushBlend);
         const geometricMask = Number(material.userData.moonGeometricMask);
+        const physicalModelBlend = Number(material.userData.moonPhysicalModelBlend);
+        const physicalExposure = Number(material.userData.moonPhysicalExposure);
         for (const shader of shaders) {
             if (!shader?.uniforms) continue;
             if (Number.isFinite(lsBlend) && shader.uniforms.uMoonLsBlend) {
@@ -944,6 +1006,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             if (Number.isFinite(terrainShadowSlopeBias) && shader.uniforms.uMoonTerrainShadowSlopeBias) {
                 shader.uniforms.uMoonTerrainShadowSlopeBias.value = terrainShadowSlopeBias;
             }
+            if (Number.isFinite(terrainShadowSamples) && shader.uniforms.uMoonTerrainShadowSamples) {
+                shader.uniforms.uMoonTerrainShadowSamples.value = terrainShadowSamples;
+            }
             if (Number.isFinite(earthshineBlend) && shader.uniforms.uMoonEarthshineBlend) {
                 shader.uniforms.uMoonEarthshineBlend.value = earthshineBlend;
             }
@@ -952,6 +1017,12 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             }
             if (Number.isFinite(geometricMask) && shader.uniforms.uMoonGeometricMask) {
                 shader.uniforms.uMoonGeometricMask.value = geometricMask;
+            }
+            if (Number.isFinite(physicalModelBlend) && shader.uniforms.uMoonPhysicalModelBlend) {
+                shader.uniforms.uMoonPhysicalModelBlend.value = physicalModelBlend;
+            }
+            if (Number.isFinite(physicalExposure) && shader.uniforms.uMoonPhysicalExposure) {
+                shader.uniforms.uMoonPhysicalExposure.value = physicalExposure;
             }
         }
     };
@@ -992,9 +1063,15 @@ export class MoonRenderer {
     }
 
     _buildGeneratedNormalMap() {
-        return (this.renderPipeline.generatedNormalMap && !this.normalMap && this.displacementMap)
+        return (this.renderPipeline.generatedNormalMap && !this.normalMap && this._hasUsableDem())
             ? buildMoonNormalMapFromHeightTexture(this.displacementMap, this.renderSettings)
             : null;
+    }
+
+    _hasUsableDem() {
+        const width = Number(this.displacementMap?.image?.width);
+        const height = Number(this.displacementMap?.image?.height);
+        return Number.isFinite(width) && width > 1 && Number.isFinite(height) && height > 1;
     }
 
     _refreshGeneratedNormalMap({ disposePrevious = true } = {}) {
@@ -1022,16 +1099,51 @@ export class MoonRenderer {
         return this.normalMap || this.generatedNormalMap || null;
     }
 
+    _resolveGeometrySegments() {
+        return {
+            width: THREE.MathUtils.clamp(
+                Math.round(this.renderSettings.geometryWidthSegments),
+                32,
+                1024,
+            ),
+            height: THREE.MathUtils.clamp(
+                Math.round(this.renderSettings.geometryHeightSegments),
+                16,
+                512,
+            ),
+        };
+    }
+
+    _createMoonGeometry() {
+        const segments = this._resolveGeometrySegments();
+        return new THREE.SphereGeometry(this.radius, segments.width, segments.height);
+    }
+
+    _refreshMoonGeometry() {
+        const geometry = this.mesh?.geometry;
+        if (!geometry) return false;
+        const segments = this._resolveGeometrySegments();
+        if (
+            geometry.parameters?.widthSegments === segments.width &&
+            geometry.parameters?.heightSegments === segments.height
+        ) {
+            return false;
+        }
+        this.mesh.geometry = this._createMoonGeometry();
+        geometry.dispose?.();
+        return true;
+    }
+
     _applyPipelineMapsToMaterial() {
         const material = this.mesh?.material;
         if (!material) {
             return;
         }
         const resolvedNormalMap = this._resolveNormalMap();
-        const resolvedDisplacementMap = this.renderPipeline.displacement
+        const resolvedDisplacementMap = this.renderPipeline.displacement && this._hasUsableDem()
             ? (this.displacementMap || null)
             : null;
-        const resolvedBumpMap = this.renderPipeline.generatedNormalMap && !resolvedNormalMap
+        const resolvedBumpMap = this.renderPipeline.generatedNormalMap && !resolvedNormalMap && this._hasUsableDem()
             ? (this.displacementMap || null)
             : null;
 
@@ -1087,6 +1199,7 @@ export class MoonRenderer {
             return;
         }
 
+        this._refreshMoonGeometry();
         this._refreshGeneratedNormalMap({ disposePrevious: true });
         this._applyPipelineMapsToMaterial();
         this._applyRenderSettingsToMaterial();
@@ -1095,7 +1208,7 @@ export class MoonRenderer {
     setRenderPipeline(pipelineState = null) {
         this.renderPipeline = normalizeMoonRenderPipelineState(pipelineState);
         const material = this.mesh?.material;
-        if (material && this.renderPipeline.generatedNormalMap && !this.generatedNormalMap && !this.normalMap && this.displacementMap) {
+        if (material && this.renderPipeline.generatedNormalMap && !this.generatedNormalMap && !this.normalMap && this._hasUsableDem()) {
             this._refreshGeneratedNormalMap({ disposePrevious: true });
         }
         this._applyPipelineMapsToMaterial();
@@ -1133,7 +1246,11 @@ export class MoonRenderer {
         this.displacementMap = displacementMap;
         this.normalMap = normalMap;
 
-        if (this.renderPipeline.generatedNormalMap && !deferGeneratedNormalMap) {
+        if (!this._hasUsableDem() && !this.normalMap) {
+            this.generatedNormalMap = null;
+        }
+
+        if (this.renderPipeline.generatedNormalMap && this._hasUsableDem() && !deferGeneratedNormalMap) {
             this._refreshGeneratedNormalMap({ disposePrevious: false });
         }
         if (!this.renderPipeline.generatedNormalMap) {
@@ -1141,6 +1258,7 @@ export class MoonRenderer {
         }
         const material = this.mesh?.material;
         if (material) {
+            this._refreshMoonGeometry();
             this._applyPipelineMapsToMaterial();
             this._applyRenderSettingsToMaterial();
         }
@@ -1215,22 +1333,18 @@ export class MoonRenderer {
         this.container = new THREE.Group();
 
         // Moon sphere with displacement mapping
-        if (this.renderPipeline.generatedNormalMap && !deferGeneratedNormalMap && !this.normalMap && this.displacementMap && !this.generatedNormalMap) {
+        if (this.renderPipeline.generatedNormalMap && !deferGeneratedNormalMap && !this.normalMap && this._hasUsableDem() && !this.generatedNormalMap) {
             this.generatedNormalMap = buildMoonNormalMapFromHeightTexture(this.displacementMap, this.renderSettings);
         }
         const resolvedNormalMap = this._resolveNormalMap();
 
-        const geometry = new THREE.SphereGeometry(
-            this.radius,
-            MOON_GEOMETRY_WIDTH_SEGMENTS,
-            MOON_GEOMETRY_HEIGHT_SEGMENTS,
-        );
+        const geometry = this._createMoonGeometry();
         const material = new THREE.MeshStandardMaterial({
             map: this.renderPipeline.colorTexture ? this.texture : null,
             color: this.renderPipeline.colorTexture ? 0xffffff : 0x8f969e,
-            bumpMap: this.renderPipeline.generatedNormalMap && !resolvedNormalMap ? this.displacementMap : null,
-            bumpScale: this.renderPipeline.generatedNormalMap && !resolvedNormalMap ? 0.0045 : 0.0,
-            displacementMap: this.renderPipeline.displacement ? this.displacementMap : null,
+            bumpMap: this.renderPipeline.generatedNormalMap && !resolvedNormalMap && this._hasUsableDem() ? this.displacementMap : null,
+            bumpScale: this.renderPipeline.generatedNormalMap && !resolvedNormalMap && this._hasUsableDem() ? 0.0045 : 0.0,
+            displacementMap: this.renderPipeline.displacement && this._hasUsableDem() ? this.displacementMap : null,
             displacementScale: this.renderSettings.displacementScale,
             displacementBias: this.renderSettings.displacementBias,
             normalMap: resolvedNormalMap,

@@ -3,8 +3,15 @@ const DEFAULT_FAST_MOON_RENDER_ASSET_PATHS = Object.freeze({
     moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
 });
 
+const DEFAULT_LOW_MOON_RENDER_ASSET_PATHS = Object.freeze({
+    moonMap: DEFAULT_FAST_MOON_RENDER_ASSET_PATHS.moonMap,
+    moonDisplacementMap: "",
+});
+
 const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
-    normalMapMaxWidth: 5760,
+    geometryWidthSegments: 384,
+    geometryHeightSegments: 192,
+    normalMapMaxWidth: 2048,
     normalMapStrength: 2.2,
     normalDetailBoost: 1.85,
     normalDetailRadius: 4,
@@ -29,11 +36,14 @@ const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 6.0,
     terrainShadowSlopeBias: 0.0014,
+    terrainShadowSamples: 6,
     shadowNormalBias: 0.00022,
     shadowBias: -0.000004,
 });
 
 const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
+    geometryWidthSegments: 512,
+    geometryHeightSegments: 512,
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
     normalDetailBoost: 2.0,
@@ -59,14 +69,31 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 7.0,
     terrainShadowSlopeBias: 0.0014,
+    terrainShadowSamples: 12,
     shadowNormalBias: 0.00018,
     shadowBias: -0.000003,
+});
+
+const DEFAULT_LOW_MOON_RENDER_SETTINGS = Object.freeze({
+    ...DEFAULT_FAST_MOON_RENDER_SETTINGS,
+    geometryWidthSegments: 128,
+    geometryHeightSegments: 64,
+    normalMapMaxWidth: 512,
+    normalMapStrength: 0.0,
+    normalDetailBoost: 0.0,
+    normalScale: 0.0,
+    displacementScale: 0.0,
+    displacementBias: 0.0,
+    terrainReliefStrength: 0.0,
+    terrainShadowStrength: 0.0,
+    terrainShadowSamples: 0,
 });
 
 export const MOON_RENDER_ASSET_PROFILE_STORAGE_KEY = "moonRenderAssetProfile";
 export const MOON_RENDER_ASSET_PATHS_STORAGE_KEY = "moonRenderAssetPaths";
 
 export const DEFAULT_MOON_RENDER_ASSET_PROFILES = Object.freeze({
+    low: DEFAULT_LOW_MOON_RENDER_ASSET_PATHS,
     fast: DEFAULT_FAST_MOON_RENDER_ASSET_PATHS,
     // NASA SVS CGI Moon Kit runtime derivatives.
     // Source page: https://svs.gsfc.nasa.gov/4720/
@@ -79,9 +106,12 @@ export const DEFAULT_MOON_RENDER_ASSET_PROFILES = Object.freeze({
 });
 
 export const DEFAULT_MOON_RENDER_PROFILE_SETTINGS = Object.freeze({
+    low: DEFAULT_LOW_MOON_RENDER_SETTINGS,
     fast: DEFAULT_FAST_MOON_RENDER_SETTINGS,
     quality: DEFAULT_QUALITY_MOON_RENDER_SETTINGS,
 });
+
+export const MOON_RENDER_ASSET_PROFILE_NAMES = Object.freeze(["low", "fast", "quality"]);
 
 function safeGetStorage(globalObject) {
     try {
@@ -95,6 +125,9 @@ function normalizeProfileName(value) {
     const normalized = String(value || "").trim().toLowerCase();
     if (normalized === "quality") {
         return "quality";
+    }
+    if (normalized === "low") {
+        return "low";
     }
     if (normalized === "fast") {
         return "fast";
@@ -172,6 +205,14 @@ function mergeRenderSettings(defaultSettings, overrides) {
     }
 
     return {
+        geometryWidthSegments: normalizeFiniteNumber(
+            overrides.geometryWidthSegments,
+            defaultSettings.geometryWidthSegments,
+        ),
+        geometryHeightSegments: normalizeFiniteNumber(
+            overrides.geometryHeightSegments,
+            defaultSettings.geometryHeightSegments,
+        ),
         normalMapMaxWidth: normalizeFiniteNumber(
             overrides.normalMapMaxWidth,
             defaultSettings.normalMapMaxWidth,
@@ -257,6 +298,10 @@ function mergeRenderSettings(defaultSettings, overrides) {
             overrides.terrainShadowSlopeBias,
             defaultSettings.terrainShadowSlopeBias,
         ),
+        terrainShadowSamples: normalizeFiniteNumber(
+            overrides.terrainShadowSamples,
+            defaultSettings.terrainShadowSamples,
+        ),
         shadowNormalBias: normalizeFiniteNumber(
             overrides.shadowNormalBias,
             defaultSettings.shadowNormalBias,
@@ -272,6 +317,7 @@ export function resolveMoonRenderAssetProfiles({
     globalObject = typeof window !== "undefined" ? window : globalThis,
 } = {}) {
     const merged = {
+        low: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.low },
         fast: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.fast },
         quality: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.quality },
     };
@@ -282,7 +328,7 @@ export function resolveMoonRenderAssetProfiles({
         try {
             const storedOverrides = JSON.parse(storedText);
             if (storedOverrides && typeof storedOverrides === "object") {
-                ["fast", "quality"].forEach((profileName) => {
+                MOON_RENDER_ASSET_PROFILE_NAMES.forEach((profileName) => {
                     const profileOverrides = storedOverrides[profileName];
                     if (!profileOverrides || typeof profileOverrides !== "object") {
                         return;
@@ -309,7 +355,7 @@ export function resolveMoonRenderAssetProfiles({
         return merged;
     }
 
-    ["fast", "quality"].forEach((profileName) => {
+    MOON_RENDER_ASSET_PROFILE_NAMES.forEach((profileName) => {
         const profileOverrides = overrides[profileName];
         if (!profileOverrides || typeof profileOverrides !== "object") {
             return;
@@ -333,6 +379,7 @@ export function resolveMoonRenderProfileSettings({
     globalObject = typeof window !== "undefined" ? window : globalThis,
 } = {}) {
     const merged = {
+        low: { ...DEFAULT_MOON_RENDER_PROFILE_SETTINGS.low },
         fast: { ...DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast },
         quality: { ...DEFAULT_MOON_RENDER_PROFILE_SETTINGS.quality },
     };
@@ -342,7 +389,7 @@ export function resolveMoonRenderProfileSettings({
         return merged;
     }
 
-    ["fast", "quality"].forEach((profileName) => {
+    MOON_RENDER_ASSET_PROFILE_NAMES.forEach((profileName) => {
         const profileOverrides = overrides[profileName];
         if (!profileOverrides || typeof profileOverrides !== "object") {
             return;
@@ -374,20 +421,20 @@ export function resolveMoonRenderAssetProfile({
         return globalProfile;
     }
 
-    const missionDefaultProfile = resolveMissionDefaultMoonRenderProfile({
-        searchText,
-        pathname,
-    });
-    if (missionDefaultProfile) {
-        return missionDefaultProfile;
-    }
-
     const storage = safeGetStorage(globalObject);
     const storedProfile = normalizeProfileName(
         storage?.getItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY),
     );
     if (storedProfile) {
         return storedProfile;
+    }
+
+    const missionDefaultProfile = resolveMissionDefaultMoonRenderProfile({
+        searchText,
+        pathname,
+    });
+    if (missionDefaultProfile) {
+        return missionDefaultProfile;
     }
 
     return "fast";
