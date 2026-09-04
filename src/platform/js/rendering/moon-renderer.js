@@ -27,6 +27,9 @@ const MOON_LAT_LON_GRID_HOVER_RADIUS_SCALE = 1.018;
 const MOON_LAT_LON_GRID_HOVER_TANGENT_OFFSET_SCALE = 0.055;
 const MOON_LAT_LON_GRID_LABEL_MIN_INTERVAL_DEGREES = 10;
 const MOON_LAT_LON_LABEL_MIN_SCREEN_RADIUS_PX = 160;
+export const PHYSICAL_TERRAIN_SHADOW_MAX_SAMPLES = 32;
+export const PHYSICAL_TERRAIN_SHADOW_NEAR_SAMPLES = 8;
+export const PHYSICAL_TERRAIN_SHADOW_FAR_STEP = 2;
 const MOON_LAT_LON_GRID_STEPS_BY_SCREEN_RADIUS = Object.freeze([
     { minScreenRadiusPx: 620, stepDegrees: 5 },
     { minScreenRadiusPx: 280, stepDegrees: 10 },
@@ -72,6 +75,13 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     shadowNormalBias: 0.00018,
     shadowBias: -0.000003,
 });
+
+export function getPhysicalTerrainShadowSampleDistance(sampleIndex) {
+    const ordinal = Math.max(1, Number(sampleIndex) || 1);
+    const nearDistance = Math.min(ordinal, PHYSICAL_TERRAIN_SHADOW_NEAR_SAMPLES);
+    const farIndex = Math.max(ordinal - PHYSICAL_TERRAIN_SHADOW_NEAR_SAMPLES, 0);
+    return nearDistance + farIndex * PHYSICAL_TERRAIN_SHADOW_FAR_STEP;
+}
 
 function moonLatLonPoint(radius, latitudeDeg, longitudeDeg) {
     const lat = THREE.MathUtils.degToRad(latitudeDeg);
@@ -915,11 +925,21 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             moonLightTangentPlanarLength
         );
         float moonPhysicalHorizonShadow = 0.0;
-        for ( int moonSampleIndex = 1; moonSampleIndex <= 20; moonSampleIndex += 1 ) {
+        for ( int moonSampleIndex = 1; moonSampleIndex <= ${PHYSICAL_TERRAIN_SHADOW_MAX_SAMPLES}; moonSampleIndex += 1 ) {
             if ( float( moonSampleIndex ) > uMoonTerrainShadowSamples ) {
                 break;
             }
-            float moonSampleDistance = float( moonSampleIndex );
+            float moonSampleOrdinal = float( moonSampleIndex );
+            float moonNearSampleDistance = min(
+                moonSampleOrdinal,
+                ${PHYSICAL_TERRAIN_SHADOW_NEAR_SAMPLES.toFixed(1)}
+            );
+            float moonFarSampleIndex = max(
+                moonSampleOrdinal - ${PHYSICAL_TERRAIN_SHADOW_NEAR_SAMPLES.toFixed(1)},
+                0.0
+            );
+            float moonSampleDistance = moonNearSampleDistance
+                + moonFarSampleIndex * ${PHYSICAL_TERRAIN_SHADOW_FAR_STEP.toFixed(1)};
             float moonSampleAngle = moonAngularStep * moonSampleDistance;
             float moonSampleAngleSin = sin( moonSampleAngle );
             float moonSampleAngleCos = cos( moonSampleAngle );
@@ -943,10 +963,10 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
                 moonSampleUv
             ).r * uMoonPhysicalHeightScale + uMoonPhysicalHeightBias;
             float moonSampleRadius = 1.0 + moonSampleHeight;
-            float moonSampleRadialRise = moonSampleRadius * cos( moonSampleAngle )
+            float moonSampleRadialRise = moonSampleRadius * moonSampleAngleCos
                 - moonPhysicalBaseRadius;
             float moonSampleTangentDistance = max(
-                moonSampleRadius * sin( moonSampleAngle ),
+                moonSampleRadius * moonSampleAngleSin,
                 1e-6
             );
             float moonBlockerAltitude = atan(

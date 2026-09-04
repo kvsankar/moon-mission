@@ -1,7 +1,11 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import * as THREE from "three";
 
-import { MoonRenderer } from "../src/platform/js/rendering/moon-renderer.js";
+import {
+    getPhysicalTerrainShadowSampleDistance,
+    MoonRenderer,
+    PHYSICAL_TERRAIN_SHADOW_MAX_SAMPLES,
+} from "../src/platform/js/rendering/moon-renderer.js";
 
 function stubCanvasDocument() {
     const originalDocument = globalThis.document;
@@ -36,6 +40,24 @@ function stubCanvasDocument() {
 describe("MoonRenderer", () => {
     afterEach(() => {
         vi.unstubAllGlobals();
+    });
+
+    it("keeps physical horizon samples dense nearby and widens toward distant rims", () => {
+        const distances = Array.from(
+            { length: PHYSICAL_TERRAIN_SHADOW_MAX_SAMPLES },
+            (_, index) => getPhysicalTerrainShadowSampleDistance(index + 1),
+        );
+
+        expect(distances.slice(0, 8)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+        expect(distances[8]).toBe(10);
+        expect(distances[15]).toBe(24);
+        expect(distances[31]).toBe(56);
+        expect(distances.every((distance, index) => (
+            index === 0 || distance > distances[index - 1]
+        ))).toBe(true);
+        expect(distances.every((distance, index) => (
+            index === 0 || distance - distances[index - 1] <= 2
+        ))).toBe(true);
     });
 
     it("keeps generated normal-map flipY aligned with the source displacement texture", () => {
@@ -608,7 +630,7 @@ describe("MoonRenderer", () => {
             "float moonPhysicalBaseHeight = texture2D( uMoonHeightMap, moonHeightUv ).r",
         );
         expect(shader.fragmentShader).toContain(
-            "float moonSampleRadialRise = moonSampleRadius * cos( moonSampleAngle )",
+            "float moonSampleRadialRise = moonSampleRadius * moonSampleAngleCos",
         );
         expect(shader.fragmentShader).toContain(
             "float moonSampleLongitudeOffset = atan(",
@@ -617,7 +639,19 @@ describe("MoonRenderer", () => {
             "fract( moonHeightUv.x + moonSampleLongitudeOffset / 6.283185307179586 + 1.0 )",
         );
         expect(shader.fragmentShader).toContain(
-            "for ( int moonSampleIndex = 1; moonSampleIndex <= 20; moonSampleIndex += 1 )",
+            "for ( int moonSampleIndex = 1; moonSampleIndex <= 32; moonSampleIndex += 1 )",
+        );
+        expect(shader.fragmentShader).toContain(
+            "float moonFarSampleIndex = max(",
+        );
+        expect(shader.fragmentShader).toContain(
+            "+ moonFarSampleIndex * 2.0",
+        );
+        expect(shader.fragmentShader).toContain(
+            "moonSampleRadius * moonSampleAngleCos",
+        );
+        expect(shader.fragmentShader).toContain(
+            "moonSampleRadius * moonSampleAngleSin",
         );
         expect(shader.fragmentShader).toContain(
             "float moonTerrainShadowBandCurrent = moonTerrainReliefBand\n        * pow( 1.0 - moonSmoothNdotL, 1.4 );",
