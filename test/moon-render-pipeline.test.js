@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
     DEFAULT_MOON_RENDER_PIPELINE_STATE,
     MOON_RENDER_PIPELINE_PRESETS,
+    MOON_RENDER_PIPELINE_SCHEMA_VERSION,
+    createMoonRenderPipelineState,
     normalizeMoonRenderPipelineState,
     resolveMoonRenderPipelinePresetId,
 } from "../src/platform/js/app/moon-render-pipeline.js";
@@ -62,5 +64,44 @@ describe("moon render pipeline", () => {
 
         expect(physicalFull.lightingModel).toBe("physical-dem");
         expect(resolveMoonRenderPipelinePresetId(physicalFull)).toBe("full");
+    });
+
+    it("migrates superseded Physical tone defaults without changing custom values", () => {
+        expect(normalizeMoonRenderPipelineState({
+            physicalExposure: 0.8,
+        })).toMatchObject({
+            physicalExposure: 0.6,
+            physicalToneGamma: 1,
+        });
+        expect(normalizeMoonRenderPipelineState({
+            physicalExposure: 0.9,
+            physicalToneGamma: 0.7,
+        })).toMatchObject({
+            physicalExposure: 0.6,
+            physicalToneGamma: 1,
+        });
+        expect(normalizeMoonRenderPipelineState({
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
+            physicalExposure: 0.9,
+            physicalToneGamma: 0.7,
+        })).toMatchObject({
+            physicalExposure: 0.9,
+            physicalToneGamma: 0.7,
+        });
+        expect(createMoonRenderPipelineState({
+            physicalExposure: 0.9,
+            physicalToneGamma: 0.7,
+        })).toMatchObject({
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
+            physicalExposure: 0.9,
+            physicalToneGamma: 0.7,
+        });
+        expect(normalizeMoonRenderPipelineState({
+            physicalExposure: 0.65,
+            physicalToneGamma: 1.1,
+        })).toMatchObject({
+            physicalExposure: 0.65,
+            physicalToneGamma: 1.1,
+        });
     });
 });

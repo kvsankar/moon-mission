@@ -504,10 +504,10 @@ function applyMoonPhotometricShader(material) {
         material.userData.moonPhysicalModelBlend = 0.0;
     }
     if (!Number.isFinite(material.userData.moonPhysicalExposure)) {
-        material.userData.moonPhysicalExposure = 0.90;
+        material.userData.moonPhysicalExposure = 0.60;
     }
     if (!Number.isFinite(material.userData.moonPhysicalToneGamma)) {
-        material.userData.moonPhysicalToneGamma = 0.70;
+        material.userData.moonPhysicalToneGamma = 1.00;
     }
     if (!material.userData.moonHeightTexelSize) {
         material.userData.moonHeightTexelSize = new THREE.Vector2(

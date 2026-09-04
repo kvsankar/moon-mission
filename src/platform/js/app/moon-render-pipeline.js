@@ -4,15 +4,17 @@ import {
 } from "./moon-lighting-models.js";
 
 export const MOON_RENDER_PIPELINE_STORAGE_KEY = "moonRenderPipeline";
+export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 2;
 
 export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
+    schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
     lightingModel: MOON_LIGHTING_MODEL_CURRENT,
     physicalBrdfBlend: 0.20,
     physicalNormalScale: 0.55,
     physicalReliefScale: 0.45,
     physicalShadowStrength: 0.75,
-    physicalExposure: 0.90,
-    physicalToneGamma: 0.70,
+    physicalExposure: 0.60,
+    physicalToneGamma: 1.00,
     colorTexture: true,
     generatedNormalMap: true,
     displacement: true,
@@ -195,16 +197,38 @@ function normalizeNumber(value, fallback, min, max) {
         : fallback;
 }
 
+function usesSupersededPhysicalToneDefaults(source) {
+    const schemaVersion = Number(source.schemaVersion);
+    if (Number.isFinite(schemaVersion) && schemaVersion >= MOON_RENDER_PIPELINE_SCHEMA_VERSION) {
+        return false;
+    }
+    const exposure = Number(source.physicalExposure);
+    const toneGamma = Number(source.physicalToneGamma);
+    const hasToneGamma = source.physicalToneGamma != null &&
+        String(source.physicalToneGamma).trim() !== "" &&
+        Number.isFinite(toneGamma);
+    return (
+        (!hasToneGamma && exposure === 0.8) ||
+        (hasToneGamma && exposure === 0.9 && toneGamma === 0.7)
+    );
+}
+
 export function normalizeMoonRenderPipelineState(value = null) {
     const source = value && typeof value === "object" && !Array.isArray(value)
         ? value
         : {};
     const normalized = {
+        schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
         lightingModel: normalizeMoonLightingModel(source.lightingModel),
     };
+    const migratePhysicalToneDefaults = usesSupersededPhysicalToneDefaults(source);
     for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
+        const sourceValue = migratePhysicalToneDefaults &&
+            (control.key === "physicalExposure" || control.key === "physicalToneGamma")
+            ? undefined
+            : source[control.key];
         normalized[control.key] = normalizeNumber(
-            source[control.key],
+            sourceValue,
             DEFAULT_MOON_RENDER_PIPELINE_STATE[control.key],
             control.min,
             control.max,
@@ -218,6 +242,16 @@ export function normalizeMoonRenderPipelineState(value = null) {
         normalized[key] = normalizeBoolean(source[key], fallback);
     }
     return normalized;
+}
+
+export function createMoonRenderPipelineState(value = null) {
+    const source = value && typeof value === "object" && !Array.isArray(value)
+        ? value
+        : {};
+    return normalizeMoonRenderPipelineState({
+        ...source,
+        schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
+    });
 }
 
 export function resolveMoonRenderPipelinePresetId(state = null) {

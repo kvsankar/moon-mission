@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 import {
     MOON_PHYSICAL_RENDER_CONTROLS,
-    normalizeMoonRenderPipelineState,
+    createMoonRenderPipelineState,
 } from "./app/moon-render-pipeline.js";
 import { loadMoonRenderProfileTextures } from "./app/texture-loader.js";
 import { createMoonObserverProfileLoader } from "./app/moon-observer-profile-loader.js";
@@ -85,7 +85,7 @@ function readStateFromUrl() {
             params.get(control.key),
             control.min,
             control.max,
-            normalizeMoonRenderPipelineState()[control.key],
+            createMoonRenderPipelineState()[control.key],
         );
     }
     return nextState;
@@ -114,7 +114,7 @@ function buildPipelineState() {
     for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
         values[control.key] = state[control.key];
     }
-    return normalizeMoonRenderPipelineState(values);
+    return createMoonRenderPipelineState(values);
 }
 
 function syncUrl() {

@@ -734,8 +734,8 @@ describe("MoonRenderer", () => {
         expect(material.userData.moonTerminatorIndirectOcclusion).toBe(0.0);
         expect(material.userData.moonShadowCrushBlend).toBe(0.0);
         expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(0.75, 4);
-        expect(material.userData.moonPhysicalExposure).toBeCloseTo(0.90, 4);
-        expect(material.userData.moonPhysicalToneGamma).toBeCloseTo(0.70, 4);
+        expect(material.userData.moonPhysicalExposure).toBeCloseTo(0.60, 4);
+        expect(material.userData.moonPhysicalToneGamma).toBeCloseTo(1.00, 4);
         expect(material.normalScale.x).toBeCloseTo(2.2 * 0.55, 4);
         expect(material.displacementScale).toBeCloseTo(0.013 * 0.45, 4);
 
