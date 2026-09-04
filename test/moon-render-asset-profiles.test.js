@@ -112,6 +112,7 @@ describe("moon-render-asset-profiles", () => {
         expect(settings.quality.physicalDisplacementScale).toBeCloseTo(0.018860078277886497, 12);
         expect(settings.quality.physicalDisplacementBias).toBeCloseTo(-0.005755726948313572, 12);
         expect(settings.quality.physicalNormalHeightScale).toBeCloseTo(0.018860078277886497, 12);
+        expect(settings.quality.physicalNormalResolutionCompensation).toBe(2);
         expect(settings.quality.physicalTerrainShadowTexelStride).toBe(2);
         expect(settings.quality.physicalTerrainShadowSamples).toBe(20);
     });

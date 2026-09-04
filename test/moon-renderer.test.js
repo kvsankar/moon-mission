@@ -815,6 +815,7 @@ describe("MoonRenderer", () => {
             physicalDisplacementScale: 0.018860078277886497,
             physicalDisplacementBias: -0.005755726948313572,
             physicalNormalHeightScale: 0.018860078277886497,
+            physicalNormalResolutionCompensation: 2,
         });
         moonRenderer.setTextures(new THREE.Texture(), displacementTexture, new THREE.Texture());
         moonRenderer.create();
@@ -824,7 +825,7 @@ describe("MoonRenderer", () => {
         expect(moonRenderer.mesh.geometry.parameters.heightSegments).toBe(512);
         expect(material.displacementScale).toBeCloseTo(2 * 0.018860078277886497, 8);
         expect(material.displacementBias).toBeCloseTo(2 * -0.005755726948313572, 8);
-        expect(material.normalScale.x).toBeCloseTo(1, 8);
+        expect(material.normalScale.x).toBeCloseTo(2, 8);
         expect(material.shadowSide).toBe(THREE.FrontSide);
         expect(material.userData.moonPhysicalHeightScale).toBeCloseTo(0.018860078277886497, 8);
         expect(material.userData.moonPhysicalHeightBias).toBeCloseTo(-0.005755726948313572, 8);

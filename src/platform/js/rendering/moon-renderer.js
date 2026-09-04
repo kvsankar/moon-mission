@@ -48,6 +48,7 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementScale: 0.013,
     physicalDisplacementBias: -0.0048,
     physicalNormalHeightScale: 0.0,
+    physicalNormalResolutionCompensation: 1.0,
     physicalTerrainShadowTexelStride: 0.0,
     physicalTerrainShadowSamples: 0,
     roughness: 0.955,
@@ -410,6 +411,7 @@ function resolvePipelineRenderSettings(renderSettings, pipelineState) {
             ? (
                 normalizedSettings.physicalNormalHeightScale > 0
                     ? pipeline.physicalNormalScale
+                        * normalizedSettings.physicalNormalResolutionCompensation
                     : normalizedSettings.normalScale * pipeline.physicalNormalScale
             )
             : normalizedSettings.normalScale,
