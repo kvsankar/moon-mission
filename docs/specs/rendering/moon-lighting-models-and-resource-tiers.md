@@ -35,11 +35,9 @@ Preserve the corrected production stack and its diagnostic stage controls.
 | --- | --- | --- | --- | --- | --- |
 | Low | 4K | None | 128 x 64 | None | 0 |
 | Medium | 4K | Standard | 384 x 192 | Up to 2048 wide | 0 |
-| High | 16K | Detailed | 1024 x 512 | 5760 wide, worker-prepared | 32, bounded-gap multiscale |
+| High | 16K | Detailed | 1024 x 512 | 5760 wide, worker-prepared | 20 |
 
 Low must not request the DEM, bind the neutral placeholder as displacement, or schedule generated-normal work. Switching down must release replaced DEM-derived textures and geometry. Switching up may load and build assets lazily.
-
-The High physical horizon trace must sample every DEM texel nearby and keep farther sample gaps at or below two texels, so crater-rim blockers at least two texels wide are not skipped.
 
 ## Compatibility
 
