@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
+import * as THREE from "three";
 
 import {
     resolveBrightLimbAngleDegrees,
     resolveMoonObserverGeometry,
     rotateObserverScreenUp,
 } from "../src/platform/js/app/moon-observer-geometry.js";
+import { MoonRenderer } from "../src/platform/js/rendering/moon-renderer.js";
 
 function dot(left, right) {
     return left.x * right.x + left.y * right.y + left.z * right.z;
@@ -42,6 +44,47 @@ describe("moon observer geometry", () => {
         expect(Number.isFinite(bengaluru.azimuthDegrees)).toBe(true);
         expect(dot(geocenter.observerDirection, bengaluru.observerDirection)).toBeLessThan(0.9999999);
         expect(Math.abs(dot(bengaluru.screenUp, bengaluru.observerDirection))).toBeLessThan(1e-10);
+    });
+
+    it("matches the NASA Dial-A-Moon geocentric reference", () => {
+        // https://svs.gsfc.nasa.gov/api/dialamoon/2026-04-06T22:00
+        const geometry = resolveMoonObserverGeometry({
+            date: new Date("2026-04-06T22:00:00Z"),
+        });
+
+        expect(geometry.illuminatedFraction * 100).toBeCloseTo(79.32, 1);
+        expect(geometry.observerDistanceKm).toBeCloseTo(404830, -2);
+        expect(geometry.angularDiameterDegrees * 3600).toBeCloseTo(1770.4, 0);
+
+        const moonRenderer = new MoonRenderer(1);
+        moonRenderer.container = new THREE.Group();
+        moonRenderer.updateRotation(geometry.date);
+        const inverseMoonRotation = moonRenderer.container.quaternion.clone().invert();
+        const toSelenographic = (direction) => {
+            const local = new THREE.Vector3(direction.x, direction.y, direction.z)
+                .applyQuaternion(inverseMoonRotation)
+                .normalize();
+            const renderLongitude = THREE.MathUtils.radToDeg(Math.atan2(local.x, local.y));
+            return {
+                latitude: THREE.MathUtils.radToDeg(Math.asin(local.z)),
+                longitude: THREE.MathUtils.euclideanModulo(90 - renderLongitude + 180, 360) - 180,
+            };
+        };
+        const subEarth = toSelenographic(geometry.observerDirection);
+        const subsolar = toSelenographic(geometry.sunDirection);
+        const lunarNorthWorld = new THREE.Vector3(0, 0, 1)
+            .applyQuaternion(moonRenderer.container.quaternion);
+        const northClockwiseAngle = resolveBrightLimbAngleDegrees({
+            observerDirection: geometry.observerDirection,
+            sunDirection: lunarNorthWorld,
+            screenUp: geometry.screenUp,
+        });
+
+        expect(subEarth.longitude).toBeCloseTo(-0.663, 2);
+        expect(subEarth.latitude).toBeCloseTo(6.731, 2);
+        expect(subsolar.longitude).toBeCloseTo(-54.621, 2);
+        expect(subsolar.latitude).toBeCloseTo(1.03, 2);
+        expect(-northClockwiseAngle).toBeCloseTo(8.565, 2);
     });
 
     it("rotates screen-up without changing its view-plane constraint", () => {

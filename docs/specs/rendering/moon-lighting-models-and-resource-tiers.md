@@ -8,7 +8,7 @@ Provide a user-selectable Moon renderer that separates lighting behavior from re
 
 - Renderer: `Current` or `Physical DEM`.
 - Resource tier: `Low`, `Medium`, or `High`.
-- Physical tuning: BRDF blend, normal scale, relief scale, DEM-shadow strength, and exposure.
+- Physical tuning: BRDF blend, normal scale, relief scale, DEM-shadow strength, exposure, and lunar tone response.
 - Selecting `Current` disables the Physical controls without discarding their saved values.
 - Selecting `Physical DEM` disables the Current preset/stage controls without discarding their saved values.
 - Model, tier, and tuning choices persist locally and apply to every view of the shared Moon.
@@ -21,12 +21,12 @@ Preserve the corrected production stack and its diagnostic stage controls.
 
 ### Physical DEM
 
-- Use the unperturbed sphere normal for the global solar-visibility boundary.
+- Use the smooth sphere for Current and Low global solar visibility. In Physical Medium/High, allow raised terrain across the smooth terminator only when the ray from its displaced surface position clears the base lunar sphere.
 - Use the DEM-derived normal for local direct illumination.
 - Use the DEM height field for horizon/cast shadows when the selected tier supplies a DEM.
 - Retain a restrained Lommel-Seeliger/Lambert blend and Earthshine.
 - Exclude Current-model terminator contrast, terminator tone, cavity relief, indirect occlusion, opposition boost, and shadow crushing.
-- Keep normal scale, physical relief scale, DEM-shadow strength, BRDF blend, and exposure independently tunable.
+- Keep normal scale, physical relief scale, DEM-shadow strength, BRDF blend, exposure, and lunar tone response independently tunable.
 - Always enable the color, DEM-normal, displacement, terrain-shadow, and Earthshine stages when their selected resource tier supplies the required data; never inherit a Smooth or Geometric diagnostic preset.
 
 ## Resource Tiers
@@ -49,6 +49,7 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 ## Validation
 
 - Use `moon-observer-test.html` for renderer validation. It must render only the Moon and accept a UTC timestamp, geocentric or topocentric observer, camera roll, lighting model, and resource tier without loading mission or orbit state.
+- Keep an offline geometry regression against NASA Dial-A-Moon at `2026-04-06T22:00:00Z`, and compare full-disc appearance at that gibbous phase plus the `2026-04-10T05:00:00Z` and `2026-04-24T03:00:00Z` quarter phases.
 - Confirm the geometric mask against finite-distance projected illumination.
 - Compare Current and Physical DEM at `art002e009277`, `art002e009281`, `art002e010208`, and the Earthset sequence `art002e009288`/`art002e009289`.
 - At Earthset, evaluate visible crater detail inside the lit-side terminator band, not only whole-disc luminance.

@@ -475,6 +475,7 @@ describe("MoonRenderer", () => {
             vertexShader: [
                 "#include <common>",
                 "#include <beginnormal_vertex>",
+                "#include <displacementmap_vertex>",
             ].join("\n"),
             fragmentShader: [
                 "#include <common>",
@@ -519,6 +520,7 @@ describe("MoonRenderer", () => {
             vertexShader: [
                 "#include <common>",
                 "#include <beginnormal_vertex>",
+                "#include <displacementmap_vertex>",
             ].join("\n"),
             fragmentShader: [
                 "#include <common>",
@@ -530,7 +532,7 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v27-terrain-horizon-visibility");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v32-displaced-position-horizon");
         expect(shader.fragmentShader).toContain("float moonSunDiskVisibleFraction(float rawNdotL)");
         expect(shader.fragmentShader)
             .toContain("float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );");
@@ -555,7 +557,12 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader).toContain("uniform float uMoonShadowCrushBlend;");
         expect(shader.fragmentShader).toContain("uniform float uMoonGeometricMask;");
         expect(shader.fragmentShader).toContain("uniform float uMoonPhysicalModelBlend;");
+        expect(shader.fragmentShader).toContain("uniform float uMoonPhysicalToneGamma;");
         expect(shader.fragmentShader).toContain("float moonTerrainShadowBandCurrent");
+        expect(shader.fragmentShader).toContain("bool moonPhysicalModelActive = uMoonPhysicalModelBlend > 0.5;");
+        expect(shader.fragmentShader).toContain("if ( moonPhysicalModelActive ) {");
+        expect(shader.fragmentShader).toContain("float moonPhysicalToneWeight = pow(");
+        expect(shader.fragmentShader).toContain("clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 )");
         expect(shader.vertexShader).toContain("varying vec3 vMoonGeometricNormalView;");
         expect(shader.fragmentShader)
             .toContain("step( 0.0001, dot( normalize( vMoonGeometricNormalView ), moonLightDir ) )");
@@ -569,8 +576,15 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader).toContain("float moonTerrainCavity = max");
         expect(shader.fragmentShader).toContain("float moonFinalTerrainTone = clamp");
         expect(shader.fragmentShader).toContain("float moonTerrainHorizonLift = 0.0");
+        expect(shader.vertexShader).toContain("varying vec3 vMoonDisplacedFromCenterView;");
+        expect(shader.vertexShader).toContain("vMoonDisplacedFromCenterView = mat3( modelViewMatrix ) * transformed;");
+        expect(shader.fragmentShader).toContain("float moonBaseToDisplacedRatio = clamp(");
+        expect(shader.fragmentShader).toContain("float moonRaisedHorizonAngle = 3.141592653589793");
+        expect(shader.fragmentShader).toContain("float moonMacroscopicRawNdotLForVis = moonSmoothRawNdotLForVis;");
+        expect(shader.fragmentShader).toContain("moonRaisedHorizonAngle - moonSunFromRadialAngle");
         expect(shader.fragmentShader).toContain("float moonTerrainProminence = max");
-        expect(shader.fragmentShader).toContain("float moonEffectiveRawNdotLForVis = moonSmoothRawNdotLForVis + moonTerrainHorizonLift");
+        expect(shader.fragmentShader).toContain("float moonCurrentRawNdotLForVis = moonSmoothRawNdotLForVis + moonTerrainHorizonLift");
+        expect(shader.fragmentShader).toContain("moonMacroscopicRawNdotLForVis,");
         expect(shader.fragmentShader).toContain("float moonSunVisibility = moonSunDiskVisibleFraction( moonEffectiveRawNdotLForVis );");
         expect(shader.fragmentShader).toContain("reflectedLight.indirectDiffuse *= 1.0 - moonFinalCavityDarkenFromHeight");
         expect(shader.fragmentShader).toContain("float moonTerrainSelfShadow = 0.0");
@@ -719,7 +733,9 @@ describe("MoonRenderer", () => {
         expect(material.userData.moonTerrainReliefStrength).toBe(0.0);
         expect(material.userData.moonTerminatorIndirectOcclusion).toBe(0.0);
         expect(material.userData.moonShadowCrushBlend).toBe(0.0);
-        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(0.45, 4);
+        expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(0.75, 4);
+        expect(material.userData.moonPhysicalExposure).toBeCloseTo(0.90, 4);
+        expect(material.userData.moonPhysicalToneGamma).toBeCloseTo(0.70, 4);
         expect(material.normalScale.x).toBeCloseTo(2.2 * 0.55, 4);
         expect(material.displacementScale).toBeCloseTo(0.013 * 0.45, 4);
 

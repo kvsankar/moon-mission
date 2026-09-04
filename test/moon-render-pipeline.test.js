@@ -30,7 +30,7 @@ describe("moon render pipeline", () => {
             ...MOON_RENDER_PIPELINE_PRESETS.smooth.state,
             shadowCrush: true,
         });
-        expect(legacySmooth.physicalShadowStrength).toBe(0.45);
+        expect(legacySmooth.physicalShadowStrength).toBe(0.75);
     });
 
     it("migrates a stored seven-stage full state to the corrected full preset", () => {

@@ -432,6 +432,7 @@ function applyMoonPipelineStagesToMaterial(material, renderSettings, pipelineSta
     material.userData.moonGeometricMask = pipeline.geometricMask ? 1.0 : 0.0;
     material.userData.moonPhysicalModelBlend = pipeline.physicalModel ? 1.0 : 0.0;
     material.userData.moonPhysicalExposure = pipeline.physicalExposure;
+    material.userData.moonPhysicalToneGamma = pipeline.physicalToneGamma;
 }
 
 function applyMoonPhotometricShader(material) {
@@ -503,7 +504,10 @@ function applyMoonPhotometricShader(material) {
         material.userData.moonPhysicalModelBlend = 0.0;
     }
     if (!Number.isFinite(material.userData.moonPhysicalExposure)) {
-        material.userData.moonPhysicalExposure = 0.80;
+        material.userData.moonPhysicalExposure = 0.90;
+    }
+    if (!Number.isFinite(material.userData.moonPhysicalToneGamma)) {
+        material.userData.moonPhysicalToneGamma = 0.70;
     }
     if (!material.userData.moonHeightTexelSize) {
         material.userData.moonHeightTexelSize = new THREE.Vector2(
@@ -538,6 +542,7 @@ function applyMoonPhotometricShader(material) {
         shader.uniforms.uMoonGeometricMask = { value: material.userData.moonGeometricMask };
         shader.uniforms.uMoonPhysicalModelBlend = { value: material.userData.moonPhysicalModelBlend };
         shader.uniforms.uMoonPhysicalExposure = { value: material.userData.moonPhysicalExposure };
+        shader.uniforms.uMoonPhysicalToneGamma = { value: material.userData.moonPhysicalToneGamma };
         material.userData.moonPhotometricShader = shader;
         if (!(material.userData.moonPhotometricShaders instanceof Map)) {
             material.userData.moonPhotometricShaders = new Map();
@@ -548,12 +553,20 @@ function applyMoonPhotometricShader(material) {
             .replace(
                 "#include <common>",
                 `#include <common>
-varying vec3 vMoonGeometricNormalView;`,
+varying vec3 vMoonGeometricNormalView;
+varying vec3 vMoonDisplacedFromCenterView;
+varying float vMoonBaseRadiusView;`,
             )
             .replace(
                 "#include <beginnormal_vertex>",
                 `#include <beginnormal_vertex>
 vMoonGeometricNormalView = normalize( normalMatrix * objectNormal );`,
+            )
+            .replace(
+                "#include <displacementmap_vertex>",
+                `#include <displacementmap_vertex>
+vMoonDisplacedFromCenterView = mat3( modelViewMatrix ) * transformed;
+vMoonBaseRadiusView = length( mat3( modelViewMatrix ) * position );`,
             );
 
         shader.fragmentShader = shader.fragmentShader
@@ -585,7 +598,10 @@ uniform float uMoonShadowCrushBlend;
 uniform float uMoonGeometricMask;
 uniform float uMoonPhysicalModelBlend;
 uniform float uMoonPhysicalExposure;
+uniform float uMoonPhysicalToneGamma;
 varying vec3 vMoonGeometricNormalView;
+varying vec3 vMoonDisplacedFromCenterView;
+varying float vMoonBaseRadiusView;
 
 // Sun's angular half-radius as seen from the lunar surface (~0.267 deg).
 // sin(alpha) ~ 0.00466 — sets the width of the macroscopic terminator
@@ -597,11 +613,10 @@ const float MOON_INV_PI        = 0.31830988618;
 // Closed-form integral of the visible disk-area fraction. Drives the
 // macroscopic-terminator soft transition.
 //
-// The smooth (non-perturbed) normal is the right input here: macroscopic
-// visibility is determined by the surrounding surface, not by per-pixel
-// normal-map perturbations. (Using the perturbed normal produces white
-// halos around crater rims and a uniform glow band on the dark side
-// just past the terminator.)
+// Use a macroscopic normal here: the smooth sphere in Current and the
+// displaced geometric surface near the Physical terminator. Per-pixel
+// normal-map perturbations are deliberately excluded because they produce
+// white halos and a uniform glow band just past the terminator.
 float moonSunDiskVisibleFraction(float rawNdotL) {
     float h = rawNdotL / MOON_SUN_SIN_ALPHA;
     if (h >=  1.0) return 1.0;
@@ -645,11 +660,10 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color * moonSunShadowFactor
                                    * RECIPROCAL_PI * material.diffuseColor;
 
-    // Macroscopic Sun-disk visibility on the SMOOTH (non-perturbed) normal.
-    // Closed-form area-fraction of the Sun's disk above the local geometric
-    // horizon, using the Sun's angular half-radius (~0.267 deg) as the
-    // soft-step bandwidth. Sub-pixel at typical zoom; primary effect is
-    // suppressing perturbed-normal phantom illumination on the dark side.
+    // Start from the smooth-sphere visibility used by Current. Physical may
+    // replace it with the displaced geometric normal in the narrow
+    // terminator neighbourhood below. The Sun's angular half-radius
+    // (~0.267 deg) supplies the final soft-step bandwidth.
     //
     // Physics scope: this is a multiplier on Lambert (irradiance times
     // visible-disk-area-fraction). The full disk-source irradiance is
@@ -662,6 +676,35 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // 01-solar-disk-physics.md sections 2.6 and Appendix B.
     float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
     float moonSmoothNdotL = clamp( moonSmoothRawNdotLForVis, 0.0, 1.0 );
+    bool moonPhysicalModelActive = uMoonPhysicalModelBlend > 0.5;
+    // A raised point just behind the smooth terminator can see the Sun only
+    // when its outgoing ray clears the base lunar sphere. This position-based
+    // horizon test admits real high terrain without allowing a merely
+    // sun-facing normal to see through the Moon.
+    float moonMacroscopicRawNdotLForVis = moonSmoothRawNdotLForVis;
+#if defined( USE_DISPLACEMENTMAP )
+    if ( moonPhysicalModelActive ) {
+        float moonDisplacedRadiusView = max(
+            length( vMoonDisplacedFromCenterView ),
+            max( vMoonBaseRadiusView, 1e-6 )
+        );
+        float moonBaseToDisplacedRatio = clamp(
+            vMoonBaseRadiusView / moonDisplacedRadiusView,
+            0.0,
+            1.0
+        );
+        float moonSunFromRadialAngle = acos( clamp(
+            dot( normalize( vMoonDisplacedFromCenterView ), moonLightDir ),
+            -1.0,
+            1.0
+        ) );
+        float moonRaisedHorizonAngle = 3.141592653589793
+            - asin( moonBaseToDisplacedRatio );
+        moonMacroscopicRawNdotLForVis = sin(
+            moonRaisedHorizonAngle - moonSunFromRadialAngle
+        );
+    }
+#endif
     float moonTerrainHorizonLift = 0.0;
     float moonFinalCavityDarkenFromHeight = 0.0;
 
@@ -711,7 +754,12 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     moonFinalCavityDarkenFromHeight = clamp( moonCavityOcclusion * 0.10, 0.0, 0.18 );
 #endif
 
-    float moonEffectiveRawNdotLForVis = moonSmoothRawNdotLForVis + moonTerrainHorizonLift;
+    float moonCurrentRawNdotLForVis = moonSmoothRawNdotLForVis + moonTerrainHorizonLift;
+    float moonEffectiveRawNdotLForVis = mix(
+        moonCurrentRawNdotLForVis,
+        moonMacroscopicRawNdotLForVis,
+        clamp( uMoonPhysicalModelBlend, 0.0, 1.0 )
+    );
     float moonSunVisibility = moonSunDiskVisibleFraction( moonEffectiveRawNdotLForVis );
 
     // Isolate earthshine. directDiffuse currently holds the Sun's
@@ -817,11 +865,17 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // headroom (pow 1.4 vs 2.0) so cast-shadow plumes extend visibly inward.
     float moonTerrainShadowBandCurrent = moonTerrainReliefBand
         * pow( 1.0 - moonSmoothNdotL, 1.4 );
-    float moonTerrainShadowBand = mix(
-        moonTerrainShadowBandCurrent,
-        1.0,
-        clamp( uMoonPhysicalModelBlend, 0.0, 1.0 )
-    );
+    // Cast shadows are a low-Sun phenomenon. The raw height march is noisy
+    // at high incidence angles, where tiny DEM variations should not read as
+    // broad dark patches. Fade the physical path continuously with solar
+    // elevation instead of applying the horizon mask across the full disc.
+    float moonTerrainShadowBand = moonTerrainShadowBandCurrent;
+    if ( moonPhysicalModelActive ) {
+        moonTerrainShadowBand = pow(
+            clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 ),
+            6.0
+        );
+    }
     float moonTerrainShadow = clamp(
         moonTerrainSelfShadow * moonTerrainShadowBand * uMoonTerrainShadowStrength,
         0.0,
@@ -855,11 +909,25 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // Sun-side darkness baseline, and earthshine is the explicit reason the
     // dark side isn't entirely black on crescent phases.
     outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone * clamp( uMoonEarthshineBlend, 0.0, 1.0 );
-    outgoingLight *= mix(
-        1.0,
-        max( 0.0, uMoonPhysicalExposure ),
-        clamp( uMoonPhysicalModelBlend, 0.0, 1.0 )
-    );
+    if ( moonPhysicalModelActive ) {
+        vec3 moonPhysicalExposedRadiance = max(
+            outgoingLight * max( 0.0, uMoonPhysicalExposure ),
+            vec3( 0.0 )
+        );
+        vec3 moonPhysicalCompressedRadiance = pow(
+            moonPhysicalExposedRadiance,
+            vec3( max( 0.01, uMoonPhysicalToneGamma ) )
+        );
+        float moonPhysicalToneWeight = pow(
+            clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 ),
+            1.6
+        );
+        outgoingLight = mix(
+            moonPhysicalExposedRadiance,
+            moonPhysicalCompressedRadiance,
+            moonPhysicalToneWeight
+        );
+    }
     outgoingLight = mix(
         outgoingLight,
         vec3( step( 0.0001, dot( normalize( vMoonGeometricNormalView ), moonLightDir ) ) ),
@@ -885,7 +953,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v27-terrain-horizon-visibility",
+            "moon-photometric-v32-displaced-position-horizon",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,
@@ -909,6 +977,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             data.moonGeometricMask,
             data.moonPhysicalModelBlend,
             data.moonPhysicalExposure,
+            data.moonPhysicalToneGamma,
         ].join("-");
     };
 
@@ -947,6 +1016,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         const geometricMask = Number(material.userData.moonGeometricMask);
         const physicalModelBlend = Number(material.userData.moonPhysicalModelBlend);
         const physicalExposure = Number(material.userData.moonPhysicalExposure);
+        const physicalToneGamma = Number(material.userData.moonPhysicalToneGamma);
         for (const shader of shaders) {
             if (!shader?.uniforms) continue;
             if (Number.isFinite(lsBlend) && shader.uniforms.uMoonLsBlend) {
@@ -1023,6 +1093,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             }
             if (Number.isFinite(physicalExposure) && shader.uniforms.uMoonPhysicalExposure) {
                 shader.uniforms.uMoonPhysicalExposure.value = physicalExposure;
+            }
+            if (Number.isFinite(physicalToneGamma) && shader.uniforms.uMoonPhysicalToneGamma) {
+                shader.uniforms.uMoonPhysicalToneGamma.value = physicalToneGamma;
             }
         }
     };

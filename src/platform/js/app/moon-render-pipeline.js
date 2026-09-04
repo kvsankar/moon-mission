@@ -10,8 +10,9 @@ export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     physicalBrdfBlend: 0.20,
     physicalNormalScale: 0.55,
     physicalReliefScale: 0.45,
-    physicalShadowStrength: 0.45,
-    physicalExposure: 0.80,
+    physicalShadowStrength: 0.75,
+    physicalExposure: 0.90,
+    physicalToneGamma: 0.70,
     colorTexture: true,
     generatedNormalMap: true,
     displacement: true,
@@ -162,6 +163,7 @@ export const MOON_PHYSICAL_RENDER_CONTROLS = Object.freeze([
     Object.freeze({ key: "physicalReliefScale", label: "Relief Scale", min: 0, max: 1, step: 0.05 }),
     Object.freeze({ key: "physicalShadowStrength", label: "DEM Shadows", min: 0, max: 1.5, step: 0.05 }),
     Object.freeze({ key: "physicalExposure", label: "Exposure", min: 0.5, max: 1.25, step: 0.05 }),
+    Object.freeze({ key: "physicalToneGamma", label: "Tone Gamma", min: 0.6, max: 1.2, step: 0.02 }),
 ]);
 
 const LEGACY_STAGE_FALLBACKS = Object.freeze({
