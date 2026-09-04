@@ -846,9 +846,11 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             float moonSampleHeight = texture2D( uMoonHeightMap, moonHeightUv + moonLightUvStep * moonSampleDistance ).r;
             float moonRequiredRise = moonSunSlope * moonSlopeScale * moonSampleDistance * 7.0;
             float moonBlockerRise = moonSampleHeight - moonBaseHeight - moonRequiredRise;
+            float moonShadowRiseStart = moonPhysicalModelActive ? 0.0007 : 0.0012;
+            float moonShadowRiseFull = moonPhysicalModelActive ? 0.0045 : 0.0065;
             float moonSampleShadow = smoothstep(
-                0.0012,
-                0.0065,
+                moonShadowRiseStart,
+                moonShadowRiseFull,
                 moonBlockerRise
             );
             moonHorizonShadow = max( moonHorizonShadow, moonSampleShadow );
@@ -873,7 +875,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     if ( moonPhysicalModelActive ) {
         moonTerrainShadowBand = pow(
             clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 ),
-            6.0
+            8.0
         );
     }
     float moonTerrainShadow = clamp(
@@ -953,7 +955,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v32-displaced-position-horizon",
+            "moon-photometric-v34-physical-blocker-threshold",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

@@ -51,6 +51,7 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 - Use `moon-observer-test.html` for renderer validation. It must render only the Moon and accept a UTC timestamp, geocentric or topocentric observer, camera roll, lighting model, and resource tier without loading mission or orbit state.
 - Keep an offline geometry regression against NASA Dial-A-Moon at `2026-04-06T22:00:00Z`, and compare full-disc appearance at that gibbous phase plus the `2026-04-10T05:00:00Z` and `2026-04-24T03:00:00Z` quarter phases.
 - Calibrate the default Physical display response against the Artemis II Earthset crew sequence without encoding a specific camera exposure into the geometry or DEM lighting stages; Frame & Shoot exposure compensation remains the per-shot control.
+- Preserve crater-shadow separation near the terminator by calibrating local DEM-normal gain and cast-shadow strength separately from exposure; cast-shadow sensitivity must fall away rapidly outside the low-Sun band.
 - Confirm the geometric mask against finite-distance projected illumination.
 - Compare Current and Physical DEM at `art002e009277`, `art002e009281`, `art002e010208`, and the Earthset sequence `art002e009288`/`art002e009289`.
 - At Earthset, evaluate visible crater detail inside the lit-side terminator band, not only whole-disc luminance.

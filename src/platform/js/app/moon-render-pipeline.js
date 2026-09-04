@@ -4,15 +4,17 @@ import {
 } from "./moon-lighting-models.js";
 
 export const MOON_RENDER_PIPELINE_STORAGE_KEY = "moonRenderPipeline";
-export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 2;
+export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 3;
+const MOON_RENDER_TONE_CALIBRATION_VERSION = 2;
+const MOON_RENDER_RELIEF_CALIBRATION_VERSION = 3;
 
 export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
     lightingModel: MOON_LIGHTING_MODEL_CURRENT,
     physicalBrdfBlend: 0.20,
-    physicalNormalScale: 0.55,
+    physicalNormalScale: 0.80,
     physicalReliefScale: 0.45,
-    physicalShadowStrength: 0.75,
+    physicalShadowStrength: 1.10,
     physicalExposure: 0.60,
     physicalToneGamma: 1.00,
     colorTexture: true,
@@ -199,7 +201,7 @@ function normalizeNumber(value, fallback, min, max) {
 
 function usesSupersededPhysicalToneDefaults(source) {
     const schemaVersion = Number(source.schemaVersion);
-    if (Number.isFinite(schemaVersion) && schemaVersion >= MOON_RENDER_PIPELINE_SCHEMA_VERSION) {
+    if (Number.isFinite(schemaVersion) && schemaVersion >= MOON_RENDER_TONE_CALIBRATION_VERSION) {
         return false;
     }
     const exposure = Number(source.physicalExposure);
@@ -213,6 +215,15 @@ function usesSupersededPhysicalToneDefaults(source) {
     );
 }
 
+function usesSupersededPhysicalReliefDefaults(source) {
+    const schemaVersion = Number(source.schemaVersion);
+    if (Number.isFinite(schemaVersion) && schemaVersion >= MOON_RENDER_RELIEF_CALIBRATION_VERSION) {
+        return false;
+    }
+    return Number(source.physicalNormalScale) === 0.55 &&
+        Number(source.physicalShadowStrength) === 0.75;
+}
+
 export function normalizeMoonRenderPipelineState(value = null) {
     const source = value && typeof value === "object" && !Array.isArray(value)
         ? value
@@ -222,9 +233,16 @@ export function normalizeMoonRenderPipelineState(value = null) {
         lightingModel: normalizeMoonLightingModel(source.lightingModel),
     };
     const migratePhysicalToneDefaults = usesSupersededPhysicalToneDefaults(source);
+    const migratePhysicalReliefDefaults = usesSupersededPhysicalReliefDefaults(source);
     for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
-        const sourceValue = migratePhysicalToneDefaults &&
+        const migrateControl = (
+            migratePhysicalToneDefaults &&
             (control.key === "physicalExposure" || control.key === "physicalToneGamma")
+        ) || (
+            migratePhysicalReliefDefaults &&
+            (control.key === "physicalNormalScale" || control.key === "physicalShadowStrength")
+        );
+        const sourceValue = migrateControl
             ? undefined
             : source[control.key];
         normalized[control.key] = normalizeNumber(
@@ -280,7 +298,23 @@ export function resolveMoonRenderPipelineState({
     const storedText = storage?.getItem?.(MOON_RENDER_PIPELINE_STORAGE_KEY);
     if (storedText) {
         try {
-            return normalizeMoonRenderPipelineState(JSON.parse(storedText));
+            const storedState = JSON.parse(storedText);
+            const normalized = normalizeMoonRenderPipelineState(storedState);
+            const storedSchemaVersion = Number(storedState?.schemaVersion);
+            if (
+                !Number.isFinite(storedSchemaVersion) ||
+                storedSchemaVersion < MOON_RENDER_PIPELINE_SCHEMA_VERSION
+            ) {
+                try {
+                    storage?.setItem?.(
+                        MOON_RENDER_PIPELINE_STORAGE_KEY,
+                        JSON.stringify(normalized),
+                    );
+                } catch {
+                    // Keep the normalized in-memory state when storage is read-only.
+                }
+            }
+            return normalized;
         } catch {
             // Ignore corrupt local overrides.
         }
