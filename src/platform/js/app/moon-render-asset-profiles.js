@@ -24,7 +24,6 @@ const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementBias: -0.0046,
     physicalNormalHeightScale: 0.0,
     physicalNormalResolutionCompensation: 1.0,
-    physicalShadowFillScale: 0.0,
     physicalTerrainShadowTexelStride: 0.0,
     physicalTerrainShadowSamples: 0,
     roughness: 0.958,
@@ -68,7 +67,6 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementBias: -0.005755726948313572,
     physicalNormalHeightScale: 0.018860078277886497,
     physicalNormalResolutionCompensation: 2.0,
-    physicalShadowFillScale: 1.0,
     physicalTerrainShadowTexelStride: 2.0,
     physicalTerrainShadowSamples: 20,
     roughness: 0.955,
@@ -288,10 +286,6 @@ function mergeRenderSettings(defaultSettings, overrides) {
         physicalNormalResolutionCompensation: normalizeFiniteNumber(
             overrides.physicalNormalResolutionCompensation,
             defaultSettings.physicalNormalResolutionCompensation,
-        ),
-        physicalShadowFillScale: normalizeFiniteNumber(
-            overrides.physicalShadowFillScale,
-            defaultSettings.physicalShadowFillScale,
         ),
         physicalTerrainShadowTexelStride: normalizeFiniteNumber(
             overrides.physicalTerrainShadowTexelStride,

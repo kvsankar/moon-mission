@@ -55,7 +55,6 @@ describe("moon render pipeline", () => {
         expect(normalizeMoonRenderPipelineState()).toEqual(DEFAULT_MOON_RENDER_PIPELINE_STATE);
         expect(DEFAULT_MOON_RENDER_PIPELINE_STATE.terminatorContrast).toBe(false);
         expect(DEFAULT_MOON_RENDER_PIPELINE_STATE.geometricMask).toBe(false);
-        expect(DEFAULT_MOON_RENDER_PIPELINE_STATE.physicalShadowFill).toBe(0.015);
     });
 
     it("keeps lighting-model selection independent from stage presets", () => {

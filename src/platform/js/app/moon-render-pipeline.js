@@ -17,7 +17,6 @@ export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     physicalNormalScale: 1.00,
     physicalReliefScale: 1.00,
     physicalShadowStrength: 1.00,
-    physicalShadowFill: 0.015,
     physicalExposure: 0.45,
     physicalToneGamma: 1.00,
     colorTexture: true,
@@ -169,7 +168,6 @@ export const MOON_PHYSICAL_RENDER_CONTROLS = Object.freeze([
     Object.freeze({ key: "physicalNormalScale", label: "Normal Scale", min: 0, max: 1.25, step: 0.05 }),
     Object.freeze({ key: "physicalReliefScale", label: "Relief Scale", min: 0, max: 1, step: 0.05 }),
     Object.freeze({ key: "physicalShadowStrength", label: "Geometry Shadows", min: 0, max: 1, step: 0.05 }),
-    Object.freeze({ key: "physicalShadowFill", label: "Shadow Fill", min: 0, max: 0.04, step: 0.005 }),
     Object.freeze({ key: "physicalExposure", label: "Exposure", min: 0.2, max: 1.25, step: 0.05 }),
     Object.freeze({ key: "physicalToneGamma", label: "Tone Gamma", min: 0.6, max: 1.2, step: 0.02 }),
 ]);
