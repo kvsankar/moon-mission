@@ -355,11 +355,13 @@ export function createViewSettingsPillController(deps = {}) {
         tierButtons.forEach(([, profile, button]) => {
             syncPressedState(button, profile === activeProfile);
         });
-        physicalControls.forEach(({ key, input, value }) => {
+        physicalControls.forEach(({ key, input, value, step }) => {
             const numeric = Number(pipeline[key]);
             input.value = String(numeric);
-            input.disabled = !physicalModel;
-            if (value) value.textContent = numeric.toFixed(2);
+            input.disabled = !physicalModel || (
+                key === "physicalShadowFill" && activeProfile !== "quality"
+            );
+            if (value) value.textContent = numeric.toFixed(Number(step) < 0.01 ? 3 : 2);
         });
         presetButtons.forEach(([presetId, button]) => {
             syncPressedState(button, presetId === activePresetId);

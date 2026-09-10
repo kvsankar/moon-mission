@@ -185,6 +185,8 @@ function createHarness(options = {}) {
     const moonPhysicalReliefValue = createElement("moon-render-physical-physicalReliefScale-value");
     const moonPhysicalShadows = createElement("moon-render-physical-physicalShadowStrength", { value: "1" });
     const moonPhysicalShadowsValue = createElement("moon-render-physical-physicalShadowStrength-value");
+    const moonPhysicalShadowFill = createElement("moon-render-physical-physicalShadowFill", { value: "0.015" });
+    const moonPhysicalShadowFillValue = createElement("moon-render-physical-physicalShadowFill-value");
     const moonPhysicalExposure = createElement("moon-render-physical-physicalExposure", { value: "0.45" });
     const moonPhysicalExposureValue = createElement("moon-render-physical-physicalExposure-value");
     const moonPhysicalToneGamma = createElement("moon-render-physical-physicalToneGamma", { value: "1" });
@@ -316,6 +318,8 @@ function createHarness(options = {}) {
         ["moon-render-physical-physicalReliefScale-value", moonPhysicalReliefValue],
         ["moon-render-physical-physicalShadowStrength", moonPhysicalShadows],
         ["moon-render-physical-physicalShadowStrength-value", moonPhysicalShadowsValue],
+        ["moon-render-physical-physicalShadowFill", moonPhysicalShadowFill],
+        ["moon-render-physical-physicalShadowFill-value", moonPhysicalShadowFillValue],
         ["moon-render-physical-physicalExposure", moonPhysicalExposure],
         ["moon-render-physical-physicalExposure-value", moonPhysicalExposureValue],
         ["moon-render-physical-physicalToneGamma", moonPhysicalToneGamma],
@@ -518,6 +522,8 @@ function createHarness(options = {}) {
         moonPhysicalReliefValue,
         moonPhysicalShadows,
         moonPhysicalShadowsValue,
+        moonPhysicalShadowFill,
+        moonPhysicalShadowFillValue,
         moonPhysicalToneGamma,
         moonPhysicalToneGammaValue,
         moonRenderSmoothPreset,
@@ -674,6 +680,7 @@ describe("createViewSettingsPillController", function () {
             physicalNormalScale: 1,
             physicalReliefScale: 1,
             physicalShadowStrength: 1,
+            physicalShadowFill: 0.015,
             physicalExposure: 0.45,
             physicalToneGamma: 1,
             colorTexture: false,
@@ -729,6 +736,16 @@ describe("createViewSettingsPillController", function () {
         expect(harness.moonRenderShadowCrushStage.checked).toBe(false);
         expect(harness.moonRenderGeometricMaskStage.checked).toBe(false);
         expect(harness.moonPhysicalBrdf.disabled).toBe(false);
+        expect(harness.moonPhysicalShadowFill.disabled).toBe(true);
+
+        harness.moonRenderHighTier.dispatchEvent({
+            type: "click",
+            target: harness.moonRenderHighTier,
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(harness.moonRenderHighTier["aria-pressed"]).toBe("true");
+        expect(harness.moonPhysicalShadowFill.disabled).toBe(false);
 
         harness.moonPhysicalBrdf.value = "0.4";
         harness.moonPhysicalBrdf.dispatchEvent({
@@ -770,6 +787,16 @@ describe("createViewSettingsPillController", function () {
         );
         expect(harness.moonPhysicalShadowsValue.textContent).toBe("0.00");
 
+        harness.moonPhysicalShadowFill.value = "0.025";
+        harness.moonPhysicalShadowFill.dispatchEvent({
+            type: "input",
+            target: harness.moonPhysicalShadowFill,
+        });
+        expect(harness.moonRenderPipelineSetter).toHaveBeenLastCalledWith(
+            expect.objectContaining({ physicalShadowFill: 0.025 }),
+        );
+        expect(harness.moonPhysicalShadowFillValue.textContent).toBe("0.025");
+
         harness.moonPhysicalToneGamma.value = "0.76";
         harness.moonPhysicalToneGamma.dispatchEvent({
             type: "input",
@@ -789,6 +816,7 @@ describe("createViewSettingsPillController", function () {
 
         expect(harness.moonRenderLowTier["aria-pressed"]).toBe("true");
         expect(harness.moonRenderMediumTier["aria-pressed"]).toBe("false");
+        expect(harness.moonPhysicalShadowFill.disabled).toBe(true);
 
         harness.moonRenderCurrentModel.dispatchEvent({
             type: "click",

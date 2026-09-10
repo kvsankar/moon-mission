@@ -27,6 +27,8 @@ const MOON_LAT_LON_GRID_HOVER_RADIUS_SCALE = 1.018;
 const MOON_LAT_LON_GRID_HOVER_TANGENT_OFFSET_SCALE = 0.055;
 const MOON_LAT_LON_GRID_LABEL_MIN_INTERVAL_DEGREES = 10;
 const MOON_LAT_LON_LABEL_MIN_SCREEN_RADIUS_PX = 160;
+const PHYSICAL_SHADOW_FILL_MAX = 0.05;
+const PHYSICAL_SHADOW_FILL_SUNLIT_EDGE = 0.06;
 const MOON_LAT_LON_GRID_STEPS_BY_SCREEN_RADIUS = Object.freeze([
     { minScreenRadiusPx: 620, stepDegrees: 5 },
     { minScreenRadiusPx: 280, stepDegrees: 10 },
@@ -49,6 +51,7 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementBias: -0.0048,
     physicalNormalHeightScale: 0.0,
     physicalNormalResolutionCompensation: 1.0,
+    physicalShadowFillScale: 0.0,
     physicalTerrainShadowTexelStride: 0.0,
     physicalTerrainShadowSamples: 0,
     roughness: 0.955,
@@ -73,6 +76,21 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     shadowNormalBias: 0.00018,
     shadowBias: -0.000003,
 });
+
+export function resolvePhysicalShadowFillFloor({
+    physicalModelActive = false,
+    shadowFill = 0,
+    smoothRawNdotL = 0,
+} = {}) {
+    if (!physicalModelActive) return 0;
+    const fill = THREE.MathUtils.clamp(Number(shadowFill) || 0, 0, PHYSICAL_SHADOW_FILL_MAX);
+    const t = THREE.MathUtils.clamp(
+        (Number(smoothRawNdotL) || 0) / PHYSICAL_SHADOW_FILL_SUNLIT_EDGE,
+        0,
+        1,
+    );
+    return fill * t * t * (3 - 2 * t);
+}
 
 function moonLatLonPoint(radius, latitudeDeg, longitudeDeg) {
     const lat = THREE.MathUtils.degToRad(latitudeDeg);
@@ -461,6 +479,8 @@ function applyMoonPipelineStagesToMaterial(material, renderSettings, pipelineSta
     material.userData.moonShadowCrushBlend = pipeline.shadowCrush ? 1.0 : 0.0;
     material.userData.moonGeometricMask = pipeline.geometricMask ? 1.0 : 0.0;
     material.userData.moonPhysicalModelBlend = pipeline.physicalModel ? 1.0 : 0.0;
+    material.userData.moonPhysicalShadowFill = pipeline.physicalShadowFill
+        * normalizedSettings.physicalShadowFillScale;
     material.userData.moonPhysicalExposure = pipeline.physicalExposure;
     material.userData.moonPhysicalToneGamma = pipeline.physicalToneGamma;
     material.shadowSide = pipeline.physicalModel ? THREE.FrontSide : null;
@@ -534,6 +554,9 @@ function applyMoonPhotometricShader(material) {
     if (!Number.isFinite(material.userData.moonPhysicalModelBlend)) {
         material.userData.moonPhysicalModelBlend = 0.0;
     }
+    if (!Number.isFinite(material.userData.moonPhysicalShadowFill)) {
+        material.userData.moonPhysicalShadowFill = 0.0;
+    }
     if (!Number.isFinite(material.userData.moonPhysicalExposure)) {
         material.userData.moonPhysicalExposure = 0.60;
     }
@@ -574,6 +597,7 @@ function applyMoonPhotometricShader(material) {
         shader.uniforms.uMoonShadowCrushBlend = { value: material.userData.moonShadowCrushBlend };
         shader.uniforms.uMoonGeometricMask = { value: material.userData.moonGeometricMask };
         shader.uniforms.uMoonPhysicalModelBlend = { value: material.userData.moonPhysicalModelBlend };
+        shader.uniforms.uMoonPhysicalShadowFill = { value: material.userData.moonPhysicalShadowFill };
         shader.uniforms.uMoonPhysicalExposure = { value: material.userData.moonPhysicalExposure };
         shader.uniforms.uMoonPhysicalToneGamma = { value: material.userData.moonPhysicalToneGamma };
         material.userData.moonPhotometricShader = shader;
@@ -632,6 +656,7 @@ uniform float uMoonEarthshineBlend;
 uniform float uMoonShadowCrushBlend;
 uniform float uMoonGeometricMask;
 uniform float uMoonPhysicalModelBlend;
+uniform float uMoonPhysicalShadowFill;
 uniform float uMoonPhysicalExposure;
 uniform float uMoonPhysicalToneGamma;
 varying vec3 vMoonGeometricNormalView;
@@ -1042,6 +1067,15 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // dark side isn't entirely black on crescent phases.
     outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone * clamp( uMoonEarthshineBlend, 0.0, 1.0 );
     if ( moonPhysicalModelActive ) {
+        float moonPhysicalSunlitSurface = smoothstep(
+            0.0,
+            ${PHYSICAL_SHADOW_FILL_SUNLIT_EDGE.toFixed(2)},
+            moonSmoothRawNdotLForVis
+        );
+        vec3 moonPhysicalShadowFloor = vec3(
+            clamp( uMoonPhysicalShadowFill, 0.0, ${PHYSICAL_SHADOW_FILL_MAX.toFixed(2)} ) * moonPhysicalSunlitSurface
+        );
+        outgoingLight = max( outgoingLight, moonPhysicalShadowFloor );
         vec3 moonPhysicalExposedRadiance = max(
             outgoingLight * max( 0.0, uMoonPhysicalExposure ),
             vec3( 0.0 )
@@ -1151,6 +1185,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         const shadowCrushBlend = Number(material.userData.moonShadowCrushBlend);
         const geometricMask = Number(material.userData.moonGeometricMask);
         const physicalModelBlend = Number(material.userData.moonPhysicalModelBlend);
+        const physicalShadowFill = Number(material.userData.moonPhysicalShadowFill);
         const physicalExposure = Number(material.userData.moonPhysicalExposure);
         const physicalToneGamma = Number(material.userData.moonPhysicalToneGamma);
         for (const shader of shaders) {
@@ -1232,6 +1267,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             }
             if (Number.isFinite(physicalModelBlend) && shader.uniforms.uMoonPhysicalModelBlend) {
                 shader.uniforms.uMoonPhysicalModelBlend.value = physicalModelBlend;
+            }
+            if (Number.isFinite(physicalShadowFill) && shader.uniforms.uMoonPhysicalShadowFill) {
+                shader.uniforms.uMoonPhysicalShadowFill.value = physicalShadowFill;
             }
             if (Number.isFinite(physicalExposure) && shader.uniforms.uMoonPhysicalExposure) {
                 shader.uniforms.uMoonPhysicalExposure.value = physicalExposure;

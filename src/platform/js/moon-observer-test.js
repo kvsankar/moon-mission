@@ -154,7 +154,9 @@ function syncControls() {
         setPressed(document.getElementById(`observer-tier-${tier}`), state.profile === profile);
     }
     document.querySelectorAll("[data-physical-control]").forEach((input) => {
-        input.disabled = state.lightingModel !== "physical-dem";
+        input.disabled = state.lightingModel !== "physical-dem" || (
+            input.dataset.physicalControl === "physicalShadowFill" && state.profile !== "quality"
+        );
     });
 }
 
@@ -174,10 +176,11 @@ function createPhysicalControls() {
         input.dataset.physicalControl = control.key;
         input.setAttribute("aria-label", control.label);
         const output = document.createElement("output");
-        output.textContent = Number(state[control.key]).toFixed(2);
+        const displayDigits = Number(control.step) < 0.01 ? 3 : 2;
+        output.textContent = Number(state[control.key]).toFixed(displayDigits);
         input.addEventListener("input", () => {
             state[control.key] = Number(input.value);
-            output.textContent = state[control.key].toFixed(2);
+            output.textContent = state[control.key].toFixed(displayDigits);
             applyPipeline();
         });
         label.append(caption, input, output);

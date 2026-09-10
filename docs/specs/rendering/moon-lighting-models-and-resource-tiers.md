@@ -8,7 +8,7 @@ Provide a user-selectable Moon renderer that separates lighting behavior from re
 
 - Renderer: `Current` or `Physical DEM`.
 - Resource tier: `Low`, `Medium`, or `High`.
-- Physical tuning: BRDF blend, normal scale, relief scale, DEM-shadow strength, exposure, and lunar tone response.
+- Physical tuning: BRDF blend, normal scale, relief scale, DEM-shadow strength, sunlit-side shadow fill, exposure, and lunar tone response.
 - Selecting `Current` disables the Physical controls without discarding their saved values.
 - Selecting `Physical DEM` disables the Current preset/stage controls without discarding their saved values.
 - Model, tier, and tuning choices persist locally and apply to every view of the shared Moon.
@@ -55,6 +55,7 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 - Physical must evaluate the lunar-Lambert reflectance directly as `(1-L)*mu0 + 2*L*mu0/(mu0+mu)`; Current retains its established bounded photometric response.
 - Detailed Physical must decode the NASA uint DEM in half-meter units relative to the 1737.4 km reference sphere, derive normals using spherical surface metrics, and combine displaced light-space depth with a unit-aware, curvature-correct horizon ray instead of the legacy UV blocker-threshold march.
 - Detailed Physical may apply a profile-owned normal-strength compensation for finite DEM sampling, independently of the physical displacement and horizon height scale.
+- Shadow Fill is a High-only presentation control. It is zero at and behind the smooth geometric terminator, is applied after earthshine restoration but before Physical exposure and tone response, and must not create a shader-program variant when adjusted.
 - Confirm the geometric mask against finite-distance projected illumination.
 - Compare Current and Physical DEM at `art002e009277`, `art002e009281`, `art002e010208`, and the Earthset sequence `art002e009288`/`art002e009289`.
 - At Earthset, evaluate visible crater detail inside the lit-side terminator band, not only whole-disc luminance.
