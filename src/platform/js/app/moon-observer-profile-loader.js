@@ -14,20 +14,39 @@ export function createMoonObserverProfileLoader({
     disposeResources = disposeMoonProfileTextures,
 }) {
     let latestRequestId = 0;
+    let activeController = null;
 
     async function load(profile) {
         const requestId = ++latestRequestId;
-        const resources = await loadResources(profile);
-        if (requestId !== latestRequestId) {
-            disposeResources(resources);
-            return false;
+        activeController?.abort?.();
+        const controller = typeof AbortController === "function"
+            ? new AbortController()
+            : null;
+        activeController = controller;
+        let applied = false;
+        try {
+            let resources;
+            try {
+                resources = await loadResources(profile, { signal: controller?.signal || null });
+            } catch (error) {
+                if (requestId !== latestRequestId || error?.name === "AbortError") return false;
+                throw error;
+            }
+            if (requestId !== latestRequestId) {
+                disposeResources(resources);
+                return false;
+            }
+            await applyResources({
+                profile,
+                resources,
+                isCurrent: () => requestId === latestRequestId,
+            });
+            applied = true;
+            return true;
+        } finally {
+            if (!applied) controller?.abort?.();
+            if (activeController === controller) activeController = null;
         }
-        await applyResources({
-            profile,
-            resources,
-            isCurrent: () => requestId === latestRequestId,
-        });
-        return true;
     }
 
     return { load };

@@ -128,6 +128,34 @@ describe("texture-loader", () => {
         }
     });
 
+    it("cancels ordinary browser image requests when a profile load is superseded", async () => {
+        const images = [];
+        class FakeImage {
+            constructor() {
+                this.src = "";
+                images.push(this);
+            }
+        }
+        vi.stubGlobal("Image", FakeImage);
+
+        try {
+            const controller = new AbortController();
+            const loadPromise = loadMoonRenderProfileTextures({
+                THREE: createFakeThree([]),
+                moonRenderProfile: "fast",
+                globalObject: {},
+                signal: controller.signal,
+            });
+            controller.abort();
+
+            await expect(loadPromise).rejects.toMatchObject({ name: "AbortError" });
+            expect(images).toHaveLength(2);
+            expect(images.every((image) => image.src === "")).toBe(true);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
     it("forwards Moon DEM worker failures and terminates the worker", async () => {
         const workers = [];
         class FakeWorker {

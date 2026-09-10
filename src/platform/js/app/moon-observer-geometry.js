@@ -185,3 +185,47 @@ export function resolveMoonObserverGeometry({
         }),
     };
 }
+
+export function resolveMoonSpacecraftObserverGeometry({
+    date,
+    spacecraftPositionKm,
+    sunPositionKm,
+    earthPositionKm = null,
+} = {}) {
+    const resolvedDate = date instanceof Date ? date : new Date(date);
+    if (!Number.isFinite(resolvedDate.getTime())) {
+        throw new Error("A valid UTC spacecraft observation time is required.");
+    }
+    const observerDirection = normalizeVector(spacecraftPositionKm);
+    const sunDirection = normalizeVector(sunPositionKm);
+    const earthDirection = earthPositionKm ? normalizeVector(earthPositionKm) : observerDirection;
+    const screenUp = normalizeVector(
+        projectOntoViewPlane({ x: 0, y: 0, z: 1 }, observerDirection),
+        { x: 0, y: 0, z: 1 },
+    );
+    const observerDistanceKm = vectorLength(spacecraftPositionKm);
+    const observerSunDot = Math.max(-1, Math.min(1, dotVectors(observerDirection, sunDirection)));
+    const phaseAngleDegrees = Math.acos(observerSunDot) * 180 / Math.PI;
+    return {
+        date: resolvedDate,
+        observerMode: "artemis2",
+        observerDirection,
+        observerPositionKm: { ...spacecraftPositionKm },
+        sunDirection,
+        earthDirection,
+        screenUp,
+        observerDistanceKm,
+        phaseAngleDegrees,
+        illuminatedFraction: (1 + observerSunDot) / 2,
+        angularDiameterDegrees: 2 * Math.asin(
+            Math.min(1, MOON_RADIUS_KM / observerDistanceKm),
+        ) * 180 / Math.PI,
+        altitudeDegrees: null,
+        azimuthDegrees: null,
+        brightLimbAngleDegrees: resolveBrightLimbAngleDegrees({
+            observerDirection,
+            sunDirection,
+            screenUp,
+        }),
+    };
+}

@@ -45,11 +45,6 @@ const DEFAULT_PROGRESSIVE_SCENE_TEXTURE_GROUPS = Object.freeze([
 ]);
 const inFlightMoonDemDecodes = new Map();
 
-function loadTexture(loader, fileName) {
-    const textureUrl = resolveRuntimeAssetUrl(fileName);
-    return loadTextureUrl(loader, textureUrl);
-}
-
 function loadTextureUrl(loader, textureUrl) {
     return new Promise((resolve, reject) => {
         loader.load(
@@ -58,6 +53,56 @@ function loadTextureUrl(loader, textureUrl) {
             undefined,
             (error) => reject(error),
         );
+    });
+}
+
+function loadTextureUrlWithSignal(THREE, loader, textureUrl, signal = null) {
+    if (!signal || typeof globalThis.Image !== "function") {
+        return loadTextureUrl(loader, textureUrl).then((texture) => {
+            if (signal?.aborted) {
+                texture?.dispose?.();
+                throw createAbortError();
+            }
+            return texture;
+        });
+    }
+    return new Promise((resolve, reject) => {
+        const image = new globalThis.Image();
+        let settled = false;
+        const cleanup = () => {
+            signal.removeEventListener?.("abort", onAbort);
+            image.onload = null;
+            image.onerror = null;
+        };
+        const rejectOnce = (error) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        };
+        const onAbort = () => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            image.src = "";
+            reject(createAbortError());
+        };
+        if (signal.aborted) {
+            onAbort();
+            return;
+        }
+        signal.addEventListener?.("abort", onAbort, { once: true });
+        image.crossOrigin = "anonymous";
+        image.onload = () => {
+            if (settled) return;
+            settled = true;
+            const texture = new THREE.Texture(image);
+            texture.needsUpdate = true;
+            cleanup();
+            resolve(texture);
+        };
+        image.onerror = () => rejectOnce(new Error(`Unable to load texture ${textureUrl}.`));
+        image.src = textureUrl;
     });
 }
 
@@ -413,10 +458,16 @@ function normalizeTextureFileName(fileName) {
     return String(fileName || "").trim();
 }
 
-async function loadTextureWithFallback(loader, primaryFileName, fallbackFileName, { logLabel = "" } = {}) {
+async function loadTextureWithFallback(loader, primaryFileName, fallbackFileName, {
+    logLabel = "",
+    THREE = null,
+    signal = null,
+} = {}) {
     try {
-        return await loadTexture(loader, primaryFileName);
+        const textureUrl = resolveRuntimeAssetUrl(primaryFileName);
+        return await loadTextureUrlWithSignal(THREE, loader, textureUrl, signal);
     } catch (primaryError) {
+        if (primaryError?.name === "AbortError") throw primaryError;
         if (!fallbackFileName || fallbackFileName === primaryFileName) {
             throw primaryError;
         }
@@ -425,7 +476,8 @@ async function loadTextureWithFallback(loader, primaryFileName, fallbackFileName
             `Moon asset load failed for ${logLabel || primaryFileName}; falling back to fast profile asset.`,
             primaryError,
         );
-        return loadTexture(loader, fallbackFileName);
+        const fallbackUrl = resolveRuntimeAssetUrl(fallbackFileName);
+        return loadTextureUrlWithSignal(THREE, loader, fallbackUrl, signal);
     }
 }
 
@@ -498,11 +550,16 @@ async function loadSceneTextureEntry(loader, key, fileName, moonAssets, THREE, s
                 loader,
                 fileName,
                 moonAssets.fallback[key],
-                { logLabel: `${moonAssets.profile}.${key}` },
+                {
+                    logLabel: `${moonAssets.profile}.${key}`,
+                    THREE,
+                    signal,
+                },
             );
         }
     } else {
-        texture = await loadTexture(loader, fileName);
+        const textureUrl = resolveRuntimeAssetUrl(fileName);
+        texture = await loadTextureUrlWithSignal(THREE, loader, textureUrl, signal);
     }
     if (signal?.aborted) {
         texture?.dispose?.();

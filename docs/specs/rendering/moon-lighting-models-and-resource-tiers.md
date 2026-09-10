@@ -48,7 +48,11 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 
 ## Validation
 
-- Use `moon-observer-test.html` for renderer validation. It must render only the Moon and accept a UTC timestamp, geocentric or topocentric observer, camera roll, lighting model, and resource tier without loading mission or orbit state.
+- Use `moon-observer-test.html` for renderer validation. It must render only the Moon and accept a UTC timestamp, geocentric, topocentric, or fixture-backed Artemis II spacecraft observer, camera roll, lighting model, and resource tier without loading the mission application.
+- Artemis II validation references must come from the local media manifest and lunar Chebyshev ephemeris, display source time/place/camera metadata, seed camera FOV and registered surface targeting, and support split, overlay, and render-only comparison through shareable URL state.
+- `art002e009289` must resolve to `2026-04-06T22:41:58Z`, an Orion-Moon distance within 1 km of 8382.2 km, a 220 mm-derived vertical FOV near 6.2 degrees, roll `+90` degrees, and the registered surface target `15.0742 N, 125.516 W`.
+- Overlay must use coincident 3:2 reference/render frames and adjustable reference opacity. References without calibrated pointing must be labeled unregistered and limited to split or render-only comparison.
+- Artemis fixture loading must not delay geocentric or site rendering. Superseded resource-tier requests must be aborted and must not replace current status or textures.
 - Keep an offline geometry regression against NASA Dial-A-Moon at `2026-04-06T22:00:00Z`, and compare full-disc appearance at that gibbous phase plus the `2026-04-10T05:00:00Z` and `2026-04-24T03:00:00Z` quarter phases.
 - Calibrate the default Physical display response against the Artemis II Earthset crew sequence without encoding a specific camera exposure into the geometry or DEM lighting stages; Frame & Shoot exposure compensation remains the per-shot control.
 - Preserve crater-shadow separation near the terminator by calibrating local DEM-normal gain and cast-shadow strength separately from exposure; cast-shadow sensitivity must fall away rapidly outside the low-Sun band.

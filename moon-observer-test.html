@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
     <title>Moon Observer Test</title>
     <link rel="stylesheet" href="src/platform/css/moon-observer-test.css">
 </head>
@@ -19,13 +20,21 @@
         <aside class="observer-controls" aria-label="Moon observation controls">
             <section class="observer-section">
                 <h2>Observation</h2>
+                <label class="observer-field observer-field--stacked">
+                    <span>Artemis Reference</span>
+                    <select id="observer-reference">
+                        <option value="">None</option>
+                    </select>
+                </label>
+                <div id="observer-reference-meta" class="observer-reference-meta" hidden></div>
                 <label class="observer-field">
                     <span>UTC Time</span>
                     <input id="observer-time" type="datetime-local" step="1">
                 </label>
-                <div class="observer-segmented" role="group" aria-label="Observer location mode">
+                <div class="observer-segmented observer-segmented--three" role="group" aria-label="Observer location mode">
                     <button id="observer-mode-geocenter" type="button" aria-pressed="true">Geocenter</button>
                     <button id="observer-mode-site" type="button" aria-pressed="false">Site</button>
+                    <button id="observer-mode-artemis2" type="button" aria-pressed="false">Artemis II</button>
                 </div>
                 <fieldset id="observer-site-fields" class="observer-site-fields" disabled>
                     <label class="observer-field">
@@ -58,6 +67,11 @@
 
             <section class="observer-section">
                 <h2>View</h2>
+                <div class="observer-segmented observer-segmented--three" role="group" aria-label="Reference comparison mode">
+                    <button id="observer-compare-split" type="button" aria-pressed="true">Split</button>
+                    <button id="observer-compare-overlay" type="button" aria-pressed="false">Overlay</button>
+                    <button id="observer-compare-render" type="button" aria-pressed="false">Render</button>
+                </div>
                 <label class="observer-range">
                     <span>Roll</span>
                     <input id="observer-roll" type="range" min="-180" max="180" step="1">
@@ -68,6 +82,30 @@
                     <input id="observer-disk-size" type="range" min="45" max="94" step="1">
                     <output id="observer-disk-size-value">82%</output>
                 </label>
+                <label class="observer-range">
+                    <span>Camera FOV</span>
+                    <input id="observer-camera-fov" type="range" min="1" max="70" step="0.1">
+                    <output id="observer-camera-fov-value">6.2 deg</output>
+                </label>
+                <div class="observer-segmented" role="group" aria-label="Camera target mode">
+                    <button id="observer-target-center" type="button" aria-pressed="true">Moon Center</button>
+                    <button id="observer-target-surface" type="button" aria-pressed="false">Surface</button>
+                </div>
+                <fieldset id="observer-target-fields" class="observer-site-fields" disabled>
+                    <label class="observer-field">
+                        <span>Target Lat</span>
+                        <input id="observer-target-latitude" type="number" min="-90" max="90" step="0.01">
+                    </label>
+                    <label class="observer-field">
+                        <span>Target Lon</span>
+                        <input id="observer-target-longitude" type="number" min="-180" max="180" step="0.01">
+                    </label>
+                </fieldset>
+                <label class="observer-range">
+                    <span>Reference</span>
+                    <input id="observer-reference-opacity" type="range" min="0" max="1" step="0.05">
+                    <output id="observer-reference-opacity-value">50%</output>
+                </label>
             </section>
 
             <section class="observer-section">
@@ -76,8 +114,17 @@
             </section>
         </aside>
 
-        <section class="observer-stage" aria-label="Rendered Moon">
-            <canvas id="observer-canvas"></canvas>
+        <section class="observer-stage" aria-label="Moon reference comparison">
+            <div id="observer-visuals" class="observer-visuals" data-mode="split" data-has-reference="false">
+                <figure id="observer-reference-frame" class="observer-frame observer-frame--reference" hidden>
+                    <figcaption id="observer-reference-caption">NASA reference</figcaption>
+                    <img id="observer-reference-image" alt="Selected Artemis II Moon reference">
+                </figure>
+                <figure class="observer-frame observer-frame--render">
+                    <figcaption>Physical render</figcaption>
+                    <canvas id="observer-canvas"></canvas>
+                </figure>
+            </div>
             <div id="observer-status" class="observer-status" role="status">Loading Moon assets</div>
             <dl class="observer-readout">
                 <div><dt>Illuminated</dt><dd id="observer-illuminated">-</dd></div>
