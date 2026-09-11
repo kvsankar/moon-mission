@@ -90,7 +90,7 @@ describe("Moon observer Artemis II comparison", () => {
             { waitUntil: "domcontentloaded" },
         );
         await page.waitForFunction(() => (
-            document.querySelectorAll("#observer-reference option").length === 6 &&
+            document.querySelectorAll("#observer-reference option").length === 9 &&
             document.getElementById("observer-reference-image")?.naturalWidth === 1600 &&
             document.getElementById("observer-resources")?.textContent?.includes("uint16")
         ), null, { timeout: 180000 });
@@ -163,6 +163,64 @@ describe("Moon observer Artemis II comparison", () => {
         await page.close();
     }, 210000);
 
+    it("navigates the curated terminator carousel with original images", async () => {
+        const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+        await page.goto(
+            `${BASE_URL}/moon-observer-test.html?observer=artemis2&reference=art002e009289&tier=low&compare=split`,
+            { waitUntil: "domcontentloaded" },
+        );
+        await page.waitForFunction(() => (
+            document.querySelectorAll("#observer-reference-track [data-reference-id]").length === 8
+            && document.getElementById("observer-reference-image")?.naturalWidth > 0
+            && document.getElementById("observer-resources")?.textContent?.includes("128x64")
+        ));
+
+        expect(await page.locator("#observer-reference-counter").textContent()).toBe("8 / 8");
+        const selectedThumbnail = page.locator('#observer-reference-track [data-reference-id="art002e009289"]');
+        expect(await selectedThumbnail.getAttribute("aria-selected"))
+            .toBe("true");
+        expect(await selectedThumbnail.getAttribute("aria-label"))
+            .toContain("art002e009289: A Setting Earth. 2026-04-06 18:41:58 -04:00. Registered camera.");
+        const trackBox = await page.locator("#observer-reference-track").boundingBox();
+        const selectedBox = await selectedThumbnail.boundingBox();
+        expect(selectedBox.x).toBeGreaterThanOrEqual(trackBox.x);
+        expect(selectedBox.x + selectedBox.width).toBeLessThanOrEqual(trackBox.x + trackBox.width + 1);
+        expect(await page.locator('#observer-reference-track [data-reference-id="art002e009289"] img').getAttribute("src"))
+            .toContain("assets/artemis2/media/thumbnails/images/55193178333_e4a5a133ed_o-1.webp");
+        expect(await page.locator("#observer-reference-image").getAttribute("src"))
+            .toContain("/web/55193178333_e4a5a133ed_o%20(1).jpg");
+
+        await page.locator("#observer-reference-previous").click();
+        await page.waitForFunction(() => (
+            document.getElementById("observer-reference")?.value === "art002e009287"
+            && document.getElementById("observer-reference-image")?.currentSrc?.includes("55192132107")
+        ));
+        expect(await page.locator("#observer-reference-counter").textContent()).toBe("7 / 8");
+        expect(await page.locator("#observer-time").inputValue()).toBe("2026-04-06T22:41:22");
+
+        await page.locator('[data-reference-id="art002e009281"]').click();
+        await page.waitForFunction(() => (
+            document.getElementById("observer-reference-image")?.currentSrc?.includes("55193137293")
+        ));
+        expect(await page.locator("#observer-time").inputValue()).toBe("2026-04-06T21:46:35");
+        expect(await page.locator("#observer-reference-counter").textContent()).toBe("5 / 8");
+        expect(await page.locator("#observer-compare-overlay").isDisabled()).toBe(true);
+        expect(await page.locator("#observer-visuals").getAttribute("data-mode")).toBe("split");
+
+        const track = page.locator("#observer-reference-track");
+        await track.focus();
+        await track.press("Home");
+        expect(await track.getAttribute("aria-activedescendant"))
+            .toBe("observer-reference-option-art002e009277");
+        expect(await page.evaluate(() => document.activeElement?.id)).toBe("observer-reference-track");
+        await track.press("ArrowRight");
+        expect(await track.getAttribute("aria-activedescendant"))
+            .toBe("observer-reference-option-art002e009278");
+        expect(await page.locator("#observer-reference-counter").textContent()).toBe("2 / 8");
+        expect(await page.evaluate(() => document.activeElement?.id)).toBe("observer-reference-track");
+        await page.close();
+    }, 60000);
+
     it("normalizes a non-spacecraft Overlay URL back to Split", async () => {
         const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
         await page.goto(
@@ -170,7 +228,7 @@ describe("Moon observer Artemis II comparison", () => {
             { waitUntil: "domcontentloaded" },
         );
         await page.waitForFunction(() => (
-            document.querySelectorAll("#observer-reference option").length === 6
+            document.querySelectorAll("#observer-reference option").length === 9
             && document.getElementById("observer-resources")?.textContent?.includes("128x64")
         ));
         expect(await page.locator("#observer-mode-geocenter").getAttribute("aria-pressed")).toBe("true");

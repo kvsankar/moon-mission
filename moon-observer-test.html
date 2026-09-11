@@ -27,6 +27,14 @@
                     </select>
                 </label>
                 <div id="observer-reference-meta" class="observer-reference-meta" hidden></div>
+                <div id="observer-reference-carousel" class="observer-reference-carousel" aria-label="Artemis II terminator photographs" hidden>
+                    <div class="observer-reference-carousel__controls">
+                        <button id="observer-reference-previous" class="observer-reference-carousel__nav" type="button" aria-label="Previous Artemis photograph" title="Previous photograph">&#8592;</button>
+                        <span id="observer-reference-counter" aria-live="polite">0 / 0</span>
+                        <button id="observer-reference-next" class="observer-reference-carousel__nav" type="button" aria-label="Next Artemis photograph" title="Next photograph">&#8594;</button>
+                    </div>
+                    <div id="observer-reference-track" class="observer-reference-carousel__track" role="listbox" aria-label="Terminator photograph thumbnails" aria-orientation="horizontal" tabindex="0"></div>
+                </div>
                 <label class="observer-field">
                     <span>UTC Time</span>
                     <input id="observer-time" type="datetime-local" step="1">

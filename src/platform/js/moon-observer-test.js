@@ -253,6 +253,81 @@ function populateReferenceSelect() {
     select.value = state.referenceId;
 }
 
+function syncReferenceCarousel({ scroll = false } = {}) {
+    const root = document.getElementById("observer-reference-carousel");
+    const track = document.getElementById("observer-reference-track");
+    const counter = document.getElementById("observer-reference-counter");
+    const activeIndex = activeReference
+        ? artemisReferences.findIndex((reference) => reference.id === activeReference.id)
+        : -1;
+    root.hidden = artemisReferences.length === 0;
+    counter.textContent = activeIndex >= 0
+        ? `${activeIndex + 1} / ${artemisReferences.length}`
+        : `0 / ${artemisReferences.length}`;
+    document.getElementById("observer-reference-previous").disabled = artemisReferences.length < 2;
+    document.getElementById("observer-reference-next").disabled = artemisReferences.length < 2;
+    let activeButton = null;
+    track.querySelectorAll("[data-reference-id]").forEach((button) => {
+        const selected = button.dataset.referenceId === activeReference?.id;
+        button.setAttribute("aria-selected", selected ? "true" : "false");
+        button.tabIndex = -1;
+        if (selected) activeButton = button;
+    });
+    if (activeButton) {
+        track.setAttribute("aria-activedescendant", activeButton.id);
+    } else {
+        track.removeAttribute("aria-activedescendant");
+    }
+    if (scroll && activeButton) {
+        activeButton.scrollIntoView?.({ block: "nearest", inline: "center" });
+    }
+}
+
+function populateReferenceCarousel() {
+    const track = document.getElementById("observer-reference-track");
+    track.replaceChildren();
+    for (const reference of artemisReferences) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "observer-reference-thumbnail";
+        button.dataset.referenceId = reference.id;
+        button.id = `observer-reference-option-${reference.id}`;
+        button.setAttribute("role", "option");
+        button.setAttribute("aria-selected", "false");
+        button.setAttribute(
+            "aria-label",
+            `${reference.id}: ${reference.title}. ${reference.localTime} ${reference.timezoneOffset}. ${
+                reference.registrationStatus === "registered" ? "Registered camera" : "Unregistered camera"
+            }.`,
+        );
+        button.title = `${reference.title} · ${reference.localTime}`;
+        const thumbnail = document.createElement("img");
+        thumbnail.src = reference.thumbnailUrl;
+        thumbnail.alt = "";
+        thumbnail.loading = "lazy";
+        const label = document.createElement("span");
+        label.textContent = reference.id.replace("art002e", "");
+        button.append(thumbnail, label);
+        button.addEventListener("click", () => {
+            activateArtemisReference(reference);
+            track.focus({ preventScroll: true });
+        });
+        track.append(button);
+    }
+    syncReferenceCarousel();
+}
+
+function moveReferenceCarousel(delta) {
+    if (artemisReferences.length === 0) return;
+    const activeIndex = activeReference
+        ? artemisReferences.findIndex((reference) => reference.id === activeReference.id)
+        : -1;
+    const nextIndex = activeIndex < 0
+        ? 0
+        : (activeIndex + delta + artemisReferences.length) % artemisReferences.length;
+    activateArtemisReference(artemisReferences[nextIndex]);
+}
+
 function activateArtemisReference(reference, { applyRegistration = true } = {}) {
     if (!reference) return;
     activeReference = reference;
@@ -267,6 +342,7 @@ function activateArtemisReference(reference, { applyRegistration = true } = {}) 
     }
     updateReferenceDisplay();
     updateObservation();
+    syncReferenceCarousel({ scroll: true });
 }
 
 function syncControls() {
@@ -296,6 +372,7 @@ function syncControls() {
         || activeReference.registrationStatus !== "registered"
         || state.observerMode !== "artemis2";
     document.getElementById("observer-reference").value = state.referenceId;
+    syncReferenceCarousel();
     setPressed(document.getElementById("observer-mode-geocenter"), state.observerMode === "geocenter");
     setPressed(document.getElementById("observer-mode-site"), state.observerMode === "site");
     setPressed(document.getElementById("observer-mode-artemis2"), state.observerMode === "artemis2");
@@ -584,6 +661,27 @@ async function loadProfile(profile) {
 }
 
 function bindControls() {
+    document.getElementById("observer-reference-previous").addEventListener("click", () => {
+        moveReferenceCarousel(-1);
+    });
+    document.getElementById("observer-reference-next").addEventListener("click", () => {
+        moveReferenceCarousel(1);
+    });
+    document.getElementById("observer-reference-track").addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            moveReferenceCarousel(-1);
+        } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            moveReferenceCarousel(1);
+        } else if (event.key === "Home" && artemisReferences.length > 0) {
+            event.preventDefault();
+            activateArtemisReference(artemisReferences[0]);
+        } else if (event.key === "End" && artemisReferences.length > 0) {
+            event.preventDefault();
+            activateArtemisReference(artemisReferences[artemisReferences.length - 1]);
+        }
+    });
     document.getElementById("observer-reference").addEventListener("change", (event) => {
         const reference = findArtemisReference(event.target.value);
         if (reference) {
@@ -724,6 +822,7 @@ async function initialize() {
     try {
         artemisReferences = await loadArtemis2MoonReferencePresets();
         populateReferenceSelect();
+        populateReferenceCarousel();
         const requestedReference = findArtemisReference(state.referenceId);
         if (requestedReference) {
             activeReference = requestedReference;
@@ -754,6 +853,7 @@ async function initialize() {
                 Object.assign(state, mergeArtemisReferenceRegistration(defaultReference, state));
             }
         }
+        syncReferenceCarousel({ scroll: true });
     } catch (error) {
         console.error(error);
         fixtureLoadError = "Unable to load Artemis II references.";

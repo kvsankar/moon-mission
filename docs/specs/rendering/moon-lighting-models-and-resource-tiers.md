@@ -50,6 +50,8 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 
 - Use `moon-observer-test.html` for renderer validation. It must render only the Moon and accept a UTC timestamp, geocentric, topocentric, or fixture-backed Artemis II spacecraft observer, camera roll, lighting model, and resource tier without loading the mission application.
 - Artemis II validation references must come from the local media manifest and lunar Chebyshev ephemeris, display source time/place/camera metadata, seed camera FOV and registered surface targeting, and support split, overlay, and render-only comparison through shareable URL state.
+- The harness must expose a thumbnail carousel of the curated terminator originals `art002e009277`, `art002e009278`, `art002e009279`, `art002e010208`, `art002e009281`, `art002e009283`, `art002e009287`, and `art002e009289`, in mission-time order. Carousel thumbnails use the staged local thumbnail convention; the comparison pane uses each original `mediaBase/web` image.
+- Previous/next, keyboard, dropdown, and thumbnail selection must stay synchronized. Selecting a photograph switches the harness to that image's timestamp and Orion ephemeris; unregistered camera views remain Split-only.
 - `art002e009289` must resolve to `2026-04-06T22:41:58Z`, an Orion-Moon distance within 1 km of 8382.2 km, a registered source vertical FOV of `6.146` degrees, roll `+91.14` degrees, and the registered surface target `17.3461 N, 125.3453 W`. These camera values are calibrated from the 220 mm metadata against the reference crater field.
 - Its default comparison FOV is `8` degrees so the render includes additional dark-side context. The reference image must be inset by the corresponding tangent-space angular scale, preserving registration within the source-image footprint.
 - Overlay must use coincident 3:2 reference/render frames and adjustable reference opacity. References without calibrated pointing must be labeled unregistered and limited to split or render-only comparison.
@@ -66,7 +68,7 @@ Low must not request the DEM, bind the neutral placeholder as displacement, or s
 - Detailed Physical may selectively amplify coherent DEM slopes above the profile threshold to compensate for crater-wall smoothing at finite DEM resolution. Gentle terrain below the threshold must remain unchanged; Low and Medium profiles keep this compensation disabled.
 - The Artemis-calibrated defaults are Physical exposure `0.40`, shadow-weighted tone gamma `1.06`, and, for the High profile only, normal-resolution compensation `2.08` plus selective slope boost `1.5` over raw slope magnitudes `0.16` to `0.34`.
 - Confirm the geometric mask against finite-distance projected illumination.
-- Compare Current and Physical DEM at `art002e009277`, `art002e009281`, `art002e010208`, and the Earthset sequence `art002e009288`/`art002e009289`.
+- Compare Current and Physical DEM across the curated carousel, with registered pixel-level acceptance at `art002e009289` and qualitative terminator review for the unregistered originals.
 - At Earthset, evaluate visible crater detail inside the lit-side terminator band, not only whole-disc luminance.
 - Capture Low, Medium, and High runtime metadata: downloaded assets, texture dimensions, geometry vertices, normal-map dimensions, and representative memory measurements.
 - Require unit tests, production build, visual screenshots, and independent review before merge.

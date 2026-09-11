@@ -1,12 +1,16 @@
 import { TIME_CONSTANTS } from "../core/constants.js";
 import { getPositionFromChebyshev } from "../core/domain/ephemeris-core.js";
+import { buildMediaThumbnailKey } from "../core/domain/media-manifest.js";
 
 export const ARTEMIS2_MOON_REFERENCE_IDS = Object.freeze([
     "art002e009277",
+    "art002e009278",
     "art002e009279",
-    "art002e009289",
-    "art002e009582",
     "art002e010208",
+    "art002e009281",
+    "art002e009283",
+    "art002e009287",
+    "art002e009289",
 ]);
 
 const REFERENCE_REGISTRATION = Object.freeze({
@@ -74,6 +78,22 @@ function resolveReferenceAssetUrl(fileName, mediaBase) {
     return `${base}web/${encodeURIComponent(String(fileName || ""))}`;
 }
 
+function resolveReferenceThumbnailUrl(fileName, thumbnails = null) {
+    const config = thumbnails && typeof thumbnails === "object" ? thumbnails : {};
+    const key = buildMediaThumbnailKey(fileName);
+    const pattern = String(config.imagePattern || "images/{key}.webp")
+        .replaceAll("{key}", key)
+        .replaceAll("{file}", key)
+        .replaceAll("{id}", key)
+        .replaceAll("{kind}", "image");
+    const basePath = String(config.basePath || "../media/thumbnails").replace(/\/?$/, "/");
+    const manifestUrl = new URL(
+        "assets/artemis2/data/media-manifest.json",
+        "https://moon-observer.invalid/",
+    );
+    return new URL(`${basePath}${pattern}`, manifestUrl).pathname.replace(/^\//, "");
+}
+
 function utcMillisecondsToJulianDateTdb(timeMs) {
     return (timeMs + TIME_CONSTANTS.TDB_OFFSET_MS) / MS_PER_DAY + JD_UNIX_EPOCH;
 }
@@ -123,6 +143,7 @@ export function createArtemis2MoonReferencePresets({ manifest, ephemeris }) {
             settings: String(photo.settings || ""),
             fileName: String(photo.file || ""),
             assetUrl: resolveReferenceAssetUrl(photo.file, manifest?.mediaBase),
+            thumbnailUrl: resolveReferenceThumbnailUrl(photo.file, manifest?.thumbnails),
             verticalFovDegrees: Number(registration.verticalFovDegrees)
                 || resolveReferenceVerticalFovDegrees(photo.settings),
             comparisonFovDegrees: Number(registration.comparisonFovDegrees)

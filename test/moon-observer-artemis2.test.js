@@ -23,7 +23,16 @@ describe("Artemis II Moon observer references", () => {
         const presets = createArtemis2MoonReferencePresets({ manifest, ephemeris });
         const earthset = presets.find((preset) => preset.id === "art002e009289");
 
-        expect(presets).toHaveLength(5);
+        expect(presets.map((preset) => preset.id)).toEqual([
+            "art002e009277",
+            "art002e009278",
+            "art002e009279",
+            "art002e010208",
+            "art002e009281",
+            "art002e009283",
+            "art002e009287",
+            "art002e009289",
+        ]);
         expect(earthset).toMatchObject({
             timeIso: "2026-04-06T22:41:58.000Z",
             location: "Orion Spacecraft",
@@ -34,6 +43,7 @@ describe("Artemis II Moon observer references", () => {
             verticalFovDegrees: 6.146,
             comparisonFovDegrees: 8,
             registrationStatus: "registered",
+            thumbnailUrl: "assets/artemis2/media/thumbnails/images/55193178333_e4a5a133ed_o-1.webp",
         });
         expect(Math.hypot(
             earthset.spacecraftPositionKm.x,
@@ -103,6 +113,7 @@ describe("Artemis II Moon observer references", () => {
             verticalFovDegrees: 6.146,
             comparisonFovDegrees: 8,
             assetUrl: "https://assets.example/artemis2/web/example%20image.jpg",
+            thumbnailUrl: "assets/artemis2/media/thumbnails/images/example-image.webp",
         });
     });
 
