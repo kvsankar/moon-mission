@@ -35,6 +35,12 @@ npm run dev
 
 Default local URL: `http://localhost:7274/`
 
+Unit tests that validate mission ephemeris require the external data repository
+to be staged. CI checks out `MISSION_DATA_REPO` at `MISSION_DATA_REF` (default:
+`kvsankar/moon-mission-data` at `main`) and runs the same
+`stage-ephemeris-data.py` step as the deployment workflow before testing. For a
+fresh local checkout, use the staging command in Section 3 before `npm run test:unit`.
+
 Useful pages:
 - `http://localhost:7274/index.html`
 - `http://localhost:7274/mission.html`

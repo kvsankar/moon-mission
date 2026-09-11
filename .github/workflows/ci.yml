@@ -13,6 +13,8 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
+  MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
 
 jobs:
   unit-tests:
@@ -22,6 +24,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Checkout mission data repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.MISSION_DATA_REPO }}
+          ref: ${{ env.MISSION_DATA_REF }}
+          path: mission-data
+
+      - name: Stage mission data for tests
+        run: |
+          python scripts/stage-ephemeris-data.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --target-root .
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
