@@ -12,9 +12,10 @@ export const ARTEMIS2_MOON_REFERENCE_IDS = Object.freeze([
 const REFERENCE_REGISTRATION = Object.freeze({
     art002e009289: Object.freeze({
         targetMode: "surface",
-        targetLatitude: 15.0742,
-        targetLongitude: -125.516,
-        rollDegrees: 90,
+        targetLatitude: 17.3461,
+        targetLongitude: -125.3453,
+        rollDegrees: 91.14,
+        verticalFovDegrees: 6.146,
     }),
 });
 
@@ -103,7 +104,8 @@ export function createArtemis2MoonReferencePresets({ manifest, ephemeris }) {
             settings: String(photo.settings || ""),
             fileName: String(photo.file || ""),
             assetUrl: resolveReferenceAssetUrl(photo.file, manifest?.mediaBase),
-            verticalFovDegrees: resolveReferenceVerticalFovDegrees(photo.settings),
+            verticalFovDegrees: Number(registration.verticalFovDegrees)
+                || resolveReferenceVerticalFovDegrees(photo.settings),
             targetMode: registration.targetMode || "center",
             targetLatitude: Number(registration.targetLatitude) || 0,
             targetLongitude: Number(registration.targetLongitude) || 0,

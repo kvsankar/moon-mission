@@ -1,8 +1,58 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { chromium } from "playwright";
+import { PNG } from "pngjs";
 
 const BASE_URL = process.env.VITE_TEST_BASE_URL || "http://127.0.0.1:7275";
 let browser;
+
+function luminance(data, index) {
+    return data[index] * 0.2126 + data[index + 1] * 0.7152 + data[index + 2] * 0.0722;
+}
+
+function compareRegisteredDarkRegion(referenceBuffer, renderBuffer) {
+    const reference = PNG.sync.read(referenceBuffer);
+    const render = PNG.sync.read(renderBuffer);
+    expect(render.width).toBe(reference.width);
+    expect(render.height).toBe(reference.height);
+    let pixels = 0;
+    let referenceTotal = 0;
+    let renderTotal = 0;
+    let referenceNearBlack = 0;
+    let renderNearBlack = 0;
+    let ohmPixels = 0;
+    let ohmReferenceNearBlack = 0;
+    let ohmRenderNearBlack = 0;
+    for (let y = Math.floor(reference.height * 0.38); y < reference.height; y += 1) {
+        for (let x = 0; x < reference.width; x += 1) {
+            const index = (y * reference.width + x) * 4;
+            const referenceValue = luminance(reference.data, index);
+            const renderValue = luminance(render.data, index);
+            if (referenceValue <= 2 || referenceValue >= 85) continue;
+            pixels += 1;
+            referenceTotal += referenceValue;
+            renderTotal += renderValue;
+            if (referenceValue < 16) referenceNearBlack += 1;
+            if (renderValue < 16) renderNearBlack += 1;
+            if (
+                x >= reference.width * 0.87
+                && y >= reference.height * 0.67
+                && y < reference.height * 0.89
+            ) {
+                ohmPixels += 1;
+                if (referenceValue < 16) ohmReferenceNearBlack += 1;
+                if (renderValue < 16) ohmRenderNearBlack += 1;
+            }
+        }
+    }
+    return {
+        pixels,
+        meanDelta: renderTotal / pixels - referenceTotal / pixels,
+        nearBlackDelta: renderNearBlack / pixels - referenceNearBlack / pixels,
+        ohmPixels,
+        ohmNearBlackDelta: ohmRenderNearBlack / ohmPixels
+            - ohmReferenceNearBlack / ohmPixels,
+    };
+}
 
 describe("Moon observer Artemis II comparison", () => {
     beforeAll(async () => {
@@ -31,11 +81,24 @@ describe("Moon observer Artemis II comparison", () => {
         ), null, { timeout: 180000 });
 
         expect(await page.locator("#observer-time").inputValue()).toBe("2026-04-06T22:41:58");
-        expect(await page.locator("#observer-camera-fov").inputValue()).toBe("6.2");
-        expect(await page.locator("#observer-roll").inputValue()).toBe("90");
-        expect(await page.locator("#observer-target-latitude").inputValue()).toBe("15.0742");
-        expect(await page.locator("#observer-target-longitude").inputValue()).toBe("-125.516");
+        expect(await page.locator("#observer-camera-fov").inputValue()).toBe("6.146");
+        expect(await page.locator("#observer-roll").inputValue()).toBe("91.14");
+        expect(await page.locator("#observer-target-latitude").inputValue()).toBe("17.3461");
+        expect(await page.locator("#observer-target-longitude").inputValue()).toBe("-125.3453");
         expect(await page.locator("#observer-distance").textContent()).toBe("8,382 km");
+        expect(await page.locator('[data-physical-control="physicalNormalScale"]').inputValue()).toBe("1");
+        expect(await page.locator('[data-physical-control="physicalExposure"]').inputValue()).toBe("0.4");
+        expect(await page.locator('[data-physical-control="physicalToneGamma"]').inputValue()).toBe("1.06");
+
+        const calibration = compareRegisteredDarkRegion(
+            await page.locator("#observer-reference-image").screenshot(),
+            await page.locator("#observer-canvas").screenshot(),
+        );
+        expect(calibration.pixels).toBeGreaterThan(30000);
+        expect(Math.abs(calibration.meanDelta)).toBeLessThan(5);
+        expect(Math.abs(calibration.nearBlackDelta)).toBeLessThan(0.025);
+        expect(calibration.ohmPixels).toBeGreaterThan(1000);
+        expect(Math.abs(calibration.ohmNearBlackDelta)).toBeLessThan(0.04);
 
         await page.locator("#observer-compare-overlay").click();
         const referenceBox = await page.locator("#observer-reference-frame").boundingBox();

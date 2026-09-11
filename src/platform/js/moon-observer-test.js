@@ -270,9 +270,9 @@ function syncControls() {
     document.getElementById("observer-target-latitude").value = String(state.targetLatitude);
     document.getElementById("observer-target-longitude").value = String(state.targetLongitude);
     document.getElementById("observer-reference-opacity").value = String(state.referenceOpacity);
-    document.getElementById("observer-roll-value").textContent = `${state.rollDegrees} deg`;
+    document.getElementById("observer-roll-value").textContent = `${state.rollDegrees.toFixed(2)} deg`;
     document.getElementById("observer-disk-size-value").textContent = `${state.diskSizePercent}%`;
-    document.getElementById("observer-camera-fov-value").textContent = `${state.cameraFovDegrees.toFixed(1)} deg`;
+    document.getElementById("observer-camera-fov-value").textContent = `${state.cameraFovDegrees.toFixed(3)} deg`;
     document.getElementById("observer-reference-opacity-value").textContent = `${Math.round(state.referenceOpacity * 100)}%`;
     document.getElementById("observer-time").disabled = state.observerMode === "artemis2";
     document.getElementById("observer-disk-size").disabled = state.observerMode === "artemis2";

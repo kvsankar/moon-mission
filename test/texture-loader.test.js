@@ -68,12 +68,19 @@ describe("texture-loader", () => {
 
         try {
             const pngBytes = new ArrayBuffer(8);
-            const decodePromise = decodeNasaMoonDemInWorker(pngBytes, 0.25);
+            const decodePromise = decodeNasaMoonDemInWorker(pngBytes, 0.25, null, {
+                physicalNormalSlopeBoost: 1.5,
+                physicalNormalSlopeBoostStart: 0.16,
+                physicalNormalSlopeBoostEnd: 0.34,
+            });
             expect(workers).toHaveLength(1);
             expect(workers[0].options).toEqual({ type: "module" });
             expect(workers[0].postMessage).toHaveBeenCalledWith({
                 pngBytes,
                 physicalNormalHeightScale: 0.25,
+                physicalNormalSlopeBoost: 1.5,
+                physicalNormalSlopeBoostStart: 0.16,
+                physicalNormalSlopeBoostEnd: 0.34,
             }, [pngBytes]);
 
             const heightBuffer = new Float32Array([0.25, 0.5, 0.75, 1]).buffer;

@@ -24,6 +24,9 @@ const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementBias: -0.0046,
     physicalNormalHeightScale: 0.0,
     physicalNormalResolutionCompensation: 1.0,
+    physicalNormalSlopeBoost: 1.0,
+    physicalNormalSlopeBoostStart: 0.16,
+    physicalNormalSlopeBoostEnd: 0.34,
     physicalTerrainShadowTexelStride: 0.0,
     physicalTerrainShadowSamples: 0,
     roughness: 0.958,
@@ -66,7 +69,10 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementScale: 0.018860078277886497,
     physicalDisplacementBias: -0.005755726948313572,
     physicalNormalHeightScale: 0.018860078277886497,
-    physicalNormalResolutionCompensation: 2.0,
+    physicalNormalResolutionCompensation: 2.08,
+    physicalNormalSlopeBoost: 1.5,
+    physicalNormalSlopeBoostStart: 0.16,
+    physicalNormalSlopeBoostEnd: 0.34,
     physicalTerrainShadowTexelStride: 2.0,
     physicalTerrainShadowSamples: 20,
     roughness: 0.955,
@@ -286,6 +292,18 @@ function mergeRenderSettings(defaultSettings, overrides) {
         physicalNormalResolutionCompensation: normalizeFiniteNumber(
             overrides.physicalNormalResolutionCompensation,
             defaultSettings.physicalNormalResolutionCompensation,
+        ),
+        physicalNormalSlopeBoost: normalizeFiniteNumber(
+            overrides.physicalNormalSlopeBoost,
+            defaultSettings.physicalNormalSlopeBoost,
+        ),
+        physicalNormalSlopeBoostStart: normalizeFiniteNumber(
+            overrides.physicalNormalSlopeBoostStart,
+            defaultSettings.physicalNormalSlopeBoostStart,
+        ),
+        physicalNormalSlopeBoostEnd: normalizeFiniteNumber(
+            overrides.physicalNormalSlopeBoostEnd,
+            defaultSettings.physicalNormalSlopeBoostEnd,
         ),
         physicalTerrainShadowTexelStride: normalizeFiniteNumber(
             overrides.physicalTerrainShadowTexelStride,

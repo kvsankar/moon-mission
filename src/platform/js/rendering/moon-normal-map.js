@@ -12,6 +12,9 @@ export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
     // artifacts at radius=5).
     normalDetailRadius: 4,
     physicalNormalHeightScale: 0.0,
+    physicalNormalSlopeBoost: 1.0,
+    physicalNormalSlopeBoostStart: 0.16,
+    physicalNormalSlopeBoostEnd: 0.34,
 });
 
 function resolveNormalMapSetting(value, fallback) {
@@ -170,6 +173,9 @@ export function buildMoonNormalMapFromHeightTexture(
                 height,
                 physicalHeightScale: physicalNormalHeightScale,
                 flipY: sourceFlipY,
+                slopeBoost: renderSettings?.physicalNormalSlopeBoost,
+                slopeBoostStart: renderSettings?.physicalNormalSlopeBoostStart,
+                slopeBoostEnd: renderSettings?.physicalNormalSlopeBoostEnd,
             }),
             width,
             height,

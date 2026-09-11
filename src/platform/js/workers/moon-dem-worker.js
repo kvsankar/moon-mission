@@ -50,6 +50,9 @@ workerScope.onmessage = (event) => {
             height: parsed.height,
             physicalHeightScale: Number(event.data.physicalNormalHeightScale),
             flipY: true,
+            slopeBoost: Number(event.data.physicalNormalSlopeBoost),
+            slopeBoostStart: Number(event.data.physicalNormalSlopeBoostStart),
+            slopeBoostEnd: Number(event.data.physicalNormalSlopeBoostEnd),
         });
         const normalBuildMilliseconds = now() - normalStartedAt;
         workerScope.postMessage({

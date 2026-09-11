@@ -4,11 +4,12 @@ import {
 } from "./moon-lighting-models.js";
 
 export const MOON_RENDER_PIPELINE_STORAGE_KEY = "moonRenderPipeline";
-export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 5;
+export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 6;
 const MOON_RENDER_TONE_CALIBRATION_VERSION = 2;
 const MOON_RENDER_RELIEF_CALIBRATION_VERSION = 3;
 const MOON_RENDER_REFLECTANCE_CALIBRATION_VERSION = 4;
 const MOON_RENDER_GEOMETRY_CALIBRATION_VERSION = 5;
+const MOON_RENDER_ARTEMIS_CALIBRATION_VERSION = 6;
 
 export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
@@ -17,8 +18,8 @@ export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     physicalNormalScale: 1.00,
     physicalReliefScale: 1.00,
     physicalShadowStrength: 1.00,
-    physicalExposure: 0.45,
-    physicalToneGamma: 1.00,
+    physicalExposure: 0.40,
+    physicalToneGamma: 1.06,
     colorTexture: true,
     generatedNormalMap: true,
     displacement: true,
@@ -246,6 +247,15 @@ function usesSupersededPhysicalGeometryDefaults(source) {
         Number(source.physicalShadowStrength) === 1.10;
 }
 
+function usesSupersededArtemisCalibrationDefaults(source) {
+    const schemaVersion = Number(source.schemaVersion);
+    if (Number.isFinite(schemaVersion) && schemaVersion >= MOON_RENDER_ARTEMIS_CALIBRATION_VERSION) {
+        return false;
+    }
+    return Number(source.physicalExposure) === 0.45
+        && Number(source.physicalToneGamma) === 1.00;
+}
+
 export function normalizeMoonRenderPipelineState(value = null) {
     const source = value && typeof value === "object" && !Array.isArray(value)
         ? value
@@ -258,6 +268,7 @@ export function normalizeMoonRenderPipelineState(value = null) {
     const migratePhysicalReliefDefaults = usesSupersededPhysicalReliefDefaults(source);
     const migratePhysicalReflectanceDefaults = usesSupersededPhysicalReflectanceDefaults(source);
     const migratePhysicalGeometryDefaults = usesSupersededPhysicalGeometryDefaults(source);
+    const migrateArtemisCalibrationDefaults = usesSupersededArtemisCalibrationDefaults(source);
     for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
         const migrateControl = (
             migratePhysicalToneDefaults &&
@@ -267,7 +278,7 @@ export function normalizeMoonRenderPipelineState(value = null) {
             (control.key === "physicalNormalScale" || control.key === "physicalShadowStrength")
         ) || (
             migratePhysicalReflectanceDefaults &&
-            control.key === "physicalExposure"
+            (control.key === "physicalExposure" || control.key === "physicalToneGamma")
         ) || (
             migratePhysicalGeometryDefaults &&
             (
@@ -275,6 +286,9 @@ export function normalizeMoonRenderPipelineState(value = null) {
                 control.key === "physicalReliefScale" ||
                 control.key === "physicalShadowStrength"
             )
+        ) || (
+            migrateArtemisCalibrationDefaults &&
+            (control.key === "physicalExposure" || control.key === "physicalToneGamma")
         );
         const sourceValue = migrateControl
             ? undefined

@@ -668,14 +668,14 @@ describe("createViewSettingsPillController", function () {
         });
 
         expect(harness.moonRenderPipelineSetter).toHaveBeenCalledWith({
-            schemaVersion: 5,
+            schemaVersion: 6,
             lightingModel: "current",
             physicalBrdfBlend: 0.2,
             physicalNormalScale: 1,
             physicalReliefScale: 1,
             physicalShadowStrength: 1,
-            physicalExposure: 0.45,
-            physicalToneGamma: 1,
+            physicalExposure: 0.4,
+            physicalToneGamma: 1.06,
             colorTexture: false,
             generatedNormalMap: false,
             displacement: false,

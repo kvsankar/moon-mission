@@ -31,6 +31,9 @@ export function decodeMoonUint16RgbaToFloatHeightData(source, width, height) {
  *   height: number,
  *   physicalHeightScale: number,
  *   flipY?: boolean,
+ *   slopeBoost?: number,
+ *   slopeBoostStart?: number,
+ *   slopeBoostEnd?: number,
  * }} options
  */
 export function buildPhysicalMoonNormalData({
@@ -39,6 +42,9 @@ export function buildPhysicalMoonNormalData({
     height,
     physicalHeightScale,
     flipY = true,
+    slopeBoost = 1,
+    slopeBoostStart = 0.16,
+    slopeBoostEnd = 0.34,
 }) {
     if (!(heightData instanceof Float32Array) || width < 2 || height < 2) {
         throw new Error("Physical Moon normals require a Float32 height grid.");
@@ -57,6 +63,21 @@ export function buildPhysicalMoonNormalData({
     const normalData = new Uint16Array(width * height * 4);
     const halfOne = DataUtils.toHalfFloat(1);
     const gradientYSign = flipY ? 1 : -1;
+    const numericSlopeBoost = Number(slopeBoost);
+    const numericSlopeBoostStart = Number(slopeBoostStart);
+    const numericSlopeBoostEnd = Number(slopeBoostEnd);
+    const resolvedSlopeBoost = Math.max(
+        1,
+        Number.isFinite(numericSlopeBoost) ? numericSlopeBoost : 1,
+    );
+    const resolvedSlopeBoostStart = Math.max(
+        0,
+        Number.isFinite(numericSlopeBoostStart) ? numericSlopeBoostStart : 0.16,
+    );
+    const resolvedSlopeBoostEnd = Math.max(
+        resolvedSlopeBoostStart + 1e-6,
+        Number.isFinite(numericSlopeBoostEnd) ? numericSlopeBoostEnd : 0.34,
+    );
     for (let y = 0; y < height; y += 1) {
         const rowOffset = y * width;
         const rowAbove = Math.max(0, y - 1) * width;
@@ -68,8 +89,17 @@ export function buildPhysicalMoonNormalData({
             const gradientX = (heightData[right] - heightData[left]) * longitudeScale;
             const gradientY = (heightData[rowBelow + x] - heightData[rowAbove + x])
                 * latitudeGradientScale;
-            let nx = -gradientX;
-            let ny = gradientYSign * gradientY;
+            const slopeMagnitude = Math.hypot(gradientX, gradientY);
+            const slopeWeightLinear = Math.min(1, Math.max(
+                0,
+                (slopeMagnitude - resolvedSlopeBoostStart)
+                    / (resolvedSlopeBoostEnd - resolvedSlopeBoostStart),
+            ));
+            const slopeWeight = slopeWeightLinear * slopeWeightLinear
+                * (3 - 2 * slopeWeightLinear);
+            const slopeMultiplier = 1 + (resolvedSlopeBoost - 1) * slopeWeight;
+            let nx = -gradientX * slopeMultiplier;
+            let ny = gradientYSign * gradientY * slopeMultiplier;
             let nz = 1;
             const inverseLength = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
             nx *= inverseLength;

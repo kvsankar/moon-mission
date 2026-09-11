@@ -27,9 +27,10 @@ describe("Artemis II Moon observer references", () => {
             timeIso: "2026-04-06T22:41:58.000Z",
             location: "Orion Spacecraft",
             targetMode: "surface",
-            targetLatitude: 15.0742,
-            targetLongitude: -125.516,
-            rollDegrees: 90,
+            targetLatitude: 17.3461,
+            targetLongitude: -125.3453,
+            rollDegrees: 91.14,
+            verticalFovDegrees: 6.146,
             registrationStatus: "registered",
         });
         expect(Math.hypot(
@@ -88,9 +89,10 @@ describe("Artemis II Moon observer references", () => {
             timeIso: "2026-04-06T22:41:58.000Z",
             location: "Orion Spacecraft",
             targetMode: "surface",
-            targetLatitude: 15.0742,
-            targetLongitude: -125.516,
-            rollDegrees: 90,
+            targetLatitude: 17.3461,
+            targetLongitude: -125.3453,
+            rollDegrees: 91.14,
+            verticalFovDegrees: 6.146,
             assetUrl: "https://assets.example/artemis2/web/example%20image.jpg",
         });
     });

@@ -260,7 +260,12 @@ function loadTextureBlob(THREE, loader, blob, signal = null) {
     });
 }
 
-export function decodeNasaMoonDemInWorker(pngBytes, physicalNormalHeightScale, signal = null) {
+export function decodeNasaMoonDemInWorker(
+    pngBytes,
+    physicalNormalHeightScale,
+    signal = null,
+    physicalNormalOptions = null,
+) {
     return new Promise((resolve, reject) => {
         const worker = new Worker(
             new URL("../workers/moon-dem-worker.js", import.meta.url),
@@ -294,6 +299,7 @@ export function decodeNasaMoonDemInWorker(pngBytes, physicalNormalHeightScale, s
         worker.postMessage({
             pngBytes,
             physicalNormalHeightScale,
+            ...(physicalNormalOptions || {}),
         }, [pngBytes]);
     });
 }
@@ -321,7 +327,7 @@ function waitForPromiseWithSignal(promise, signal) {
     });
 }
 
-function createMoonDemDecodeEntry(textureUrl, physicalNormalHeightScale) {
+function createMoonDemDecodeEntry(textureUrl, physicalNormalSettings) {
     const controller = new AbortController();
     const decodePromise = (async () => {
         const fetchStartedAt = globalThis.performance?.now?.() ?? Date.now();
@@ -334,8 +340,9 @@ function createMoonDemDecodeEntry(textureUrl, physicalNormalHeightScale) {
         const legacyBlob = new Blob([pngBytes], { type: "image/png" });
         const workerResult = await decodeNasaMoonDemInWorker(
             pngBytes,
-            physicalNormalHeightScale,
+            physicalNormalSettings.physicalNormalHeightScale,
             controller.signal,
+            physicalNormalSettings,
         );
         return { fetchMilliseconds, legacyBlob, workerResult };
     })();
@@ -347,11 +354,11 @@ function createMoonDemDecodeEntry(textureUrl, physicalNormalHeightScale) {
     };
 }
 
-async function acquireMoonDemDecode(textureUrl, physicalNormalHeightScale, signal) {
-    const cacheKey = `${textureUrl}\u0000${physicalNormalHeightScale}`;
+async function acquireMoonDemDecode(textureUrl, physicalNormalSettings, signal) {
+    const cacheKey = `${textureUrl}\u0000${JSON.stringify(physicalNormalSettings)}`;
     let entry = inFlightMoonDemDecodes.get(cacheKey);
     if (!entry) {
-        entry = createMoonDemDecodeEntry(textureUrl, physicalNormalHeightScale);
+        entry = createMoonDemDecodeEntry(textureUrl, physicalNormalSettings);
         inFlightMoonDemDecodes.set(cacheKey, entry);
         entry.decodePromise.then(
             () => {
@@ -384,10 +391,15 @@ async function acquireMoonDemDecode(textureUrl, physicalNormalHeightScale, signa
 
 async function loadNasaUint16MoonDem(THREE, loader, fileName, renderSettings, signal = null) {
     const textureUrl = resolveRuntimeAssetUrl(fileName);
-    const physicalNormalHeightScale = Number(renderSettings?.physicalNormalHeightScale);
+    const physicalNormalSettings = {
+        physicalNormalHeightScale: Number(renderSettings?.physicalNormalHeightScale),
+        physicalNormalSlopeBoost: Number(renderSettings?.physicalNormalSlopeBoost),
+        physicalNormalSlopeBoostStart: Number(renderSettings?.physicalNormalSlopeBoostStart),
+        physicalNormalSlopeBoostEnd: Number(renderSettings?.physicalNormalSlopeBoostEnd),
+    };
     const { fetchMilliseconds, legacyBlob, workerResult } = await acquireMoonDemDecode(
         textureUrl,
-        physicalNormalHeightScale,
+        physicalNormalSettings,
         signal,
     );
     throwIfAborted(signal);

@@ -71,15 +71,15 @@ describe("moon render pipeline", () => {
         expect(normalizeMoonRenderPipelineState({
             physicalExposure: 0.8,
         })).toMatchObject({
-            physicalExposure: 0.45,
-            physicalToneGamma: 1,
+            physicalExposure: 0.4,
+            physicalToneGamma: 1.06,
         });
         expect(normalizeMoonRenderPipelineState({
             physicalExposure: 0.9,
             physicalToneGamma: 0.7,
         })).toMatchObject({
-            physicalExposure: 0.45,
-            physicalToneGamma: 1,
+            physicalExposure: 0.4,
+            physicalToneGamma: 1.06,
         });
         expect(normalizeMoonRenderPipelineState({
             schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
@@ -112,7 +112,7 @@ describe("moon render pipeline", () => {
             physicalNormalScale: 0.55,
             physicalShadowStrength: 0.75,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalNormalScale: 1,
             physicalShadowStrength: 1,
         });
@@ -120,7 +120,7 @@ describe("moon render pipeline", () => {
             physicalNormalScale: 0.55,
             physicalShadowStrength: 0.75,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalNormalScale: 0.55,
             physicalShadowStrength: 0.75,
         });
@@ -133,17 +133,17 @@ describe("moon render pipeline", () => {
             physicalExposure: 0.6,
             physicalToneGamma: 1,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalBrdfBlend: 0.2,
-            physicalExposure: 0.45,
-            physicalToneGamma: 1,
+            physicalExposure: 0.4,
+            physicalToneGamma: 1.06,
         });
         expect(createMoonRenderPipelineState({
             physicalBrdfBlend: 0.2,
             physicalExposure: 0.6,
             physicalToneGamma: 1,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalBrdfBlend: 0.2,
             physicalExposure: 0.6,
             physicalToneGamma: 1,
@@ -154,7 +154,7 @@ describe("moon render pipeline", () => {
             physicalExposure: 0.6,
             physicalToneGamma: 1,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalBrdfBlend: 0.4,
             physicalExposure: 0.6,
             physicalToneGamma: 1,
@@ -168,7 +168,7 @@ describe("moon render pipeline", () => {
             physicalReliefScale: 0.45,
             physicalShadowStrength: 1.1,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalNormalScale: 1,
             physicalReliefScale: 1,
             physicalShadowStrength: 1,
@@ -178,7 +178,7 @@ describe("moon render pipeline", () => {
             physicalReliefScale: 0.45,
             physicalShadowStrength: 1.1,
         })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalNormalScale: 0.8,
             physicalReliefScale: 0.45,
             physicalShadowStrength: 1,
@@ -201,12 +201,12 @@ describe("moon render pipeline", () => {
         };
 
         expect(resolveMoonRenderPipelineState({ globalObject })).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalNormalScale: 1,
             physicalShadowStrength: 1,
         });
         expect(JSON.parse(storedText)).toMatchObject({
-            schemaVersion: 5,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
             physicalNormalScale: 1,
             physicalShadowStrength: 1,
         });
@@ -214,7 +214,7 @@ describe("moon render pipeline", () => {
 
     it("does not overwrite settings from a future schema", () => {
         const futureState = {
-            schemaVersion: 6,
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION + 1,
             physicalNormalScale: 0.9,
             physicalShadowStrength: 1.2,
             futureControl: true,
@@ -232,5 +232,17 @@ describe("moon render pipeline", () => {
         resolveMoonRenderPipelineState({ globalObject });
 
         expect(JSON.parse(storedText)).toEqual(futureState);
+    });
+
+    it("migrates the pre-Artemis Physical tone defaults once", () => {
+        expect(normalizeMoonRenderPipelineState({
+            schemaVersion: 5,
+            physicalExposure: 0.45,
+            physicalToneGamma: 1,
+        })).toMatchObject({
+            schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
+            physicalExposure: 0.4,
+            physicalToneGamma: 1.06,
+        });
     });
 });
