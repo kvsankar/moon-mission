@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import {
     createUint16MoonDemTexture,
@@ -6,11 +6,15 @@ import {
     loadSceneTexturesProgressively,
     loadMoonRenderProfileTextures,
     loadSceneTextures,
+    MOON_PREVIEW_TEXTURE_URL,
 } from "../src/platform/js/app/texture-loader.js";
 
 const ASSET_BASE_URL = "https://assets.sankara.net/moon-mission";
 
+let activeLoadCalls = [];
+
 function createFakeThree(loadCalls) {
+    activeLoadCalls = loadCalls;
     class TextureLoader {
         load(fileName, onLoad) {
             loadCalls.push(fileName);
@@ -53,6 +57,52 @@ function createFakeThree(loadCalls) {
 }
 
 describe("texture-loader", () => {
+    beforeEach(() => {
+        activeLoadCalls = [];
+        vi.stubGlobal("fetch", vi.fn(async (url) => {
+            activeLoadCalls.push(url);
+            return { ok: true, arrayBuffer: async () => new ArrayBuffer(8) };
+        }));
+        vi.stubGlobal("Worker", class {
+            terminate = vi.fn(() => { this.closed = true; });
+            postMessage() {
+                queueMicrotask(() => {
+                    if (!this.closed) this.onmessage({ data: {
+                        width: 2, height: 2, heightBuffer: new Float32Array(4).buffer,
+                        normalBuffer: new Uint16Array(16).buffer, decodeMilliseconds: 0, normalBuildMilliseconds: 0,
+                    } });
+                });
+            }
+        });
+    });
+    afterEach(() => vi.unstubAllGlobals());
+    it("loads a bundled preview without requesting the selected high-resolution assets", async () => {
+        const calls = [];
+        const THREE = createFakeThree(calls);
+        const textures = await loadMoonRenderProfileTextures({ THREE, moonRenderProfile: "quality", previewOnly: true, globalObject: {} });
+        expect(calls).toEqual([MOON_PREVIEW_TEXTURE_URL]);
+        expect(textures).toMatchObject({ moonRenderProfile: "low", moonDisplacementMap: null, moonPreview: true });
+        expect(textures.moonRenderSettings.physicalGeometryWidthSegments).toBe(128);
+        expect(textures.moonMap.generateMipmaps).toBe(false);
+    });
+
+    it("delivers the preview before starting requested resources", async () => {
+        const calls = [];
+        const THREE = createFakeThree(calls);
+        let releasePreview;
+        const previewPainted = new Promise(resolve => { releasePreview = resolve; });
+        const onPreview = vi.fn(() => previewPainted);
+        const loading = loadMoonRenderProfileTextures({
+            THREE, moonRenderProfile: "quality", onPreview,
+            globalObject: { MOON_RENDER_ASSET_PATHS: { quality: { moonMap: "/textures/high.jpg", moonDisplacementMap: "/textures/high-height.png" } } },
+        });
+        await vi.waitFor(() => expect(onPreview).toHaveBeenCalledOnce());
+        expect(calls).toEqual([MOON_PREVIEW_TEXTURE_URL]);
+        releasePreview();
+        await loading;
+        expect(calls[1]).toContain("high.jpg");
+    });
+
     it("forwards Moon DEM worker results and terminates the worker", async () => {
         const workers = [];
         class FakeWorker {
@@ -156,7 +206,7 @@ describe("texture-loader", () => {
             controller.abort();
 
             await expect(loadPromise).rejects.toMatchObject({ name: "AbortError" });
-            expect(images).toHaveLength(2);
+            expect(images).toHaveLength(1);
             expect(images.every((image) => image.src === "")).toBe(true);
         } finally {
             vi.unstubAllGlobals();
@@ -209,10 +259,7 @@ describe("texture-loader", () => {
         expect(texture.minFilter).toBe(THREE.NearestFilter);
         expect(texture.wrapS).toBe(THREE.RepeatWrapping);
         expect(texture.userData.sourceBitDepth).toBe(16);
-        expect(texture.userData.legacyTexture.type).toBe(THREE.UnsignedByteType);
-        expect(texture.userData.legacyTexture.image.data).toEqual(
-            new Uint8Array([8, 78, 128, 161]),
-        );
+        expect(texture.userData.legacyTexture).toBeUndefined();
     });
 
     it("shares one load for repeated texture URLs", async () => {
@@ -329,7 +376,7 @@ describe("texture-loader", () => {
         }
     });
 
-    it("does not download a DEM for the low resource tier", async () => {
+    it("loads the compact physical DEM for the low resource tier", async () => {
         const loadCalls = [];
         const THREE = createFakeThree(loadCalls);
 
@@ -340,11 +387,12 @@ describe("texture-loader", () => {
         });
 
         expect(loadCalls).toEqual([
-            `${ASSET_BASE_URL}/images/moon/lroc_color_2025_4k_fast.jpg`,
+            `${ASSET_BASE_URL}/images/moon/lroc_color_2025_2k_low.jpg`,
+            `${ASSET_BASE_URL}/images/moon/terrain-low-v1.moon.gz`,
         ]);
         expect(textures.moonRenderProfile).toBe("low");
-        expect(textures.moonDisplacementMap).toBeNull();
-        expect(textures.moonRenderSettings.terrainShadowSamples).toBe(0);
+        expect(textures.moonDisplacementMap.userData.moonDemEncoding).toBe("nasa-uint16-float");
+        expect(textures.moonRenderSettings.physicalTerrainShadowSamples).toBe(4);
     });
 
     it("does not share a texture object across Moon color and height roles", async () => {
@@ -370,6 +418,55 @@ describe("texture-loader", () => {
             `${ASSET_BASE_URL}/textures/shared-moon-source.png`,
         ]);
         expect(textures.moonMap).not.toBe(textures.moonDisplacementMap);
+    });
+
+    it("prefetches Moon resources while Earth loads, then applies groups in order", async () => {
+        const calls = [];
+        const applied = [];
+        const THREE = createFakeThree(calls);
+        let finishEarth;
+        THREE.TextureLoader = class {
+            load(url, onLoad) {
+                calls.push(url);
+                if (url.includes("earth-day")) finishEarth = () => onLoad({ dispose: vi.fn() });
+                else onLoad({ dispose: vi.fn() });
+            }
+        };
+        const loading = loadSceneTexturesProgressively({
+            THREE,
+            files: { earthTexture: "/textures/earth-day.jpg" },
+            globalObject: { MOON_RENDER_ASSET_PATHS: { fast: { moonMap: "/textures/moon.jpg", moonDisplacementMap: "/textures/height.png" } } },
+            textureGroups: [["earthTexture"], ["moonMap"], ["moonDisplacementMap"]],
+            prefetchMoon: true,
+            onTexturesReady: (textures, info) => applied.push(info.keys),
+        });
+        await vi.waitFor(() => expect(finishEarth).toBeTypeOf("function"));
+        expect(calls.map(url => url.split('/').pop())).toEqual(["moon.jpg", "height.png", "earth-day.jpg"]);
+        expect(applied).toEqual([]);
+        finishEarth();
+        await loading;
+        expect(applied).toEqual([["earthTexture"], ["moonMap"], ["moonDisplacementMap"]]);
+        expect(calls).toHaveLength(3);
+    });
+
+    it("releases unused prefetched Moon textures when an earlier group fails", async () => {
+        const THREE = createFakeThree([]);
+        const prefetched = [];
+        THREE.TextureLoader = class {
+            load(url, onLoad, progress, onError) {
+                if (url.includes("earth-day")) onError(new Error("Earth failed"));
+                else { const texture = { dispose: vi.fn() }; prefetched.push(texture); onLoad(texture); }
+            }
+        };
+        await expect(loadSceneTexturesProgressively({
+            THREE,
+            files: { earthTexture: "/textures/earth-day.jpg" },
+            globalObject: { MOON_RENDER_ASSET_PATHS: { fast: { moonMap: "/textures/moon.jpg", moonDisplacementMap: "/textures/height.png" } } },
+            textureGroups: [["earthTexture"], ["moonMap"], ["moonDisplacementMap"]],
+            prefetchMoon: true,
+        })).rejects.toThrow("Earth failed");
+        expect(prefetched).toHaveLength(1);
+        prefetched.forEach(texture => expect(texture.dispose).toHaveBeenCalledOnce());
     });
 
     it("can progressively load and report texture groups", async () => {
@@ -447,7 +544,7 @@ describe("texture-loader", () => {
         expect(loadCalls).toEqual([]);
     });
 
-    it("skips the DEM in the progressive startup path for Low", async () => {
+    it("loads Low physical terrain through the progressive path", async () => {
         const loadCalls = [];
         const THREE = createFakeThree(loadCalls);
 
@@ -462,10 +559,11 @@ describe("texture-loader", () => {
         });
 
         expect(loadCalls).toEqual([
-            `${ASSET_BASE_URL}/images/moon/lroc_color_2025_4k_fast.jpg`,
+            `${ASSET_BASE_URL}/images/moon/lroc_color_2025_2k_low.jpg`,
+            `${ASSET_BASE_URL}/images/moon/terrain-low-v1.moon.gz`,
         ]);
         expect(textures.moonMap).toBeTruthy();
-        expect(textures.moonDisplacementMap).toBeNull();
+        expect(textures.moonDisplacementMap.userData.moonDemEncoding).toBe("nasa-uint16-float");
         expect(textures.moonRenderProfile).toBe("low");
     });
 });

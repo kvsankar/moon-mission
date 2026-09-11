@@ -62,6 +62,15 @@ jobs:
           ref: ${{ env.MISSION_DATA_REF }}
           path: mission-data
 
+      - name: Setup Node.js for worker packaging
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install build dependencies
+        run: npm ci
+
       - name: Regenerate data runtime asset manifest for current revisions
         run: |
           python scripts/generate-runtime-asset-manifest.py \
@@ -81,6 +90,7 @@ jobs:
           # Copy mission assets/config and shared platform source
           cp -r assets dist-pages/
           cp -r src dist-pages/
+          node scripts/build-moon-worker.mjs --out-dir dist-pages/src/platform/js/workers
           APP_ASSET_REV="${GITHUB_SHA::12}"
           mv dist-pages/src "dist-pages/src-${APP_ASSET_REV}"
           python - <<'PY'

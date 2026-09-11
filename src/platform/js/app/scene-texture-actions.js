@@ -202,13 +202,13 @@ export function applyAndRefreshSceneTextures(scene, textures, {
             {
                 disposePrevious,
                 renderSettings: scene.moonRenderSettings,
-                deferGeneratedNormalMap: disposePrevious === true && !!scene.moonDisplacementMap,
+                deferGeneratedNormalMap: disposePrevious === true && !!scene.moonDisplacementMap && !scene.moonDisplacementMap.userData?.physicalNormalTexture,
             },
         );
         moonHandled = true;
         if (
             disposePrevious === true &&
-            scene.moonRenderProfile !== "low" &&
+            !scene.moonDisplacementMap?.userData?.physicalNormalTexture &&
             Number(scene.moonDisplacementMap?.image?.width) > 1 &&
             Number(scene.moonDisplacementMap?.image?.height) > 1 &&
             scene.moonRenderer?.refreshGeneratedNormalMap

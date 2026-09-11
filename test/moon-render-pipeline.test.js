@@ -18,22 +18,10 @@ describe("moon render pipeline", () => {
         }
     });
 
-    it("preserves the original unconditional shadow crush for stored seven-stage states", () => {
-        const legacySmooth = normalizeMoonRenderPipelineState({
-            colorTexture: false,
-            generatedNormalMap: false,
-            displacement: false,
-            photometric: false,
-            terminatorRelief: false,
-            terrainShadows: false,
-            earthshine: false,
-        });
-
-        expect(legacySmooth).toMatchObject({
-            ...MOON_RENDER_PIPELINE_PRESETS.smooth.state,
-            shadowCrush: true,
-        });
-        expect(legacySmooth.physicalShadowStrength).toBe(1);
+    it("migrates legacy artistic stages to the full Physical pipeline", () => {
+        const migrated = normalizeMoonRenderPipelineState({ lightingModel: "current", colorTexture: false, generatedNormalMap: false, displacement: false, shadowCrush: true, physicalExposure: 0.75 });
+        expect(migrated).toMatchObject({ ...DEFAULT_MOON_RENDER_PIPELINE_STATE, physicalExposure: 0.75 });
+        expect(migrated).not.toHaveProperty("shadowCrush");
     });
 
     it("migrates a stored seven-stage full state to the corrected full preset", () => {
@@ -53,7 +41,7 @@ describe("moon render pipeline", () => {
 
     it("keeps full rendering as the default and geometric masking opt-in", () => {
         expect(normalizeMoonRenderPipelineState()).toEqual(DEFAULT_MOON_RENDER_PIPELINE_STATE);
-        expect(DEFAULT_MOON_RENDER_PIPELINE_STATE.terminatorContrast).toBe(false);
+        expect(DEFAULT_MOON_RENDER_PIPELINE_STATE.lightingModel).toBe("physical-dem");
         expect(DEFAULT_MOON_RENDER_PIPELINE_STATE.geometricMask).toBe(false);
     });
 

@@ -173,6 +173,16 @@ def collect_required(app_root: Path) -> tuple[set[str], dict[str, str]]:
         required.add(path)
         reasons[path] = "platform:texture-loader"
 
+    # Profile assets are declared separately from the general texture loader.
+    # Limit discovery to static declarations, excluding legacy-path migrations.
+    profile_paths = app_root / "src/platform/js/app/moon-render-asset-profiles.js"
+    if profile_paths.exists():
+        profile_text = profile_paths.read_text(encoding="utf-8").split("\nfunction ", 1)[0]
+        for match in re.finditer(r'"(images/[^"\n]+)"', profile_text):
+            path = match.group(1)
+            required.add(path)
+            reasons[path] = "platform:moon-render-profile"
+
     mission_html = (app_root / "mission.html").read_text(encoding="utf-8")
     for match in re.finditer(r'"(third-party/[^"]+)"', mission_html):
         path = match.group(1)

@@ -668,8 +668,8 @@ describe("createViewSettingsPillController", function () {
         });
 
         expect(harness.moonRenderPipelineSetter).toHaveBeenCalledWith({
-            schemaVersion: 6,
-            lightingModel: "current",
+            schemaVersion: 7,
+            lightingModel: "physical-dem",
             physicalBrdfBlend: 0.2,
             physicalNormalScale: 1,
             physicalReliefScale: 1,
@@ -679,21 +679,15 @@ describe("createViewSettingsPillController", function () {
             colorTexture: false,
             generatedNormalMap: false,
             displacement: false,
-            photometric: false,
-            terminatorContrast: false,
-            terminatorRelief: false,
-            terrainRelief: false,
             terrainShadows: false,
-            indirectOcclusion: false,
-            shadowCrush: false,
-            earthshine: false,
+            earthshine: true,
             geometricMask: false,
         });
         expect(harness.moonRenderSmoothPreset["aria-pressed"]).toBe("true");
         expect(harness.moonRenderFullPreset["aria-pressed"]).toBe("false");
         expect(harness.moonRenderPill["aria-pressed"]).toBe("true");
         expect(harness.moonRenderColorTextureStage.checked).toBe(false);
-        expect(harness.moonRenderEarthshineStage.checked).toBe(false);
+        expect(harness.moonRenderEarthshineStage.checked).toBe(true);
         expect(harness.moonRenderGeometricMaskStage.checked).toBe(false);
 
         harness.moonRenderGeometricPreset.dispatchEvent({
@@ -704,31 +698,12 @@ describe("createViewSettingsPillController", function () {
         expect(harness.moonRenderGeometricPreset["aria-pressed"]).toBe("true");
     });
 
-    it("switches Moon lighting model and resource tier independently", async function () {
+    it("keeps resource tiers independent of Physical tuning", async function () {
         const harness = createHarness();
         harness.controller.bind();
-
-        expect(harness.moonRenderCurrentModel["aria-pressed"]).toBe("true");
         expect(harness.moonRenderMediumTier["aria-pressed"]).toBe("true");
-
-        harness.moonRenderPhysicalModel.dispatchEvent({
-            type: "click",
-            target: harness.moonRenderPhysicalModel,
-        });
-        expect(harness.moonRenderPipelineSetter).toHaveBeenLastCalledWith(
-            expect.objectContaining({ lightingModel: "physical-dem" }),
-        );
-        expect(harness.moonRenderPhysicalModel["aria-pressed"]).toBe("true");
-        expect(harness.moonRenderCurrentModel["aria-pressed"]).toBe("false");
-        expect(harness.moonRenderTerminatorContrastStage.disabled).toBe(true);
-        expect(harness.moonRenderFullPreset.disabled).toBe(true);
-        expect(harness.moonRenderPhotometricStage.checked).toBe(true);
-        expect(harness.moonRenderTerminatorStage.checked).toBe(false);
-        expect(harness.moonRenderTerrainReliefStage.checked).toBe(false);
-        expect(harness.moonRenderIndirectOcclusionStage.checked).toBe(false);
-        expect(harness.moonRenderShadowCrushStage.checked).toBe(false);
-        expect(harness.moonRenderGeometricMaskStage.checked).toBe(false);
         expect(harness.moonPhysicalBrdf.disabled).toBe(false);
+        expect(harness.moonRenderFullPreset.disabled).toBe(false);
 
         harness.moonPhysicalBrdf.value = "0.4";
         harness.moonPhysicalBrdf.dispatchEvent({
@@ -790,15 +765,9 @@ describe("createViewSettingsPillController", function () {
         expect(harness.moonRenderLowTier["aria-pressed"]).toBe("true");
         expect(harness.moonRenderMediumTier["aria-pressed"]).toBe("false");
 
-        harness.moonRenderCurrentModel.dispatchEvent({
-            type: "click",
-            target: harness.moonRenderCurrentModel,
-        });
-        expect(harness.moonRenderTerminatorStage.checked).toBe(true);
-        expect(harness.moonRenderFullPreset.disabled).toBe(false);
-        expect(harness.moonRenderTerrainReliefStage.checked).toBe(true);
-        expect(harness.moonRenderIndirectOcclusionStage.checked).toBe(true);
-        expect(harness.moonRenderShadowCrushStage.checked).toBe(true);
+        expect(harness.moonPhysicalBrdfValue.textContent).toBe("0.40");
+        expect(harness.moonRenderPipelineSetter).toHaveBeenLastCalledWith(expect.objectContaining({ lightingModel: "physical-dem", physicalToneGamma: 0.76 }));
+
     });
 
     it("portals Moon Render controls when opened from an auxiliary panel", function () {

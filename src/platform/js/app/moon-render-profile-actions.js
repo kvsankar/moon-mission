@@ -1,3 +1,4 @@
+import { constrainMoonRenderProfile } from "../core/domain/render-device-policy.js";
 import {
     MOON_RENDER_ASSET_PATHS_STORAGE_KEY,
     MOON_RENDER_ASSET_PROFILE_STORAGE_KEY,
@@ -30,11 +31,17 @@ function disposeLoadedMoonTextures(textures) {
     uniqueTextures.forEach((texture) => texture?.dispose?.());
 }
 
-function persistActiveProfile(globalObject, profile) {
-    const normalized = normalizeProfile(profile);
+export function persistMoonRenderAssetProfile(globalObject, profile) {
+    const normalized = constrainMoonRenderProfile(normalizeProfile(profile), globalObject);
     globalObject.MOON_RENDER_ASSET_PROFILE = normalized;
     const storage = safeGetStorage(globalObject);
-    storage?.setItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY, normalized);
+    try { storage?.setItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY, normalized); } catch { /* Session-only choice when storage is unavailable. */ }
+    if (globalObject.location?.href && globalObject.history?.replaceState) {
+        const url = new URL(globalObject.location.href);
+        url.searchParams.set("moonRenderProfile", normalized);
+        url.searchParams.delete("moonProfile");
+        globalObject.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    }
     return normalized;
 }
 
@@ -43,7 +50,10 @@ function beginProfileLoad(globalObject) {
         ? globalObject.__moonRenderProfileLoadControllers
         : new Set();
     globalObject.__moonRenderProfileLoadControllers = activeLoads;
-    activeLoads.forEach((controller) => controller?.abort?.());
+    activeLoads.forEach((controller) => {
+        if (controller) controller.moonProfileSuperseded = true;
+        controller?.abort?.();
+    });
     activeLoads.clear();
     const controller = typeof AbortController === "function"
         ? new AbortController()
@@ -76,7 +86,7 @@ export function createMoonRenderProfileActions({
     let latestProfileLoadPromise = null;
 
     function setMoonRenderProfile(profile) {
-        const normalized = normalizeProfile(profile);
+        const normalized = constrainMoonRenderProfile(normalizeProfile(profile), globalObject);
         latestProfileLoadId += 1;
         const profileLoadId = latestProfileLoadId;
         const loadController = beginProfileLoad(globalObject);
@@ -122,7 +132,7 @@ export function createMoonRenderProfileActions({
                 .filter((scene) => !!scene?.initialized3D);
             if (!initializedScenes.length) {
                 disposeLoadedMoonTextures(textures);
-                return persistActiveProfile(globalObject, normalized);
+                return persistMoonRenderAssetProfile(globalObject, normalized);
             }
 
             initializedScenes.forEach((scene) => {
@@ -137,7 +147,7 @@ export function createMoonRenderProfileActions({
                 });
             });
 
-            persistActiveProfile(globalObject, normalized);
+            persistMoonRenderAssetProfile(globalObject, normalized);
             render?.();
             return normalized;
         })().finally(() => {
@@ -155,7 +165,7 @@ export function createMoonRenderProfileActions({
     function getMoonRenderProfile() {
         const globalValue = String(globalObject?.MOON_RENDER_ASSET_PROFILE || "").trim();
         if (globalValue) {
-            return normalizeProfile(globalValue);
+            return constrainMoonRenderProfile(normalizeProfile(globalValue), globalObject);
         }
         return resolveMoonRenderAssetProfile({ globalObject });
     }

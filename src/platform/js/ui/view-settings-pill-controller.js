@@ -1,3 +1,4 @@
+import { constrainMoonRenderProfile } from "../core/domain/render-device-policy.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 import {
     MOON_RENDER_PIPELINE_PRESETS,
@@ -73,18 +74,11 @@ const SURFACE_POINT_SETTING_DEFINITIONS = Object.freeze([
     ["viewSubCraftEarth", "view-subcraft-earth", "surface-points-subcraft-earth-toggle"],
 ]);
 
-const MOON_RENDER_MODEL_BUTTONS = Object.freeze([
-    ["current", "moon-render-model-current"],
-    ["physical-dem", "moon-render-model-physical-dem"],
-]);
 const MOON_RENDER_TIER_BUTTONS = Object.freeze([
     ["low", "low", "moon-render-tier-low"],
     ["medium", "fast", "moon-render-tier-medium"],
     ["high", "quality", "moon-render-tier-high"],
 ]);
-const PHYSICAL_DEM_FORCED_STAGE_KEYS = new Set(
-    MOON_RENDER_PIPELINE_STAGE_CONTROLS.map(([key]) => key),
-);
 
 export function createViewSettingsPillController(deps = {}) {
     const documentRef = deps.documentRef || document;
@@ -141,7 +135,7 @@ export function createViewSettingsPillController(deps = {}) {
     }
 
     function getActiveMoonRenderProfile() {
-        return getMoonRenderProfile();
+        return constrainMoonRenderProfile(getMoonRenderProfile(), windowRef);
     }
 
     function syncPressedState(pill, isActive) {
@@ -174,10 +168,25 @@ export function createViewSettingsPillController(deps = {}) {
         syncPairPressedState(dimensionPillPairs);
     }
 
+    function syncProfileDeviceAvailability(button, profile) {
+        if (!button) return;
+        const unsupported = constrainMoonRenderProfile(profile, windowRef) !== profile;
+        if (unsupported) {
+            button.disabled = true;
+            button.dataset.deviceLimited = "true";
+            button.title = "This tier is unavailable on this device.";
+        } else if (button.dataset.deviceLimited === "true") {
+            button.disabled = false;
+            delete button.dataset.deviceLimited;
+            button.title = "";
+        }
+    }
+
     function syncMoonRenderProfilePillState() {
         const activeProfile = getActiveMoonRenderProfile();
         moonProfilePillPairs.forEach(([pillId, profile]) => {
             syncPressedState(getElement(pillId), activeProfile === profile);
+            syncProfileDeviceAvailability(getElement(pillId), profile);
         });
     }
 
@@ -236,9 +245,6 @@ export function createViewSettingsPillController(deps = {}) {
             pill: getElement(moonRenderPillId),
             panel,
             close: getElement("moon-render-pipeline-close"),
-            modelButtons: MOON_RENDER_MODEL_BUTTONS
-                .map(([model, id]) => [model, getElement(id)])
-                .filter(([, button]) => !!button),
             tierButtons: MOON_RENDER_TIER_BUTTONS
                 .map(([tier, profile, id]) => [tier, profile, getElement(id)])
                 .filter(([, , button]) => !!button),
@@ -339,7 +345,6 @@ export function createViewSettingsPillController(deps = {}) {
         const activePresetId = resolveMoonRenderPipelinePresetId(pipeline);
         const {
             pill,
-            modelButtons,
             tierButtons,
             physicalControls,
             presetButtons,
@@ -347,27 +352,25 @@ export function createViewSettingsPillController(deps = {}) {
         } = getMoonRenderPanelElements();
         const isCustom = activePresetId === "custom";
         const activeProfile = getActiveMoonRenderProfile();
-        const physicalModel = pipeline.lightingModel === "physical-dem";
-        syncPressedState(pill, physicalModel || isCustom || activePresetId !== "full");
-        modelButtons.forEach(([model, button]) => {
-            syncPressedState(button, model === pipeline.lightingModel);
-        });
+        syncPressedState(pill, isCustom || activePresetId !== "full");
+
         tierButtons.forEach(([, profile, button]) => {
             syncPressedState(button, profile === activeProfile);
+            syncProfileDeviceAvailability(button, profile);
         });
         physicalControls.forEach(({ key, input, value }) => {
             const numeric = Number(pipeline[key]);
             input.value = String(numeric);
-            input.disabled = !physicalModel;
+            input.disabled = false;
             if (value) value.textContent = numeric.toFixed(2);
         });
         presetButtons.forEach(([presetId, button]) => {
             syncPressedState(button, presetId === activePresetId);
-            button.disabled = physicalModel;
+            button.disabled = false;
         });
         stageInputs.forEach(([key, input]) => {
             input.checked = effectivePipeline[key] === true;
-            input.disabled = physicalModel && PHYSICAL_DEM_FORCED_STAGE_KEYS.has(key);
+            input.disabled = false;
         });
     }
 
@@ -383,7 +386,6 @@ export function createViewSettingsPillController(deps = {}) {
         const {
             pill,
             close,
-            modelButtons,
             tierButtons,
             physicalControls,
             presetButtons,
@@ -398,14 +400,7 @@ export function createViewSettingsPillController(deps = {}) {
             });
         }
         close?.addEventListener?.("click", () => setMoonRenderPanelOpen(false));
-        modelButtons.forEach(([lightingModel, button]) => {
-            button.addEventListener("click", () => {
-                commitMoonRenderPipeline({
-                    ...getActiveMoonRenderPipeline(),
-                    lightingModel,
-                });
-            });
-        });
+
         tierButtons.forEach(([, profile, button]) => {
             button.addEventListener("click", () => {
                 if (getActiveMoonRenderProfile() === profile) return;
@@ -1242,6 +1237,7 @@ export function createViewSettingsPillController(deps = {}) {
 
         bindLandingPillVisibilityObserver();
         windowRef?.addEventListener?.("resize", closeMobileOnlyPanelsIfNeeded);
+        windowRef?.addEventListener?.("moon-mission:render-capabilities", sync);
         closeMobileOnlyPanelsIfNeeded();
         sync();
     }

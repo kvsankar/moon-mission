@@ -75,12 +75,12 @@ export function createFocusPillController(deps = {}) {
     function syncPressedState(element, isActive) {
         if (!element) return;
         element.classList?.toggle?.("is-active", !!isActive);
-        element.setAttribute?.("aria-pressed", isActive ? "true" : "false");
+        if (element.getAttribute?.("aria-pressed") !== (isActive ? "true" : "false")) element.setAttribute?.("aria-pressed", isActive ? "true" : "false");
     }
 
     function setShortcutHidden(id, hidden) {
         const element = getElement(id);
-        if (element) {
+        if (element && element.hidden !== (hidden === true)) {
             element.hidden = hidden === true;
         }
     }
@@ -118,11 +118,9 @@ export function createFocusPillController(deps = {}) {
             return !!element && element.hidden !== true;
         });
         const flybyGroup = flybyPillWrap.closest?.(".header-pill-group");
-        if (flybyGroup) {
-            flybyGroup.hidden = !visible;
-        } else {
-            flybyPillWrap.hidden = !visible;
-        }
+        const visibilityTarget = flybyGroup || flybyPillWrap;
+        if (visibilityTarget.hidden === !visible) return;
+        visibilityTarget.hidden = !visible;
         requestAnimationFrameImpl(() => {
             const tertiaryRow = getElement("header-pill-strip-tertiary");
             if (!tertiaryRow) return;

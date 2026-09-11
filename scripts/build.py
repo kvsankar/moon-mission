@@ -283,6 +283,12 @@ def build(
             f"({raw_total} -> {gzip_total} bytes, {savings_pct:.1f}% smaller)",
         )
     
+    # Module workers cannot inherit an HTML import map. Bundle dependencies for
+    # the source-based static distribution as well as the Vite application.
+    worker_builder = project_root_path / "scripts" / "build-moon-worker.mjs"
+    if worker_builder.is_file():
+        subprocess.run(["node", str(worker_builder), "--out-dir", str(dist_path / "src/platform/js/workers")], cwd=project_root_path, check=True)
+
     # Create build info file
     build_info = {
         "build_date": resolve_build_date(build_date=build_date, now_fn=now_fn),

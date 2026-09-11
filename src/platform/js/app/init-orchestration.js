@@ -10,10 +10,6 @@ import {
     setMissionLoadingMessage,
     showMissionLoadingOverlay,
 } from "../ui/mission-loading-overlay.js";
-import {
-    resolveDelayUntilInputIdle,
-    shouldDeferForRecentInput,
-} from "../core/domain/interaction-idle-policy.js";
 
 function createInitOrchestrationActions(deps) {
     const {
@@ -41,17 +37,12 @@ function createInitOrchestrationActions(deps) {
         animationScenes,
         scheduleTimeout = setTimeout,
         markInputActivity = () => {},
-        getLastInputActivityMs = () => -Infinity,
         resolveStartupAnimationMode: resolveStartupAnimationModeImpl = resolveStartupAnimationMode,
         planStartupViewReapply: planStartupViewReapplyImpl = planStartupViewReapply,
         isStartupViewSceneReady: isStartupViewSceneReadyImpl = isStartupViewSceneReady,
     } = deps;
     let animationLoopStarted = false;
     let latestInitRunId = 0;
-
-    function getNowMs() {
-        return Date.now();
-    }
 
     function clampTimeToMissionSpan(timeMs) {
         const numericTimeMs = Number(timeMs);
@@ -176,61 +167,14 @@ function createInitOrchestrationActions(deps) {
         return true;
     }
 
-    function scheduleTextureLoadStart(callback) {
-        const idleCallback = globalThis?.requestIdleCallback;
-        if (typeof idleCallback === "function") {
-            idleCallback(callback, { timeout: 15000 });
-            return;
-        }
-        if (typeof requestAnimationFrame === "function") {
-            requestAnimationFrame(() => scheduleTimeout(callback, 0));
-            return;
-        }
-        scheduleTimeout(callback, 0);
-    }
-
-    function startTextureLoadAfterInteractionWindow(scene, runId, delayMs = 5000, idleMs = 1800) {
-        if (!scene || runId !== latestInitRunId) {
-            return;
-        }
-        setMissionLoadingMessage("Controls ready. Loading high-resolution textures...");
+    function startTextureLoadAfterCoreReady(scene, runId) {
+        // Texture networking must not be postponed indefinitely by pointer input.
+        // The first Moon preview is already loading; heavy installs yield in the
+        // texture application layer instead of starving network requests here.
         scheduleTimeout(() => {
-            if (runId !== latestInitRunId) {
-                return;
-            }
-            const nowMs = getNowMs();
-            if (shouldDeferForRecentInput({
-                nowMs,
-                lastInputActivityMs: getLastInputActivityMs(),
-                minIdleMs: idleMs,
-            })) {
-                startTextureLoadAfterInteractionWindow(
-                    scene,
-                    runId,
-                    resolveDelayUntilInputIdle({
-                        nowMs,
-                        lastInputActivityMs: getLastInputActivityMs(),
-                        minIdleMs: idleMs,
-                    }),
-                    idleMs,
-                );
-                return;
-            }
-            scheduleTextureLoadStart(() => {
-                if (runId !== latestInitRunId) {
-                    return;
-                }
-                if (shouldDeferForRecentInput({
-                    nowMs: getNowMs(),
-                    lastInputActivityMs: getLastInputActivityMs(),
-                    minIdleMs: idleMs,
-                })) {
-                    startTextureLoadAfterInteractionWindow(scene, runId, idleMs, idleMs);
-                    return;
-                }
-                beginDeferredTextureLoad(scene);
-            });
-        }, delayMs);
+            if (!scene || runId !== latestInitRunId) return;
+            beginDeferredTextureLoad(scene);
+        }, 0);
     }
 
     function settleLoadingOverlayWhenInteractive(runId, maxAttempts = 120, pollIntervalMs = 50) {
@@ -244,7 +188,7 @@ function createInitOrchestrationActions(deps) {
         if (isStartupCoreInteractive() || maxAttempts <= 0) {
             setMissionLoadingOverlayBlocking(false);
             if (scene?.textureLoadState === "deferred") {
-                startTextureLoadAfterInteractionWindow(scene, runId);
+                startTextureLoadAfterCoreReady(scene, runId);
             }
             setMissionLoadingMessage("Finalizing controls...");
             hideLoadingOverlayAfterResponsiveFrames();

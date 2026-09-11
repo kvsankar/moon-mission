@@ -1,3 +1,5 @@
+import { constrainMoonRenderProfile, registerRenderDeviceCapabilities, resolveInteractivePixelRatio } from "./core/domain/render-device-policy.js";
+import { resolveMoonRenderAssetProfile } from "./app/moon-render-asset-profiles.js";
 import * as THREE from "three";
 import { normalizeImageView, bindImageNavigation, fullMoonVerticalFov } from "./app/moon-observer-image-view.js";
 
@@ -41,7 +43,7 @@ const DEFAULT_STATE = Object.freeze({
     targetLongitude: -125.516,
     compareMode: "split",
     referenceOpacity: 0.5,
-    lightingModel: "current",
+    lightingModel: "physical-dem",
     profile: "quality",
 });
 
@@ -65,7 +67,9 @@ const renderer = new THREE.WebGLRenderer({
     alpha: false,
     preserveDrawingBuffer: true,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+registerRenderDeviceCapabilities(renderer, window);
+state.profile = constrainMoonRenderProfile(state.profile, window);
+renderer.setPixelRatio(resolveInteractivePixelRatio(window));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -92,8 +96,7 @@ function clamp(value, min, max, fallback) {
 function readStateFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const requestedTime = new Date(params.get("time") || DEFAULT_STATE.time);
-    const tier = String(params.get("tier") || "high").toLowerCase();
-    const model = String(params.get("model") || DEFAULT_STATE.lightingModel).toLowerCase();
+    const tier = String(params.get("tier") || "").toLowerCase();
     const requestedObserver = String(params.get("observer") || DEFAULT_STATE.observerMode).toLowerCase();
     const requestedCompareMode = String(params.get("compare") || DEFAULT_STATE.compareMode).toLowerCase();
     const requestedTargetMode = String(params.get("target") || DEFAULT_STATE.targetMode).toLowerCase();
@@ -121,8 +124,8 @@ function readStateFromUrl() {
         targetLongitude: clamp(params.get("targetLon"), -180, 180, DEFAULT_STATE.targetLongitude),
         compareMode: ["overlay", "render"].includes(requestedCompareMode) ? requestedCompareMode : "split",
         referenceOpacity: clamp(params.get("referenceOpacity"), 0, 1, DEFAULT_STATE.referenceOpacity),
-        lightingModel: model === "physical-dem" ? "physical-dem" : "current",
-        profile: TIER_TO_PROFILE[tier] || DEFAULT_STATE.profile,
+        lightingModel: "physical-dem",
+        profile: TIER_TO_PROFILE[tier] || resolveMoonRenderAssetProfile({ globalObject: window }),
     };
     for (const control of MOON_PHYSICAL_RENDER_CONTROLS) {
         nextState[control.key] = clamp(
@@ -437,12 +440,12 @@ function syncControls() {
     ["split", "overlay", "render"].forEach((mode) => {
         setPressed(document.getElementById(`observer-compare-${mode}`), state.compareMode === mode);
     });
-    setPressed(document.getElementById("observer-model-current"), state.lightingModel === "current");
-    setPressed(document.getElementById("observer-model-physical"), state.lightingModel === "physical-dem");
     for (const [tier, profile] of Object.entries(TIER_TO_PROFILE)) {
         const button = document.getElementById(`observer-tier-${tier}`);
         setPressed(button, state.profile === profile);
-        button.disabled = profileLoading && !installedProfile;
+        const unsupported = constrainMoonRenderProfile(profile, window) !== profile;
+        button.disabled = unsupported || (profileLoading && !installedProfile);
+        button.title = unsupported ? "This tier is unavailable on this device." : "";
     }
     document.querySelectorAll("[data-physical-control]").forEach((input) => {
         input.disabled = state.lightingModel !== "physical-dem";
@@ -662,14 +665,16 @@ function scheduleNormalMapUpgrade(profile, isCurrent) {
 }
 
 const profileLoader = createMoonObserverProfileLoader({
-    loadResources: (profile, { signal } = {}) => loadMoonRenderProfileTextures({
+    loadResources: (profile, { signal, onPreview } = {}) => loadMoonRenderProfileTextures({
         THREE,
         minFilter: THREE.LinearFilter,
         moonRenderProfile: profile,
         globalObject: /** @type {any} */ ({}),
         signal,
+        onPreview: moonRenderer ? null : onPreview,
     }),
     applyResources: async ({ profile, resources: textures, isCurrent }) => {
+        if (textures.moonPreview) installedProfile = "low";
         if (!moonRenderer) {
             moonRenderer = new MoonRenderer(1);
             moonRenderer.setRenderInvalidationCallback(renderFrame);
@@ -698,6 +703,7 @@ const profileLoader = createMoonObserverProfileLoader({
 });
 
 async function loadProfile(profile) {
+    profile = constrainMoonRenderProfile(profile, window);
     const previousProfile = installedProfile || state.profile;
     const loadSequence = ++profileLoadSequence;
     state.profile = profile;
@@ -887,14 +893,6 @@ function bindControls() {
         syncControls();
         syncUrl();
     });
-    document.getElementById("observer-model-current").addEventListener("click", () => {
-        state.lightingModel = "current";
-        applyPipeline();
-    });
-    document.getElementById("observer-model-physical").addEventListener("click", () => {
-        state.lightingModel = "physical-dem";
-        applyPipeline();
-    });
     for (const [tier, profile] of Object.entries(TIER_TO_PROFILE)) {
         document.getElementById(`observer-tier-${tier}`).addEventListener("click", () => {
             if (installedProfile !== profile || state.profile !== profile) loadProfile(profile);
@@ -978,6 +976,9 @@ async function initialize() {
         syncRuntimeStatus();
     }
     syncControls();
+    // Reference validation can finish after the first preview is already drawn.
+    // Persist normalized framing/comparison state independently of texture load.
+    syncUrl();
     const profileApplied = await profileLoadPromise;
     if (profileApplied && state.observerMode === "artemis2" && activeReference) updateObservation();
 }

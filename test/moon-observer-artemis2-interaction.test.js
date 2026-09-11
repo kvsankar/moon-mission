@@ -72,6 +72,17 @@ function countWidenedDarkContext(renderBuffer, startRow) {
 describe("Moon observer Artemis II comparison", () => {
     beforeAll(async () => {
         browser = await chromium.launch({ headless: true });
+        const newPage = browser.newPage.bind(browser);
+        browser.newPage = async (...args) => {
+            const page = await newPage(...args);
+            page.setDefaultTimeout(60000);
+            const goto = page.goto.bind(page);
+            const reload = page.reload.bind(page);
+            page.goto = (url, options = {}) => goto(url, { waitUntil: "domcontentloaded", timeout: 60000, ...options });
+            page.reload = (options = {}) => reload({ waitUntil: "domcontentloaded", timeout: 60000, ...options });
+            await page.route("**/@vite/client", route => route.fulfill({ contentType: "application/javascript", body: "" }));
+            return page;
+        };
     });
 
     afterAll(async () => {
@@ -401,7 +412,7 @@ describe("Moon observer Artemis II comparison", () => {
         });
         expect(samples[0]).toMatchObject({ elevation: 0, raisedPoint: 0, deepNight: 0, day: 255 });
         expect(samples[1]).toMatchObject({ elevation: 0.005, raisedPoint: 255, deepNight: 0, day: 255 });
-        expect(samples[2]).toMatchObject({ lightingModel: 'current', raisedPoint: 0, deepNight: 0, day: 255 });
+        expect(samples[2]).toMatchObject({ lightingModel: 'current', raisedPoint: 255, deepNight: 0, day: 255 });
         await page.close();
     }, 60000);
 
@@ -457,7 +468,7 @@ describe("Moon observer Artemis II comparison", () => {
         await page.waitForFunction(() => (
             document.querySelectorAll("#observer-reference-track [data-reference-id]").length === 8
             && document.getElementById("observer-reference-image")?.naturalWidth > 0
-            && document.getElementById("observer-resources")?.textContent?.includes("128x64")
+            && document.getElementById("observer-resources")?.textContent?.includes("256x128")
         ));
 
         expect(await page.locator("#observer-reference-counter").textContent()).toBe("8 / 8");
@@ -514,7 +525,7 @@ describe("Moon observer Artemis II comparison", () => {
         );
         await page.waitForFunction(() => (
             document.querySelectorAll("#observer-reference option").length === 9
-            && document.getElementById("observer-resources")?.textContent?.includes("128x64")
+            && document.getElementById("observer-resources")?.textContent?.includes("256x128")
         ));
         expect(await page.locator("#observer-mode-geocenter").getAttribute("aria-pressed")).toBe("true");
         expect(await page.locator("#observer-visuals").getAttribute("data-mode")).toBe("split");
@@ -531,7 +542,7 @@ describe("Moon observer Artemis II comparison", () => {
         );
         await page.waitForFunction(() => (
             document.getElementById("observer-reference-image")?.naturalWidth > 0 &&
-            document.getElementById("observer-resources")?.textContent?.includes("128x64")
+            document.getElementById("observer-resources")?.textContent?.includes("256x128")
         ));
         const rows = await page.locator("#observer-visuals").evaluate((element) => (
             getComputedStyle(element).gridTemplateRows
@@ -546,7 +557,7 @@ describe("Moon observer Artemis II comparison", () => {
             waitUntil: "domcontentloaded",
         });
         await page.waitForFunction(() => (
-            document.getElementById("observer-resources")?.textContent?.includes("128x64")
+            document.getElementById("observer-resources")?.textContent?.includes("256x128")
         ));
         await page.route("**/ldem_16_uint_quality.png", (route) => route.abort());
         await page.locator("#observer-tier-high").click();
@@ -555,7 +566,7 @@ describe("Moon observer Artemis II comparison", () => {
         ));
 
         expect(await page.locator("#observer-tier-low").getAttribute("aria-pressed")).toBe("true");
-        expect(await page.locator("#observer-resources").textContent()).toContain("128x64");
+        expect(await page.locator("#observer-resources").textContent()).toContain("256x128");
         expect(new URL(page.url()).searchParams.get("tier")).toBe("low");
         await page.close();
     }, 60000);
@@ -568,7 +579,7 @@ describe("Moon observer Artemis II comparison", () => {
             { waitUntil: "domcontentloaded" },
         );
         await page.waitForFunction(() => (
-            document.getElementById("observer-resources")?.textContent?.includes("128x64") &&
+            document.getElementById("observer-resources")?.textContent?.includes("256x128") &&
             document.getElementById("observer-status")?.textContent?.includes("Unable to load NASA reference")
         ));
         expect(await page.locator("#observer-status").textContent())

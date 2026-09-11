@@ -1,10 +1,10 @@
 import {
-    MOON_LIGHTING_MODEL_CURRENT,
+    MOON_LIGHTING_MODEL_PHYSICAL_DEM,
     normalizeMoonLightingModel,
 } from "./moon-lighting-models.js";
 
 export const MOON_RENDER_PIPELINE_STORAGE_KEY = "moonRenderPipeline";
-export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 6;
+export const MOON_RENDER_PIPELINE_SCHEMA_VERSION = 7;
 const MOON_RENDER_TONE_CALIBRATION_VERSION = 2;
 const MOON_RENDER_RELIEF_CALIBRATION_VERSION = 3;
 const MOON_RENDER_REFLECTANCE_CALIBRATION_VERSION = 4;
@@ -13,7 +13,7 @@ const MOON_RENDER_ARTEMIS_CALIBRATION_VERSION = 6;
 
 export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION,
-    lightingModel: MOON_LIGHTING_MODEL_CURRENT,
+    lightingModel: MOON_LIGHTING_MODEL_PHYSICAL_DEM,
     physicalBrdfBlend: 0.20,
     physicalNormalScale: 1.00,
     physicalReliefScale: 1.00,
@@ -23,145 +23,23 @@ export const DEFAULT_MOON_RENDER_PIPELINE_STATE = Object.freeze({
     colorTexture: true,
     generatedNormalMap: true,
     displacement: true,
-    photometric: true,
-    terminatorContrast: false,
-    terminatorRelief: true,
-    terrainRelief: true,
     terrainShadows: true,
-    indirectOcclusion: true,
-    shadowCrush: true,
     earthshine: true,
     geometricMask: false,
 });
 
+// Diagnostics disable stages of the same Physical pipeline.
 export const MOON_RENDER_PIPELINE_PRESETS = Object.freeze({
-    smooth: Object.freeze({
-        label: "Smooth",
-        state: Object.freeze({
-            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
-            colorTexture: false,
-            generatedNormalMap: false,
-            displacement: false,
-            photometric: false,
-            terminatorContrast: false,
-            terminatorRelief: false,
-            terrainRelief: false,
-            terrainShadows: false,
-            indirectOcclusion: false,
-            shadowCrush: false,
-            earthshine: false,
-            geometricMask: false,
-        }),
-    }),
-    normal: Object.freeze({
-        label: "Normal",
-        state: Object.freeze({
-            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
-            colorTexture: false,
-            generatedNormalMap: true,
-            displacement: false,
-            photometric: false,
-            terminatorContrast: false,
-            terminatorRelief: false,
-            terrainRelief: false,
-            terrainShadows: false,
-            indirectOcclusion: false,
-            shadowCrush: false,
-            earthshine: false,
-            geometricMask: false,
-        }),
-    }),
-    texture: Object.freeze({
-        label: "Texture",
-        state: Object.freeze({
-            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
-            colorTexture: true,
-            generatedNormalMap: false,
-            displacement: false,
-            photometric: false,
-            terminatorContrast: false,
-            terminatorRelief: false,
-            terrainRelief: false,
-            terrainShadows: false,
-            indirectOcclusion: false,
-            shadowCrush: false,
-            earthshine: false,
-            geometricMask: false,
-        }),
-    }),
-    textureNormal: Object.freeze({
-        label: "Texture + Normal",
-        state: Object.freeze({
-            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
-            colorTexture: true,
-            generatedNormalMap: true,
-            displacement: false,
-            photometric: false,
-            terminatorContrast: false,
-            terminatorRelief: false,
-            terrainRelief: false,
-            terrainShadows: false,
-            indirectOcclusion: false,
-            shadowCrush: false,
-            earthshine: false,
-            geometricMask: false,
-        }),
-    }),
-    photometric: Object.freeze({
-        label: "Photometric",
-        state: Object.freeze({
-            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
-            colorTexture: true,
-            generatedNormalMap: true,
-            displacement: false,
-            photometric: true,
-            terminatorContrast: true,
-            terminatorRelief: true,
-            terrainRelief: false,
-            terrainShadows: false,
-            indirectOcclusion: true,
-            shadowCrush: true,
-            earthshine: true,
-            geometricMask: false,
-        }),
-    }),
-    geometric: Object.freeze({
-        label: "Geometric Mask",
-        state: Object.freeze({
-            lightingModel: MOON_LIGHTING_MODEL_CURRENT,
-            colorTexture: false,
-            generatedNormalMap: false,
-            displacement: false,
-            photometric: false,
-            terminatorContrast: false,
-            terminatorRelief: false,
-            terrainRelief: false,
-            terrainShadows: false,
-            indirectOcclusion: false,
-            shadowCrush: false,
-            earthshine: false,
-            geometricMask: true,
-        }),
-    }),
-    full: Object.freeze({
-        label: "Full",
-        state: DEFAULT_MOON_RENDER_PIPELINE_STATE,
-    }),
+    full: Object.freeze({ label: "Full", state: DEFAULT_MOON_RENDER_PIPELINE_STATE }),
+    smooth: Object.freeze({ label: "Smooth", state: { ...DEFAULT_MOON_RENDER_PIPELINE_STATE, colorTexture: false, generatedNormalMap: false, displacement: false, terrainShadows: false } }),
+    texture: Object.freeze({ label: "Color", state: { ...DEFAULT_MOON_RENDER_PIPELINE_STATE, generatedNormalMap: false, displacement: false, terrainShadows: false } }),
+    geometric: Object.freeze({ label: "Solar visibility", state: { ...DEFAULT_MOON_RENDER_PIPELINE_STATE, geometricMask: true } }),
 });
 
 export const MOON_RENDER_PIPELINE_STAGE_CONTROLS = Object.freeze([
-    ["colorTexture", "Color Texture"],
-    ["generatedNormalMap", "Normal Map"],
-    ["displacement", "Displacement"],
-    ["photometric", "BRDF"],
-    ["terminatorContrast", "Terminator Contrast"],
-    ["terminatorRelief", "Terminator Tone"],
-    ["terrainRelief", "Terrain Relief"],
-    ["terrainShadows", "Terrain Shadows"],
-    ["indirectOcclusion", "Indirect Occlusion"],
-    ["shadowCrush", "Shadow Crush"],
-    ["earthshine", "Earthshine"],
-    ["geometricMask", "Geometric Mask"],
+    ["colorTexture", "Color"], ["generatedNormalMap", "Normals"],
+    ["displacement", "Terrain"], ["terrainShadows", "Terrain shadows"],
+    ["earthshine", "Earthshine"], ["geometricMask", "Solar visibility"],
 ]);
 
 export const MOON_PHYSICAL_RENDER_CONTROLS = Object.freeze([
@@ -172,11 +50,6 @@ export const MOON_PHYSICAL_RENDER_CONTROLS = Object.freeze([
     Object.freeze({ key: "physicalExposure", label: "Exposure", min: 0.2, max: 1.25, step: 0.05 }),
     Object.freeze({ key: "physicalToneGamma", label: "Tone Gamma", min: 0.6, max: 1.2, step: 0.02 }),
 ]);
-
-const LEGACY_STAGE_FALLBACKS = Object.freeze({
-    terrainRelief: "terrainShadows",
-    indirectOcclusion: "terminatorRelief",
-});
 
 export const MOON_RENDER_PIPELINE_STAGE_KEYS = Object.freeze(
     Object.keys(DEFAULT_MOON_RENDER_PIPELINE_STATE)
@@ -300,12 +173,11 @@ export function normalizeMoonRenderPipelineState(value = null) {
             control.max,
         );
     }
+    // Legacy presets represented a different algorithm. Carry physical tuning
+    // across migration, but restore the complete shared rendering stages.
+    const retainDiagnostics = Number(source.schemaVersion) >= MOON_RENDER_PIPELINE_SCHEMA_VERSION;
     for (const key of MOON_RENDER_PIPELINE_STAGE_KEYS) {
-        const legacyKey = LEGACY_STAGE_FALLBACKS[key];
-        const fallback = legacyKey
-            ? normalizeBoolean(source[legacyKey], DEFAULT_MOON_RENDER_PIPELINE_STATE[key])
-            : DEFAULT_MOON_RENDER_PIPELINE_STATE[key];
-        normalized[key] = normalizeBoolean(source[key], fallback);
+        normalized[key] = normalizeBoolean(retainDiagnostics ? source[key] : undefined, DEFAULT_MOON_RENDER_PIPELINE_STATE[key]);
     }
     return normalized;
 }

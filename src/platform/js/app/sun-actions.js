@@ -5,6 +5,7 @@ export function createSunActions({ SunRenderer, render }) {
         }
 
         scene.sunRenderer = new SunRenderer(scene.motherContainer, earthRadius);
+        scene.sunRenderer.setRenderInvalidationCallback?.(render);
         scene.sunRenderer.create(true);
         scene.sun = scene.sunRenderer.group;
 

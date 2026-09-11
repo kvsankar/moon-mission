@@ -1,0 +1,175 @@
+{
+  "date": "2026-09-11",
+  "baselineCommit": "80a17af108ceaf8d0c6f9b58e1d5349b257b897b",
+  "changedBranch": "codex/moon-loading-audit (uncommitted validation snapshot)",
+  "method": "Fresh Chrome context per run; 1600x1000; ANGLE D3D11 hardware; Vite application; Moon textures served from the public asset CDN; HMR disabled; no concurrent heavy browser work. Events observed on Moon mesh onAfterRender; all timings in milliseconds after navigation start.",
+  "limits": "Single paired observations, not statistical percentiles or remote/mobile timing claims. Before has no preview. Requested High detail settings preserved. Default after run selects Medium. These runs used Current lighting; they do not benchmark Physical profiles or steady animation frame rate.",
+  "previewSha256": "95b040e95429c08b29b65c0b9bc1de493ad48aba4abd4657efe7ffdb1dab7628",
+  "moonRendererSha256": "15b1b299e0b451de164d8b575b344904fd38b533c153397c529291bff20c351a",
+  "runs": [
+    {
+      "run": "gpu-before-confirm",
+      "url": "http://127.0.0.1:7276/artemis2/",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "events": [
+        {
+          "name": "geo",
+          "event": "mesh-created",
+          "time": 5759.39999999851
+        },
+        {
+          "key": "geo:16384:1:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 15672.89999999851,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 1,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:5760:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 27282.699999999255,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 5760,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:5760:5760",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 30914.89999999851,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 5760,
+          "normal": 5760
+        }
+      ],
+      "errors": [],
+      "lightingModel": "current",
+      "observedPhysicalModelBlend": [
+        0
+      ]
+    },
+    {
+      "run": "gpu-after-high",
+      "url": "http://127.0.0.1:7275/artemis2/?moonRenderProfile=quality",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "events": [
+        {
+          "name": "geo",
+          "event": "mesh-created",
+          "time": 4690.79999999702
+        },
+        {
+          "key": "geo:1024:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 5078.099999997765,
+          "width": 1024,
+          "profile": "low",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 8941.599999997765,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:5760:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 19846.39999999851,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 5760,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:5760:5760",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 22745.199999999255,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 5760,
+          "normal": 5760
+        }
+      ],
+      "errors": [],
+      "lightingModel": "current",
+      "observedPhysicalModelBlend": [
+        0
+      ]
+    },
+    {
+      "run": "gpu-after-default",
+      "url": "http://127.0.0.1:7275/artemis2/",
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "events": [
+        {
+          "name": "geo",
+          "event": "mesh-created",
+          "time": 4502.89999999851
+        },
+        {
+          "key": "geo:1024:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 4915.599999997765,
+          "width": 1024,
+          "profile": "low",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:4096:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 8008.199999999255,
+          "width": 4096,
+          "profile": "fast",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:4096:5760:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 8671,
+          "width": 4096,
+          "profile": "fast",
+          "dem": 5760,
+          "normal": 0
+        },
+        {
+          "key": "geo:4096:5760:2048",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 10714.800000000745,
+          "width": 4096,
+          "profile": "fast",
+          "dem": 5760,
+          "normal": 2048
+        }
+      ],
+      "errors": [],
+      "lightingModel": "current",
+      "observedPhysicalModelBlend": [
+        0
+      ]
+    }
+  ],
+  "lightingModel": "current",
+  "lightingModelEvidence": "Confirmed from captured renderer-specific shader uniforms: uMoonPhysicalModelBlend = 0 in every recorded main/auxiliary view.",
+  "provenanceCorrection": "The earlier description of these runs as staged-local texture delivery was incorrect. Raw resource URLs identify assets.sankara.net. Timing values are unchanged."
+}

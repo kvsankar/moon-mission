@@ -1,3 +1,4 @@
+import { constrainMoonRenderProfile } from "../core/domain/render-device-policy.js";
 import { resolveMoonRenderAssetProfile } from "./moon-render-asset-profiles.js";
 import {
     resolveDelayUntilInputIdle,
@@ -24,6 +25,30 @@ export function createScene3dInitActions({
         ? loadMoonRenderProfileTextures
         : loadSceneTextures;
 
+    function beginMoonPreview(scene) {
+        if (!scene.moonRenderer || typeof loadMoonRenderProfileTextures !== "function") return;
+        const runId = scene.deferred3DInitRunId;
+        const controller = beginProfileLoad();
+        scene.moonPreviewLoadPromise = loadMoonTextures({
+            THREE,
+            minFilter: THREE.LinearFilter,
+            moonRenderProfile: "low",
+            previewOnly: true,
+            globalObject,
+            signal: controller?.signal || null,
+        }).then((textures) => {
+            const stillPlaceholder = Number(scene.moonMap?.image?.width || 0) <= 1;
+            if (scene.deferred3DInitRunId !== runId || !scene.initialized3D
+                || scene.stopCreationFlag || controller?.signal.aborted || !stillPlaceholder) {
+                textures.moonMap?.dispose?.();
+                return;
+            }
+            applyLoadedTextures(scene, textures);
+        }).catch((error) => {
+            if (error?.name !== "AbortError") console.warn("Moon preview unavailable; full textures will still load.", error);
+        }).finally(() => finishProfileLoad(controller));
+    }
+
     function markTextureLoadDone(scene, state) {
         scene.textureLoadState = state;
         scene.textureLoadPending = false;
@@ -35,7 +60,7 @@ export function createScene3dInitActions({
             .trim()
             .toLowerCase();
         if (pendingProfile === "fast" || pendingProfile === "quality" || pendingProfile === "low") {
-            return pendingProfile;
+            return constrainMoonRenderProfile(pendingProfile, globalObject);
         }
         return resolveMoonRenderAssetProfile({ globalObject });
     }
@@ -106,6 +131,7 @@ export function createScene3dInitActions({
             return Promise.resolve();
         }
 
+        const startedAt = getNowMs();
         return new Promise((resolve, reject) => {
             const check = () => {
                 try {
@@ -114,10 +140,10 @@ export function createScene3dInitActions({
                     const lastInputActivityMs = typeof getLastInputActivityMs === "function"
                         ? getLastInputActivityMs()
                         : -Infinity;
-                    if (shouldDeferForRecentInput({ nowMs, lastInputActivityMs, minIdleMs })) {
-                        scheduleTimeout(check, Math.max(
-                            TEXTURE_APPLY_POLL_MS,
-                            resolveDelayUntilInputIdle({ nowMs, lastInputActivityMs, minIdleMs }),
+                    if (getNowMs() - startedAt < 2000 && shouldDeferForRecentInput({ nowMs, lastInputActivityMs, minIdleMs })) {
+                        scheduleTimeout(check, Math.min(
+                            2000 - (nowMs - startedAt),
+                            Math.max(TEXTURE_APPLY_POLL_MS, resolveDelayUntilInputIdle({ nowMs, lastInputActivityMs, minIdleMs })),
                         ));
                         return;
                     }
@@ -203,12 +229,9 @@ export function createScene3dInitActions({
             moonRenderProfile: requestedProfile,
             globalObject,
             signal: loadContext.signal,
-            beforeLoadGroup: () => waitForTextureWorkSlot({
-                scene,
-                token: loadContext.token,
-                runId: loadContext.runId,
-                minIdleMs: Math.round(TEXTURE_APPLY_IDLE_MS / 2),
-            }),
+            // Network requests need not wait for input to stop. Heavy installs
+            // retain a bounded idle wait; the bundled preview bypasses it.
+            beforeLoadGroup: () => assertTextureLoadCurrent(scene, loadContext.token, loadContext.runId),
             beforeApplyGroup: () => waitForTextureWorkSlot({
                 scene,
                 token: loadContext.token,
@@ -246,8 +269,19 @@ export function createScene3dInitActions({
                 signal: loadContext.signal,
             });
         const handleTextureLoadError = (error) => {
+            const stillCurrent = isTextureLoadCurrent(scene, loadContext.token, loadContext.runId);
+            profileLoadController?.abort?.();
+            if (!stillCurrent) return;
             if (error?.name === "TextureLoadStaleError" || error?.name === "AbortError") {
                 markTextureLoadDone(scene, "stale");
+                // A quality choice cancels the old Moon request, but the same
+                // startup job also owns Earth/sky. Restart it with the winning
+                // profile instead of leaving unrelated textures as placeholders.
+                if (error.name === "AbortError" && (profileLoadController?.moonProfileSuperseded || globalObject.__moonRenderPendingProfile)) {
+                    scheduleTimeout?.(() => {
+                        if (isTextureLoadCurrent(scene, loadContext.token, loadContext.runId) && scene.textureLoadState === "stale") beginTextureLoad(scene);
+                    }, 0);
+                }
                 return;
             }
             console.error("Error: couldn't load textures. Using placeholders:", error);
@@ -293,10 +327,12 @@ export function createScene3dInitActions({
         const placeholderTextures = createPlaceholderSceneTextures({
             THREE,
             minFilter: THREE.LinearFilter,
+            moonRenderProfile: "low",
             globalObject,
         });
         applyAndRefreshSceneTextures(scene, placeholderTextures, { disposePrevious: false });
         scene.init3dRest();
+        beginMoonPreview(scene);
         callback();
         scene.textureLoadState = "deferred";
         scene.textureLoadPending = false;

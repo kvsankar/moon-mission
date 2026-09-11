@@ -29,20 +29,20 @@ describe("moon-render-asset-profiles", () => {
         ).toBe("quality");
     });
 
-    it("resolves a DEM-free low resource tier", () => {
+    it("resolves a compact physical low resource tier", () => {
         const selection = resolveMoonRenderAssetSelection({
             profile: "low",
             globalObject: {},
         });
 
         expect(selection.profile).toBe("low");
-        expect(selection.active.moonMap).toBe(DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonMap);
-        expect(selection.active.moonDisplacementMap).toBe("");
-        expect(selection.activeRenderSettings.geometryWidthSegments).toBe(128);
-        expect(selection.activeRenderSettings.terrainShadowSamples).toBe(0);
+        expect(selection.active.moonMap).toBe(DEFAULT_MOON_RENDER_ASSET_PROFILES.low.moonMap);
+        expect(selection.active.moonDisplacementMap).toContain("terrain-low-v1.moon.gz");
+        expect(selection.activeRenderSettings.physicalGeometryWidthSegments).toBe(256);
+        expect(selection.activeRenderSettings.physicalTerrainShadowSamples).toBe(4);
     });
 
-    it("defaults Artemis II to the quality profile when no explicit override is present", () => {
+    it("defaults Artemis II to Medium when no explicit override is present", () => {
         expect(
             resolveMoonRenderAssetProfile({
                 search: "?mission=artemis2",
@@ -52,7 +52,7 @@ describe("moon-render-asset-profiles", () => {
                     },
                 },
             }),
-        ).toBe("quality");
+        ).toBe("fast");
     });
 
     it("keeps a saved resource tier ahead of the Artemis II mission default", () => {
@@ -95,25 +95,25 @@ describe("moon-render-asset-profiles", () => {
             globalObject: {
                 MOON_RENDER_PROFILE_SETTINGS: {
                     quality: {
-                        normalMapStrength: 1.48,
-                        terminatorContrast: 2.18,
+                        physicalNormalSlopeBoost: 1.48,
+                        physicalNormalResolutionCompensation: 2.18,
                     },
                 },
             },
         });
 
-        expect(settings.quality.normalMapStrength).toBe(1.48);
-        expect(settings.quality.terminatorContrast).toBe(2.18);
+        expect(settings.quality.physicalNormalSlopeBoost).toBe(1.48);
+        expect(settings.quality.physicalNormalResolutionCompensation).toBe(2.18);
         expect(settings.fast).toEqual(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast);
         expect(settings.quality.terrainShadowStrength).toBe(1.2);
-        expect(settings.quality.terrainReliefStrength).toBe(2.2);
+        expect(settings.quality).not.toHaveProperty("terrainReliefStrength");
         expect(settings.quality.physicalGeometryWidthSegments).toBe(1024);
         expect(settings.quality.physicalGeometryHeightSegments).toBe(512);
         expect(settings.quality.physicalDisplacementScale).toBeCloseTo(0.018860078277886497, 12);
         expect(settings.quality.physicalDisplacementBias).toBeCloseTo(-0.005755726948313572, 12);
         expect(settings.quality.physicalNormalHeightScale).toBeCloseTo(0.018860078277886497, 12);
-        expect(settings.quality.physicalNormalResolutionCompensation).toBe(2.08);
-        expect(settings.quality.physicalNormalSlopeBoost).toBe(1.5);
+        expect(settings.quality.physicalNormalResolutionCompensation).toBe(2.18);
+        expect(settings.quality.physicalNormalSlopeBoost).toBe(1.48);
         expect(settings.quality.physicalNormalSlopeBoostStart).toBe(0.16);
         expect(settings.quality.physicalNormalSlopeBoostEnd).toBe(0.34);
         expect(settings.quality.physicalTerrainShadowTexelStride).toBe(2);
@@ -147,7 +147,7 @@ describe("moon-render-asset-profiles", () => {
         });
     });
 
-    it("uses a legacy terrain-shadow override as the relief fallback", () => {
+    it("ignores obsolete artistic relief overrides", () => {
         const settings = resolveMoonRenderProfileSettings({
             globalObject: {
                 MOON_RENDER_PROFILE_SETTINGS: {
@@ -159,7 +159,7 @@ describe("moon-render-asset-profiles", () => {
         });
 
         expect(settings.quality.terrainShadowStrength).toBe(0.9);
-        expect(settings.quality.terrainReliefStrength).toBe(0.9);
+        expect(settings.quality).not.toHaveProperty("terrainReliefStrength");
     });
 
     it("resolves active and fallback assets together", () => {

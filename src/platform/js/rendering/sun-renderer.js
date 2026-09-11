@@ -212,6 +212,53 @@ export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
  * it behaves like a distant source while preserving the ephemeris light
  * direction used by scene lighting.
  */
+export const SUN_CORONA_PRESETS = Object.freeze({
+    base: Object.freeze({ angularVariation: 0 }),
+    flow: Object.freeze({ kCoronaStrength: 0.72, fCoronaStrength: 0.72, streamerPhaseRad: 0.63, streamerStrengthMul: 0.65, streamerWidthMul: 2.8, polarStrengthMul: 0.85, weavePhaseRad: 1.9, angularVariation: 1 }),
+});
+
+// Used at asset-preparation time, not during scene startup.
+export function buildSolarCoronaPixels(modelOptions, size = SUN_CORONA_TEXTURE_SIZE) {
+    const data = new Uint8ClampedArray(size * size * 4);
+        const center = (size - 1) * 0.5;
+        const invCenter = 1 / Math.max(center, 1);
+        const angularVariation = clamp01(
+            Number.isFinite(Number(modelOptions.angularVariation))
+                ? Number(modelOptions.angularVariation)
+                : 1,
+        );
+
+        for (let y = 0; y < size; y += 1) {
+            const ny = (y - center) * invCenter;
+            for (let x = 0; x < size; x += 1) {
+                const nx = (x - center) * invCenter;
+                const radial = Math.hypot(nx, ny);
+                if (radial >= 1) {
+                    continue;
+                }
+                const radiusSolar = radial * SUN_CORONA_MODEL_EXTENT_SOLAR_RADII;
+                const theta = Math.atan2(ny, nx);
+                const sample = sampleSolarCoronaModel(radiusSolar, theta, modelOptions);
+                const edgeFade = sampleSolarCoronaOuterFade(radial, theta, modelOptions);
+                const centerFade = smoothstep(0.002, 0.02, radial);
+                const grain = angularVariation > 1e-5
+                    ? 0.965 + (0.07 * deterministicCoronaGrain(x, y))
+                    : 1;
+                const alpha = clamp01(sample.alpha * edgeFade * centerFade * grain);
+                if (alpha <= 0.0005) {
+                    continue;
+                }
+
+                const idx = ((y * size) + x) * 4;
+                data[idx] = Math.round(sample.color.r * 255);
+                data[idx + 1] = Math.round(sample.color.g * 255);
+                data[idx + 2] = Math.round(sample.color.b * 255);
+                data[idx + 3] = Math.round(alpha * 255);
+            }
+        }
+    return { width: size, height: size, data };
+}
+
 export class SunRenderer {
     /**
      * @param {THREE.Object3D} parentContainer
@@ -259,6 +306,8 @@ export class SunRenderer {
         };
     }
 
+    setRenderInvalidationCallback(callback) { this.requestRender = callback; }
+
     computeSafeDistance() {
         const skyRadius = SKY_RADIUS_MULTIPLIER * this.baseRadius;
         const nominalDistance = skyRadius * SUN_SAFE_DISTANCE_FACTOR;
@@ -277,22 +326,14 @@ export class SunRenderer {
      * @param {boolean} visible
      */
     create(visible = true) {
+        this._disposed = false;
         this.group = new THREE.Group();
         this.group.frustumCulled = false;
 
         const discTexture = this._createSunDiscTexture();
         const haloTexture = this._createHaloTexture();
-        const coronaTexture = this._createCoronaTexture({ angularVariation: 0 });
-        const coronaFlowTexture = this._createCoronaTexture({
-            kCoronaStrength: 0.72,
-            fCoronaStrength: 0.72,
-            streamerPhaseRad: 0.63,
-            streamerStrengthMul: 0.65,
-            streamerWidthMul: 2.8,
-            polarStrengthMul: 0.85,
-            weavePhaseRad: 1.9,
-            angularVariation: 1,
-        });
+        const coronaTexture = this._createCoronaTexture("base");
+        const coronaFlowTexture = this._createCoronaTexture("flow");
         const zodiacalTexture = this._createZodiacalLightTexture();
         const starburstTexture = this._createStarburstTexture();
         const flareTexture = this._createFlareTexture();
@@ -622,6 +663,8 @@ export class SunRenderer {
      * Dispose meshes and materials.
      */
     dispose() {
+        this._disposed = true;
+        this.requestRender = null;
         if (!this.group) {
             return;
         }
@@ -740,58 +783,14 @@ export class SunRenderer {
         return texture;
     }
 
-    _createCoronaTexture(modelOptions = {}) {
-        const size = SUN_CORONA_TEXTURE_SIZE;
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-            return null;
-        }
-
-        ctx.clearRect(0, 0, size, size);
-        const imageData = ctx.createImageData(size, size);
-        const data = imageData.data;
-        const center = (size - 1) * 0.5;
-        const invCenter = 1 / Math.max(center, 1);
-        const angularVariation = clamp01(
-            Number.isFinite(Number(modelOptions.angularVariation))
-                ? Number(modelOptions.angularVariation)
-                : 1,
-        );
-
-        for (let y = 0; y < size; y += 1) {
-            const ny = (y - center) * invCenter;
-            for (let x = 0; x < size; x += 1) {
-                const nx = (x - center) * invCenter;
-                const radial = Math.hypot(nx, ny);
-                if (radial >= 1) {
-                    continue;
-                }
-                const radiusSolar = radial * SUN_CORONA_MODEL_EXTENT_SOLAR_RADII;
-                const theta = Math.atan2(ny, nx);
-                const sample = sampleSolarCoronaModel(radiusSolar, theta, modelOptions);
-                const edgeFade = sampleSolarCoronaOuterFade(radial, theta, modelOptions);
-                const centerFade = smoothstep(0.002, 0.02, radial);
-                const grain = angularVariation > 1e-5
-                    ? 0.965 + (0.07 * deterministicCoronaGrain(x, y))
-                    : 1;
-                const alpha = clamp01(sample.alpha * edgeFade * centerFade * grain);
-                if (alpha <= 0.0005) {
-                    continue;
-                }
-
-                const idx = ((y * size) + x) * 4;
-                data[idx] = Math.round(sample.color.r * 255);
-                data[idx + 1] = Math.round(sample.color.g * 255);
-                data[idx + 2] = Math.round(sample.color.b * 255);
-                data[idx + 3] = Math.round(alpha * 255);
-            }
-        }
-        ctx.putImageData(imageData, 0, 0);
-
-        const texture = new THREE.CanvasTexture(canvas);
+    _createCoronaTexture(variant) {
+        const url = variant === "base"
+            ? new URL("../../assets/sun-corona-base.png", import.meta.url).href
+            : new URL("../../assets/sun-corona-flow.png", import.meta.url).href;
+        const texture = new THREE.TextureLoader().load(url, loaded => {
+            if (this._disposed) { loaded.dispose(); return; }
+            this.requestRender?.();
+        }, undefined, error => console.warn("Sun corona texture unavailable.", error));
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;

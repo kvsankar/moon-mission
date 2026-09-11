@@ -20,6 +20,7 @@ belongs in plans.
 
 ## Interaction And Rendering
 
+- [Moon Rendering Architecture](rendering/moon-rendering.md)
 - [Mobile Experience](mobile-experience.md)
 - [Orbit Milestones](rendering/orbit-milestones.md)
 - [Orion Procedural Model](rendering/orion-procedural-model-generation.md)

@@ -1,0 +1,28 @@
+{
+  "source": "images/moon/ldem_16_uint_quality.png",
+  "sourceSha256": "37b3a7f19157298e21a3a0cb982827f20bf71fbbfe4f79565da95b9dbdc19a81",
+  "sourceWidth": 5760,
+  "sourceHeight": 2880,
+  "heightUnits": "NASA uint16: half metres with +10000 metre offset; radius 1737400 metres",
+  "reduction": "area average, rounded to original half-metre units; no normalization",
+  "normals": "buildPhysicalMoonNormalData; slopeBoost=1; same function used by High worker",
+  "format": "MOONDEM1 little-endian header + uint16 heights + RGB8 physical normals; gzip level 9",
+  "outputs": [
+    {
+      "tier": "low",
+      "file": "images/moon/terrain-low-v1.moon.gz",
+      "width": 1024,
+      "height": 512,
+      "bytes": 1697438,
+      "sha256": "6f24056ffd8af7dfb1655ef1ea78d851fdc920a09b5d11c0152574a470074eee"
+    },
+    {
+      "tier": "medium",
+      "file": "images/moon/terrain-medium-v1.moon.gz",
+      "width": 2048,
+      "height": 1024,
+      "bytes": 7047045,
+      "sha256": "baee382696e4ba7ce760dc86b03a404f253c7f60aca6f4db4c613ec12d579642"
+    }
+  ]
+}

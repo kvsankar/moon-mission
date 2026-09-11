@@ -35,6 +35,10 @@ npm run dev
 
 Default local URL: `http://localhost:7274/`
 
+Vite serves staged local render assets. Stage data before checking texture loading;
+production still uses its configured asset base/CDN. For this Moon consolidation,
+use data branch `codex/moon-physical-assets` until it is merged into `main`.
+
 Unit tests that validate mission ephemeris require the external data repository
 to be staged. CI checks out `MISSION_DATA_REPO` at `MISSION_DATA_REF` (default:
 `kvsankar/moon-mission-data` at `main`) and runs the same
@@ -69,10 +73,11 @@ Useful pages:
 
 ### Moon Render Asset Profiles
 
-- The Moon renderer now supports two runtime asset profiles selected from the `Moon Surface` pill strip.
-- User-facing labels are `Standard` and `Detailed`; internal storage/config keys remain `fast` and `quality` for compatibility.
+- The Moon Render panel supports Low, Medium and High resource tiers (`low`, `fast`, `quality`). The legacy Moon Surface shortcuts still call Medium/High `Standard`/`Detailed`.
+- All 3D Moon surfaces use the Physical `MoonRenderer`; Current is removed. Low/Medium use prepared terrain from the same algorithm as High. See [architecture](../../designs/rendering/moon-rendering.md).
+- Default quality follows optional device hints; High requires a saved or explicit choice. Actual GPU texture limits constrain unsupported tiers. See the [cross-device rendering audit](../../evidence/audits/moon-rendering-and-loading-2026-09-11.md).
 - Profile defaults and migration logic live in `src/platform/js/app/moon-render-asset-profiles.js`.
-- Runtime asset provenance and the NASA source chain are documented in [Moon Render Assets](../data/moon-render-assets.md).
+- Runtime asset provenance, generators, native/JavaScript gzip support and worker packaging are documented in [Moon Render Assets](../data/moon-render-assets.md).
 - When changing Moon runtime assets:
   1. Keep the runtime file paths in `moon-render-asset-profiles.js` in sync with the actual files under `images/moon/`.
   2. Update `docs/operations/data/moon-render-assets.md` with the new source/derivation story.
@@ -126,7 +131,7 @@ Pre-commit behavior (when hooks are installed):
 
 ### Build / Packaging
 
-- `python scripts/build.py` - build deployable static output
+- `python scripts/build.py` - build deployable static output (run `npm ci` first; Node bundles the terrain worker)
 - `python scripts/stage-ephemeris-data.py --app-root . --data-root ../moon-mission-data --target-root .` - stage runtime mission data locally
 
 ### Data/Status Helpers

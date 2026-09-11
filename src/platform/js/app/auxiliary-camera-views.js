@@ -1,3 +1,4 @@
+import { registerRenderDeviceCapabilities, resolveInteractivePixelRatio } from "../core/domain/render-device-policy.js";
 import { HIPPARCOS_VMAG6_CATALOG as COMPOSER_STAR_LABEL_CATALOG } from "../rendering/star-catalog-hipparcos.js";
 import { STAR_NAME_CROSS_INDEX } from "../rendering/star-name-cross-index.js";
 import {
@@ -3837,7 +3838,8 @@ class AuxiliaryCameraViewsManager {
             } else if (this.THREE.PCFSoftShadowMap) {
                 renderer.shadowMap.type = this.THREE.PCFSoftShadowMap;
             }
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            registerRenderDeviceCapabilities(renderer, window);
+            renderer.setPixelRatio(resolveInteractivePixelRatio(window));
             renderer.setSize(1, 1);
             renderer.domElement.className = "aux-camera-view__canvas";
             renderer.domElement.setAttribute("aria-hidden", "true");
@@ -7601,10 +7603,10 @@ class AuxiliaryCameraViewsManager {
         const panelHeight = Math.max(minSize, Math.floor(panelState.panel.clientHeight || 0));
         if (!isComposer) {
             const controlsDensity = (panelWidth >= 360 && panelHeight >= 280) ? "expanded" : "compact";
-            panelState.panel.dataset.controlsDensity = controlsDensity;
+            if (panelState.panel.dataset.controlsDensity !== controlsDensity) panelState.panel.dataset.controlsDensity = controlsDensity;
         }
         if (!isComposer && panelWidth > 0 && Math.abs(panelWidth - panelHeight) > 1) {
-            panelState.panel.style.height = `${panelWidth}px`;
+            if (panelState.panel.style.height !== `${panelWidth}px`) panelState.panel.style.height = `${panelWidth}px`;
         }
         this.updateComposerControlsPopoverPosition(panelState);
 

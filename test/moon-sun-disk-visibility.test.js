@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 // JS reproduction of the GLSL `moonSunDiskVisibleFraction` helper inside
-// `src/platform/js/rendering/moon-renderer.js` (and the same helper in
-// `src/platform/js/moon-render-tuner.js`). Kept in sync manually — the
+// `src/platform/js/rendering/moon-renderer.js`, reused by the tuner.
+// Kept in sync manually — the
 // shader source is a string template, not directly importable. If the
 // GLSL constants or formula change, mirror the change here and re-run.
 //
@@ -93,54 +93,45 @@ describe("moonSunDiskVisibleFraction (closed-form Sun-disk visible-area fraction
     });
 });
 
-// Drift check: the shader helper exists in TWO places (the production
-// renderer and the tuner). They are not currently extracted into a shared
-// GLSL string. This block reads both source files and asserts they share
-// the canonical signature, constants, and reconstruction line — so that a
-// future edit to one without the other is caught at test time.
-describe("moonSunDiskVisibleFraction drift check (renderer vs tuner)", () => {
-    it("declares the same MOON_SUN_SIN_ALPHA constant in both shader sources", () => {
+// Guard the shared shader math and prevent the tuner from forking it again.
+describe("shared moonSunDiskVisibleFraction source contract", () => {
+    it("routes tuner rendering through MoonRenderer instead of a shader copy", () => {
+        expect(tunerShaderSource).toContain('import { MoonRenderer } from "./rendering/moon-renderer.js"');
+        expect(tunerShaderSource).toContain('new MoonRenderer(1)');
+        expect(tunerShaderSource).not.toContain('function applyPhotometricShader');
+        expect(tunerShaderSource).not.toContain('material.onBeforeCompile');
+    });
+
+    it("declares the MOON_SUN_SIN_ALPHA constant in the shared shader", () => {
         const constantPattern = /const float MOON_SUN_SIN_ALPHA\s*=\s*0\.00466\s*;/;
         expect(renderShaderSource).toMatch(constantPattern);
-        expect(tunerShaderSource).toMatch(constantPattern);
     });
 
-    it("declares the same MOON_INV_PI constant in both shader sources", () => {
+    it("declares the MOON_INV_PI constant in the shared shader", () => {
         const constantPattern = /const float MOON_INV_PI\s*=\s*0\.31830988618\s*;/;
         expect(renderShaderSource).toMatch(constantPattern);
-        expect(tunerShaderSource).toMatch(constantPattern);
     });
 
-    it("declares the moonSunDiskVisibleFraction helper signature in both shader sources", () => {
+    it("declares the moonSunDiskVisibleFraction helper signature in the shared shader", () => {
         const signaturePattern = /float moonSunDiskVisibleFraction\(\s*float rawNdotL\s*\)/;
         expect(renderShaderSource).toMatch(signaturePattern);
-        expect(tunerShaderSource).toMatch(signaturePattern);
     });
 
-    it("uses the same closed-form expression in both shader sources", () => {
+    it("uses the closed-form expression in the shared shader", () => {
         // The asin term and the disk-area formula must be identical between
         // the two implementations (catches accidental sign flips or rounded
         // constants in one file but not the other).
         const formulaPattern = /MOON_INV_PI\s*\*\s*\(\s*1\.5707963267948966\s*\+\s*asin\(\s*h\s*\)\s*\+\s*h\s*\*\s*s\s*\)/;
         expect(renderShaderSource).toMatch(formulaPattern);
-        expect(tunerShaderSource).toMatch(formulaPattern);
     });
 
-    it("preserves terrain-adjusted smooth visibility for Current while Physical may use displaced geometry", () => {
-        const tunerHorizonPattern = /moonEffectiveRawNdotLForVis\s*=\s*moonSmoothRawNdotLForVis\s*\+\s*moonTerrainHorizonLift/;
-        const rendererCurrentPattern = /moonCurrentRawNdotLForVis\s*=\s*moonSmoothRawNdotLForVis\s*\+\s*moonTerrainHorizonLift/;
-        const rendererPhysicalPattern = /moonEffectiveRawNdotLForVis\s*=\s*mix\(\s*moonCurrentRawNdotLForVis\s*,\s*moonMacroscopicRawNdotLForVis/;
-        const visibilityPattern = /moonSunDiskVisibleFraction\(\s*moonEffectiveRawNdotLForVis\s*\)/;
-        expect(renderShaderSource).toMatch(rendererCurrentPattern);
-        expect(renderShaderSource).toMatch(rendererPhysicalPattern);
-        expect(tunerShaderSource).toMatch(tunerHorizonPattern);
-        expect(renderShaderSource).toMatch(visibilityPattern);
-        expect(tunerShaderSource).toMatch(visibilityPattern);
+    it("uses displaced geometric visibility without a second lighting branch", () => {
+        expect(renderShaderSource).toContain("moonEffectiveRawNdotLForVis = moonMacroscopicRawNdotLForVis");
+        expect(renderShaderSource).not.toContain("moonCurrentRawNdotLForVis");
     });
 
-    it("isolates earthshine via the same delta pattern in both shader sources", () => {
+    it("isolates earthshine via the delta pattern in the shared shader", () => {
         const isolationPattern = /moonEarthshineDirectKept\s*=\s*max\(\s*reflectedLight\.directDiffuse\s*-\s*moonSunDirectContribution\s*,\s*vec3\(\s*0\.0\s*\)\s*\)/;
         expect(renderShaderSource).toMatch(isolationPattern);
-        expect(tunerShaderSource).toMatch(isolationPattern);
     });
 });

@@ -1,3 +1,5 @@
+import { registerRenderDeviceCapabilities, resolveInteractivePixelRatio } from "../core/domain/render-device-policy.js";
+
 export function initSceneHandlerDom({
     d3,
     bindSettingsPanel,
@@ -46,7 +48,8 @@ export function initSceneHandlerDom({
     } else if (THREE.PCFSoftShadowMap) {
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     }
-    renderer.setPixelRatio(isTestMode ? 1.0 : window.devicePixelRatio);
+    registerRenderDeviceCapabilities(renderer, window);
+    renderer.setPixelRatio(isTestMode ? 1.0 : resolveInteractivePixelRatio(window));
     renderer.setSize(width, height);
 
     const canvasNode = d3.select("#canvas-wrapper")[0][0].appendChild(renderer.domElement);

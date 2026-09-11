@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createMoonRenderProfileActions } from "../src/platform/js/app/moon-render-profile-actions.js";
+import { createMoonRenderProfileActions, persistMoonRenderAssetProfile } from "../src/platform/js/app/moon-render-profile-actions.js";
 
 function createHarness(globalObject = {}) {
     return createMoonRenderProfileActions({
@@ -14,7 +14,14 @@ function createHarness(globalObject = {}) {
 }
 
 describe("moon-render-profile-actions", () => {
-    it("uses the Artemis II mission default when no explicit override is present", () => {
+    it("replaces launch profile parameters when the user selects another tier", () => {
+        const globalObject = { location: { href: "http://localhost/artemis2/?moonProfile=quality&time=123#view" }, history: { replaceState: vi.fn() }, localStorage: { setItem: vi.fn() } };
+        persistMoonRenderAssetProfile(globalObject, "low");
+        expect(globalObject.history.replaceState).toHaveBeenCalledWith(null, "", "/artemis2/?time=123&moonRenderProfile=low#view");
+        expect(globalObject.MOON_RENDER_ASSET_PROFILE).toBe("low");
+    });
+
+    it("uses the device default for Artemis II when no explicit override is present", () => {
         const actions = createHarness({
             location: {
                 search: "?mission=artemis2",
@@ -25,7 +32,7 @@ describe("moon-render-profile-actions", () => {
             },
         });
 
-        expect(actions.getMoonRenderProfile()).toBe("quality");
+        expect(actions.getMoonRenderProfile()).toBe("fast");
     });
 
     it("keeps an explicit global override ahead of the mission default", () => {

@@ -255,6 +255,16 @@ function createHarness(options = {}) {
 }
 
 describe("createFocusPillController", function () {
+    it("preserves header scroll during unchanged animation updates", () => {
+        const harness = createHarness({ composerVisible: true });
+        harness.controller.bind();
+        harness.flushRaf();
+        harness.tertiaryRow.scrollLeft = 120;
+        harness.controller.sync();
+        harness.flushRaf();
+        expect(harness.tertiaryRow.scrollLeft).toBe(120);
+    });
+
     it("syncs initial focus pill visibility and active state for Artemis II", function () {
         const harness = createHarness({
             composerVisible: true,

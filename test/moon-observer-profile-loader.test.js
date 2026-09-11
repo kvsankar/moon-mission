@@ -3,6 +3,28 @@ import { describe, expect, it, vi } from "vitest";
 import { createMoonObserverProfileLoader } from "../src/platform/js/app/moon-observer-profile-loader.js";
 
 describe("moon observer profile loader", () => {
+    it("shows a preview before the final profile and disposes stale previews", async () => {
+        const requests = [];
+        const apply = vi.fn();
+        const loader = createMoonObserverProfileLoader({
+            loadResources: (profile, options) => new Promise(resolve => requests.push({ profile, options, resolve })),
+            applyResources: apply,
+        });
+        const high = loader.load("quality");
+        await requests[0].options.onPreview({ moonMap: {}, moonRenderProfile: "low", moonPreview: true });
+        expect(apply.mock.calls[0][0].profile).toBe("low");
+        const low = loader.load("low");
+        const stalePreview = { moonMap: { dispose: vi.fn() } };
+        await requests[0].options.onPreview(stalePreview);
+        expect(stalePreview.moonMap.dispose).toHaveBeenCalledOnce();
+        expect(apply).toHaveBeenCalledOnce();
+        requests[0].resolve({ moonMap: { dispose: vi.fn() } });
+        requests[1].resolve({ moonMap: {} });
+        await expect(high).resolves.toBe(false);
+        await expect(low).resolves.toBe(true);
+        expect(apply.mock.calls[1][0].profile).toBe("low");
+    });
+
     it("aborts sibling resources when the current profile request fails", async () => {
         let requestSignal;
         const loader = createMoonObserverProfileLoader({

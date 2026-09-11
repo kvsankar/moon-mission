@@ -1,6 +1,6 @@
 # Performance Workstream
 
-Last reviewed: 2026-09-03
+Last reviewed: 2026-09-11
 
 This is the active workstream for animation responsiveness, panel interaction
 latency, and runtime optimization follow-ups.
@@ -23,8 +23,11 @@ latency, and runtime optimization follow-ups.
    - This was fixed first.
 3. The large lunar features catalog used to be statically imported.
    - It is now dynamic runtime data staged from `../moon-mission-data` and served through the public asset base.
-4. The 1920x1080 desktop default is the intended primary optimization target.
-   - Smaller viewports still matter, but default panel layout should be optimized around 1080p desktop behavior.
+4. Desktop and mobile users are equal performance targets.
+   - Preserve 1920x1080 desktop behavior while validating touch layouts, constrained resources and slow downloads. Do not assume a powerful desktop GPU or fast local asset delivery.
+5. The Moon startup audit replaces automatic High with device-aware defaults and independent preview delivery.
+   - Shared renderer/loading changes and measured validation are in the [2026-09-11 audit](../../evidence/audits/moon-rendering-and-loading-2026-09-11.md).
+   - Sun corona generation has moved out of startup. Real Android/iOS measurements and High memory across multiple WebGL views remain follow-ups.
 
 ## Landed Mitigations
 
@@ -35,6 +38,21 @@ latency, and runtime optimization follow-ups.
 - Focused Mission Media tests cover playback-only sync behavior.
 - Repeated animation ticks skip unchanged media marker and panel updates.
 - Focused Broadcast tests cover bounded HLS `startLoad` behavior.
+
+## Moon Rendering Consolidation
+
+Implemented on `codex/moon-loading-audit`: one Physical renderer, prepared Low/Medium terrain,
+Current retirement and settings migration, independent preview delivery,
+bounded loading waits and cancellation recovery, prepared Sun-corona textures,
+and reduced repeated view/header layout work. See
+[architecture](../../designs/rendering/moon-rendering.md) and
+[validation](../../evidence/audits/moon-physical-consolidation-2026-09-11.md).
+
+Remaining: release the matching app/data assets, measure real Android/iOS
+devices, and reduce full-application frame time. Moon-only GPU timing is fast;
+the four-view animation still incurs orbit/UI/other-renderer work. High's
+transfer and per-context allocation costs remain candidates for compression
+or tiling. Do not reintroduce a second Moon lighting model as a shortcut.
 
 ## Pending Optimization Queue
 

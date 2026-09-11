@@ -1,4 +1,4 @@
-import { DEFAULT_MOON_RENDER_ASSET_PROFILES, resolveMoonRenderAssetSelection } from "./moon-render-asset-profiles.js";
+import { DEFAULT_MOON_RENDER_ASSET_PROFILES, MOON_PREVIEW_RENDER_SETTINGS, resolveMoonRenderAssetSelection } from "./moon-render-asset-profiles.js";
 import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
 import { decodeMoonUint16RgbaToFloatHeightData } from "../rendering/moon-physical-normal-data.js";
 
@@ -27,6 +27,9 @@ const PLACEHOLDER_COLORS = Object.freeze({
     skyTexture: 0x081325,
     skyConstellationTexture: 0x000000,
 });
+
+// Bundled with the app: first Moon paint does not depend on the large-asset CDN.
+export const MOON_PREVIEW_TEXTURE_URL = new URL("../../assets/moon-preview.jpg", import.meta.url).href;
 
 const MOON_TEXTURE_KEYS = new Set(["moonMap", "moonDisplacementMap"]);
 const SHAREABLE_TEXTURE_KEY_GROUPS = Object.freeze({
@@ -106,10 +109,6 @@ function loadTextureUrlWithSignal(THREE, loader, textureUrl, signal = null) {
     });
 }
 
-function isNasaUint16MoonDem(fileName) {
-    return /(?:^|\/)ldem_16_uint_quality\.png(?:$|[?#])/i.test(String(fileName || ""));
-}
-
 export function createUint16MoonDemTexture(THREE, parsedPng) {
     const width = Number(parsedPng?.width) || 0;
     const height = Number(parsedPng?.height) || 0;
@@ -125,11 +124,6 @@ export function createUint16MoonDemTexture(THREE, parsedPng) {
     }
 
     const heightData = decodeMoonUint16RgbaToFloatHeightData(source, width, height);
-    const legacyHeightData = new Uint8Array(width * height);
-    for (let pixel = 0; pixel < heightData.length; pixel += 1) {
-        const sample = source[pixel * 4];
-        legacyHeightData[pixel] = Math.round(sample / 257);
-    }
     const texture = new THREE.DataTexture(
         heightData,
         width,
@@ -148,27 +142,6 @@ export function createUint16MoonDemTexture(THREE, parsedPng) {
         moonDemEncoding: "nasa-uint16-float",
         sourceBitDepth: 16,
     };
-    const legacyTexture = new THREE.DataTexture(
-        legacyHeightData,
-        width,
-        height,
-        THREE.RedFormat,
-        THREE.UnsignedByteType,
-    );
-    legacyTexture.flipY = true;
-    legacyTexture.wrapS = THREE.RepeatWrapping;
-    legacyTexture.wrapT = THREE.ClampToEdgeWrapping;
-    legacyTexture.minFilter = THREE.LinearFilter;
-    legacyTexture.magFilter = THREE.LinearFilter;
-    legacyTexture.generateMipmaps = false;
-    legacyTexture.userData = {
-        ...(legacyTexture.userData || {}),
-        moonDemEncoding: "legacy-uint8-view",
-        sourceBitDepth: 8,
-    };
-    legacyTexture.needsUpdate = true;
-    texture.userData.legacyTexture = legacyTexture;
-    texture.addEventListener?.("dispose", () => legacyTexture.dispose?.());
     texture.needsUpdate = true;
     return texture;
 }
@@ -179,7 +152,7 @@ function createPhysicalMoonNormalTexture(THREE, normalData, width, height) {
         width,
         height,
         THREE.RGBAFormat,
-        THREE.HalfFloatType,
+        normalData instanceof Uint8Array ? THREE.UnsignedByteType : THREE.HalfFloatType,
     );
     texture.flipY = true;
     texture.wrapS = THREE.RepeatWrapping;
@@ -189,7 +162,7 @@ function createPhysicalMoonNormalTexture(THREE, normalData, width, height) {
     texture.generateMipmaps = false;
     texture.userData = {
         ...(texture.userData || {}),
-        moonNormalEncoding: "physical-spherical-half-float",
+        moonNormalEncoding: normalData instanceof Uint8Array ? "physical-spherical-rgba8" : "physical-spherical-half-float",
     };
     texture.needsUpdate = true;
     return texture;
@@ -205,59 +178,6 @@ function throwIfAborted(signal) {
     if (signal?.aborted) {
         throw createAbortError();
     }
-}
-
-function loadTextureBlob(THREE, loader, blob, signal = null) {
-    if (typeof globalThis.Image !== "function") {
-        const objectUrl = URL.createObjectURL(blob);
-        return loadTextureUrl(loader, objectUrl).then((texture) => {
-            if (signal?.aborted) {
-                texture?.dispose?.();
-                throw createAbortError();
-            }
-            return texture;
-        }).finally(() => URL.revokeObjectURL(objectUrl));
-    }
-
-    return new Promise((resolve, reject) => {
-        const image = new globalThis.Image();
-        const objectUrl = URL.createObjectURL(blob);
-        let settled = false;
-        const cleanup = () => {
-            signal?.removeEventListener?.("abort", onAbort);
-            image.onload = null;
-            image.onerror = null;
-            URL.revokeObjectURL(objectUrl);
-        };
-        const rejectOnce = (error) => {
-            if (settled) return;
-            settled = true;
-            cleanup();
-            reject(error);
-        };
-        const onAbort = () => {
-            if (settled) return;
-            settled = true;
-            cleanup();
-            image.src = "";
-            reject(createAbortError());
-        };
-        if (signal?.aborted) {
-            onAbort();
-            return;
-        }
-        signal?.addEventListener?.("abort", onAbort, { once: true });
-        image.onload = () => {
-            if (settled) return;
-            settled = true;
-            const texture = new THREE.Texture(image);
-            texture.needsUpdate = true;
-            cleanup();
-            resolve(texture);
-        };
-        image.onerror = () => rejectOnce(new Error("Unable to decode the Moon DEM image."));
-        image.src = objectUrl;
-    });
 }
 
 export function decodeNasaMoonDemInWorker(
@@ -337,14 +257,13 @@ function createMoonDemDecodeEntry(textureUrl, physicalNormalSettings) {
         }
         const pngBytes = await response.arrayBuffer();
         const fetchMilliseconds = (globalThis.performance?.now?.() ?? Date.now()) - fetchStartedAt;
-        const legacyBlob = new Blob([pngBytes], { type: "image/png" });
         const workerResult = await decodeNasaMoonDemInWorker(
             pngBytes,
             physicalNormalSettings.physicalNormalHeightScale,
             controller.signal,
             physicalNormalSettings,
         );
-        return { fetchMilliseconds, legacyBlob, workerResult };
+        return { fetchMilliseconds, workerResult };
     })();
     return {
         controller,
@@ -389,7 +308,7 @@ async function acquireMoonDemDecode(textureUrl, physicalNormalSettings, signal) 
     }
 }
 
-async function loadNasaUint16MoonDem(THREE, loader, fileName, renderSettings, signal = null) {
+async function loadNasaUint16MoonDem(THREE, fileName, renderSettings, signal = null) {
     const textureUrl = resolveRuntimeAssetUrl(fileName);
     const physicalNormalSettings = {
         physicalNormalHeightScale: Number(renderSettings?.physicalNormalHeightScale),
@@ -397,7 +316,7 @@ async function loadNasaUint16MoonDem(THREE, loader, fileName, renderSettings, si
         physicalNormalSlopeBoostStart: Number(renderSettings?.physicalNormalSlopeBoostStart),
         physicalNormalSlopeBoostEnd: Number(renderSettings?.physicalNormalSlopeBoostEnd),
     };
-    const { fetchMilliseconds, legacyBlob, workerResult } = await acquireMoonDemDecode(
+    const { fetchMilliseconds, workerResult } = await acquireMoonDemDecode(
         textureUrl,
         physicalNormalSettings,
         signal,
@@ -426,7 +345,7 @@ async function loadNasaUint16MoonDem(THREE, loader, fileName, renderSettings, si
     };
     const physicalNormalTexture = createPhysicalMoonNormalTexture(
         THREE,
-        new Uint16Array(workerResult.normalBuffer),
+        workerResult.normalType === "uint8" ? new Uint8Array(workerResult.normalBuffer) : new Uint16Array(workerResult.normalBuffer),
         workerResult.width,
         workerResult.height,
     );
@@ -438,30 +357,6 @@ async function loadNasaUint16MoonDem(THREE, loader, fileName, renderSettings, si
         texture.dispose?.();
         throw createAbortError();
     }
-    let legacyTexture;
-    try {
-        legacyTexture = await loadTextureBlob(THREE, loader, legacyBlob, signal);
-    } catch (error) {
-        texture.dispose?.();
-        throw error;
-    }
-    if (signal?.aborted) {
-        legacyTexture?.dispose?.();
-        texture.dispose?.();
-        throw createAbortError();
-    }
-    legacyTexture.wrapS = THREE.RepeatWrapping;
-    legacyTexture.wrapT = THREE.ClampToEdgeWrapping;
-    legacyTexture.minFilter = THREE.LinearFilter;
-    legacyTexture.magFilter = THREE.LinearFilter;
-    legacyTexture.needsUpdate = true;
-    legacyTexture.userData = {
-        ...(legacyTexture.userData || {}),
-        moonDemEncoding: "legacy-browser-image",
-        sourceBitDepth: 8,
-    };
-    texture.userData.legacyTexture = legacyTexture;
-    texture.addEventListener?.("dispose", () => legacyTexture.dispose?.());
     texture.needsUpdate = true;
     return texture;
 }
@@ -509,7 +404,13 @@ function loadTextureEntries(loader, entries, loadEntryTexture, { getCacheKey = n
             promisesByCacheKey.set(cacheKey, loadEntryTexture(key, normalizedFileName));
         }
         return promisesByCacheKey.get(cacheKey);
-    }));
+    })).catch(error => {
+        const disposed = new Set();
+        for (const promise of promisesByCacheKey.values()) promise.then(texture => {
+            if (texture && !disposed.has(texture)) { disposed.add(texture); texture.dispose?.(); }
+        }, () => {});
+        throw error;
+    });
 }
 
 function resolveSceneTextureFiles({
@@ -543,11 +444,10 @@ async function loadSceneTextureEntry(loader, key, fileName, moonAssets, THREE, s
     throwIfAborted(signal);
     let texture;
     if (MOON_TEXTURE_KEYS.has(key)) {
-        if (key === "moonDisplacementMap" && isNasaUint16MoonDem(fileName)) {
+        if (key === "moonDisplacementMap") {
             try {
                 texture = await loadNasaUint16MoonDem(
                     THREE,
-                    loader,
                     fileName,
                     moonAssets.activeRenderSettings,
                     signal,
@@ -555,7 +455,7 @@ async function loadSceneTextureEntry(loader, key, fileName, moonAssets, THREE, s
             } catch (error) {
                 if (error?.name === "AbortError") throw error;
                 const detail = error?.message ? ` ${error.message}` : "";
-                throw new Error(`Detailed Moon DEM precision decode failed.${detail}`);
+                throw new Error(`Moon terrain precision decode failed.${detail}`);
             }
         } else {
             texture = await loadTextureWithFallback(
@@ -677,6 +577,11 @@ function applyTextureDefaults({
     setColorTextureSpace(THREE, texturesByKey.earthTexture);
     setColorTextureSpace(THREE, texturesByKey.earthPhotoTexture);
     setColorTextureSpace(THREE, texturesByKey.earthNightTexture);
+    // Linear minification never samples mip levels; avoid allocating/building
+    // an unused 16K mip chain in every main/auxiliary WebGL context.
+    if (texturesByKey.moonMap && minFilter === THREE.LinearFilter) {
+        texturesByKey.moonMap.generateMipmaps = false;
+    }
     setColorTextureSpace(THREE, texturesByKey.moonMap);
     setColorTextureSpace(THREE, texturesByKey.skyMilkyWayTexture);
     setColorTextureSpace(THREE, texturesByKey.skyTexture);
@@ -785,6 +690,7 @@ export async function loadSceneTexturesProgressively({
     moonRenderProfile = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
     textureGroups = DEFAULT_PROGRESSIVE_SCENE_TEXTURE_GROUPS,
+    prefetchMoon = textureGroups === DEFAULT_PROGRESSIVE_SCENE_TEXTURE_GROUPS,
     beforeLoadGroup = null,
     beforeApplyGroup = null,
     onTexturesReady = null,
@@ -800,82 +706,134 @@ export async function loadSceneTexturesProgressively({
     });
     const promisesByCacheKey = new Map();
     const finalByKey = {};
+    const deliveredTextures = new Set();
+    if (prefetchMoon) {
+        for (const key of ["moonMap", "moonDisplacementMap"]) {
+            const fileName = normalizeTextureFileName(resolvedFiles[key]);
+            if (!fileName || !textureGroups.some(group => group.includes(key))) continue;
+            const cacheKey = getSceneTextureCacheKey(key, fileName, moonAssets);
+            const loading = loadSceneTextureEntry(loader, key, fileName, moonAssets, THREE, signal);
+            // The normal group loop remains responsible for propagating failure.
+            // A prefetched rejection must not become unhandled while Earth loads.
+            loading.catch(() => {});
+            promisesByCacheKey.set(cacheKey, loading);
+        }
+    }
 
-    for (let groupIndex = 0; groupIndex < textureGroups.length; groupIndex += 1) {
+    try {
+        for (let groupIndex = 0; groupIndex < textureGroups.length; groupIndex += 1) {
+            throwIfAborted(signal);
+            const keys = textureGroups[groupIndex];
+            const entries = keys
+                .map((key) => [key, resolvedFiles[key]])
+                .filter(([, fileName]) => !!normalizeTextureFileName(fileName));
+
+            if (!entries.length) {
+                continue;
+            }
+
+            const groupInfo = {
+                groupIndex,
+                keys: entries.map(([key]) => key),
+                entries,
+            };
+            if (typeof beforeLoadGroup === "function") {
+                await beforeLoadGroup(groupInfo);
+                throwIfAborted(signal);
+            }
+
+            const textures = await loadProgressiveTextureEntries({
+                THREE,
+                loader,
+                entries,
+                moonAssets,
+                promisesByCacheKey,
+                signal,
+            });
+            const byKey = makeTextureResult({
+                THREE,
+                entries,
+                textures,
+                minFilter,
+                moonAssets,
+            });
+
+            if (typeof beforeApplyGroup === "function") {
+                await beforeApplyGroup({
+                    ...groupInfo,
+                    textures: byKey,
+                });
+                throwIfAborted(signal);
+            }
+            Object.assign(finalByKey, byKey);
+            if (typeof onTexturesReady === "function") {
+                Object.values(byKey).forEach(texture => {
+                    if (typeof texture?.dispose === "function") deliveredTextures.add(texture);
+                });
+                await onTexturesReady(byKey, {
+                    ...groupInfo,
+                    done: false,
+                });
+                throwIfAborted(signal);
+            }
+        }
+
         throwIfAborted(signal);
-        const keys = textureGroups[groupIndex];
-        const entries = keys
-            .map((key) => [key, resolvedFiles[key]])
-            .filter(([, fileName]) => !!normalizeTextureFileName(fileName));
-
-        if (!entries.length) {
-            continue;
+        if (!finalByKey.skyTexture && finalByKey.skyMilkyWayTexture) {
+            finalByKey.skyTexture = finalByKey.skyMilkyWayTexture;
         }
-
-        const groupInfo = {
-            groupIndex,
-            keys: entries.map(([key]) => key),
-            entries,
-        };
-        if (typeof beforeLoadGroup === "function") {
-            await beforeLoadGroup(groupInfo);
-            throwIfAborted(signal);
+        if (!normalizeTextureFileName(moonAssets.active.moonDisplacementMap)) {
+            finalByKey.moonDisplacementMap = null;
         }
-
-        const textures = await loadProgressiveTextureEntries({
-            THREE,
-            loader,
-            entries,
-            moonAssets,
-            promisesByCacheKey,
-            signal,
-        });
-        const byKey = makeTextureResult({
-            THREE,
-            entries,
-            textures,
-            minFilter,
-            moonAssets,
-        });
-
-        if (typeof beforeApplyGroup === "function") {
-            await beforeApplyGroup({
-                ...groupInfo,
-                textures: byKey,
-            });
-            throwIfAborted(signal);
+        finalByKey.moonRenderProfile = moonAssets.profile;
+        finalByKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
+        return finalByKey;
+    } catch (error) {
+        const disposed = new Set();
+        for (const loading of promisesByCacheKey.values()) {
+            loading.then(texture => {
+                if (!texture || deliveredTextures.has(texture) || disposed.has(texture)) return;
+                disposed.add(texture);
+                texture.dispose?.();
+            }, () => {});
         }
-        Object.assign(finalByKey, byKey);
-        if (typeof onTexturesReady === "function") {
-            await onTexturesReady(byKey, {
-                ...groupInfo,
-                done: false,
-            });
-            throwIfAborted(signal);
-        }
+        throw error;
     }
-
-    throwIfAborted(signal);
-    if (!finalByKey.skyTexture && finalByKey.skyMilkyWayTexture) {
-        finalByKey.skyTexture = finalByKey.skyMilkyWayTexture;
-    }
-    if (!normalizeTextureFileName(moonAssets.active.moonDisplacementMap)) {
-        finalByKey.moonDisplacementMap = null;
-    }
-    finalByKey.moonRenderProfile = moonAssets.profile;
-    finalByKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
-    return finalByKey;
 }
 
-export function loadMoonRenderProfileTextures({
+export async function loadMoonRenderProfileTextures({
     THREE,
     minFilter = null,
     search = null,
     moonRenderProfile = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
     signal = null,
+    previewOnly = false,
+    onPreview = null,
 }) {
     const loader = new THREE.TextureLoader();
+    if (previewOnly || typeof onPreview === "function") {
+        let previewMap = null;
+        try {
+            previewMap = await loadTextureUrlWithSignal(THREE, loader, MOON_PREVIEW_TEXTURE_URL, signal);
+        } catch (error) {
+            if (error?.name === "AbortError" || previewOnly) throw error;
+            console.warn("Moon preview unavailable; loading requested resources directly.", error);
+        }
+        if (previewMap) {
+            const preview = {
+                moonMap: previewMap,
+                moonDisplacementMap: null,
+                moonRenderProfile: "low",
+                moonRenderSettings: MOON_PREVIEW_RENDER_SETTINGS,
+                moonPreview: true,
+            };
+            applyTextureDefaults({ THREE, texturesByKey: { moonMap: previewMap }, minFilter: minFilter || THREE.LinearFilter });
+            if (previewOnly) return preview;
+            await onPreview(preview);
+            throwIfAborted(signal);
+        }
+    }
     const moonAssets = resolveMoonRenderAssetSelection({
         search,
         profile: moonRenderProfile,

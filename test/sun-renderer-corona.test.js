@@ -1,7 +1,11 @@
+import { readFileSync } from "node:fs";
+import { PNG } from "pngjs";
 import { describe, expect, it } from "vitest";
 
 import {
     SunRenderer,
+    SUN_CORONA_PRESETS,
+    buildSolarCoronaPixels,
     sampleSolarCoronaOuterFade,
     sampleSolarCoronaModel,
 } from "../src/platform/js/rendering/sun-renderer.js";
@@ -111,5 +115,14 @@ describe("SunRenderer corona animation", () => {
         expect(renderer.coronaFlowSprite.material.opacity).not.toBeCloseTo(firstFlowOpacity, 6);
         expect(renderer.coronaFlowSprite.scale.value).not.toBeCloseTo(firstFlowScale, 6);
         expect(renderer.coronaFlowSprite.visible).toBe(true);
+    });
+});
+
+describe("prepared Sun corona textures", () => {
+    it.each(["base", "flow"])("preserves every %s pixel from the existing corona model", name => {
+        const image = PNG.sync.read(readFileSync(new URL(`../src/platform/assets/sun-corona-${name}.png`, import.meta.url)));
+        const reference = buildSolarCoronaPixels(SUN_CORONA_PRESETS[name]);
+        expect([image.width, image.height]).toEqual([reference.width, reference.height]);
+        expect(Buffer.compare(image.data, Buffer.from(reference.data))).toBe(0);
     });
 });

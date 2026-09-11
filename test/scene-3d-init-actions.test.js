@@ -1,3 +1,4 @@
+import { createMoonRenderProfileActions } from "../src/platform/js/app/moon-render-profile-actions.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { createScene3dInitActions } from "../src/platform/js/app/scene-3d-init-actions.js";
@@ -22,6 +23,106 @@ function createDeferred() {
 }
 
 describe("scene-3d-init-actions", () => {
+    it("restarts unrelated textures even when the old cancellation arrives after the tier choice finishes", async () => {
+        vi.useFakeTimers();
+        try {
+            const scene = createScene();
+            const first = createDeferred();
+            const globalObject = { MOON_RENDER_ASSET_PROFILE: "quality" };
+            const load = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValue({ moonRenderProfile: "low", earthTexture: "earth" });
+            const apply = vi.fn();
+            const actions = createScene3dInitActions({ THREE: {}, createPlaceholderSceneTextures: () => ({}), loadSceneTextures: load, applyAndRefreshSceneTextures: apply, render: vi.fn(), globalObject });
+            actions.init3d(scene, vi.fn());
+            const oldLoad = scene.beginTextureLoad();
+            const profiles = createMoonRenderProfileActions({ THREE: {}, animationScenes: { geo: scene }, loadMoonRenderProfileTextures: async () => ({ moonRenderProfile: "low" }), applyAndRefreshSceneTextures: apply, render: vi.fn(), globalObject });
+            await profiles.setMoonRenderProfile("low");
+            expect(globalObject.__moonRenderPendingProfile).toBeUndefined();
+            first.reject(Object.assign(new Error("superseded"), { name: "AbortError" }));
+            await oldLoad;
+            await vi.advanceTimersByTimeAsync(0);
+            expect(load).toHaveBeenCalledTimes(2);
+            expect(load).toHaveBeenLastCalledWith(expect.objectContaining({ moonRenderProfile: "low" }));
+            expect(scene.textureLoadState).toBe("ready");
+        } finally { vi.useRealTimers(); }
+    });
+
+    it("stops waiting for input idle at the two-second deadline", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(10000);
+        try {
+            const scene = createScene();
+            const applied = vi.fn();
+            const actions = createScene3dInitActions({
+                THREE: { LinearFilter: "linear" },
+                createPlaceholderSceneTextures: () => ({ moonRenderProfile: "fast" }),
+                loadSceneTextures: vi.fn(),
+                loadSceneTexturesProgressively: async ({ beforeApplyGroup, onTexturesReady }) => {
+                    await beforeApplyGroup({ keys: ["earthTexture"] });
+                    applied();
+                    await onTexturesReady({ earthTexture: "earth", moonRenderProfile: "fast" });
+                    return { moonRenderProfile: "fast" };
+                },
+                applyAndRefreshSceneTextures: vi.fn(), render: vi.fn(),
+                requestAnimationFrame: null,
+                getLastInputActivityMs: () => Date.now(), globalObject: {},
+            });
+            actions.init3d(scene, vi.fn());
+            const loading = scene.beginTextureLoad();
+            await vi.advanceTimersByTimeAsync(1999);
+            expect(applied).not.toHaveBeenCalled();
+            await vi.advanceTimersByTimeAsync(1);
+            await loading;
+            expect(applied).toHaveBeenCalledOnce();
+        } finally { vi.useRealTimers(); }
+    });
+
+    it("paints the Moon preview independently of heavy textures and recent input", async () => {
+        const scene = createScene();
+        scene.moonRenderer = {};
+        const preview = createDeferred();
+        const previewMap = { image: { width: 1024 }, dispose: vi.fn() };
+        const apply = vi.fn((target, textures) => { if (textures.moonMap) target.moonMap = textures.moonMap; });
+        const loadHeavy = vi.fn();
+        const render = vi.fn();
+        const actions = createScene3dInitActions({
+            THREE: { LinearFilter: "linear" },
+            createPlaceholderSceneTextures: vi.fn(() => ({ moonMap: { image: { width: 1 } } })),
+            loadSceneTextures: loadHeavy,
+            loadMoonRenderProfileTextures: vi.fn(() => preview.promise),
+            applyAndRefreshSceneTextures: apply,
+            getLastInputActivityMs: () => Date.now(),
+            render, globalObject: {},
+        });
+        actions.init3d(scene, vi.fn());
+        expect(loadHeavy).not.toHaveBeenCalled();
+        preview.resolve({ moonMap: previewMap, moonRenderProfile: "low", moonDisplacementMap: null });
+        await scene.moonPreviewLoadPromise;
+        expect(scene.moonMap).toBe(previewMap);
+        expect(render).toHaveBeenCalledOnce();
+        expect(loadHeavy).not.toHaveBeenCalled();
+    });
+
+    it("disposes a late preview rather than replacing an already detailed Moon", async () => {
+        const scene = createScene();
+        scene.moonRenderer = {};
+        const preview = createDeferred();
+        const previewMap = { image: { width: 1024 }, dispose: vi.fn() };
+        const apply = vi.fn((target, textures) => { if (textures.moonMap) target.moonMap = textures.moonMap; });
+        const actions = createScene3dInitActions({
+            THREE: { LinearFilter: "linear" },
+            createPlaceholderSceneTextures: vi.fn(() => ({ moonMap: { image: { width: 1 } } })),
+            loadSceneTextures: vi.fn(), loadMoonRenderProfileTextures: vi.fn(() => preview.promise),
+            applyAndRefreshSceneTextures: apply, render: vi.fn(), globalObject: {},
+        });
+        actions.init3d(scene, vi.fn());
+        const detailedMap = { image: { width: 16384 } };
+        scene.moonMap = detailedMap;
+        preview.resolve({ moonMap: previewMap });
+        await scene.moonPreviewLoadPromise;
+        expect(scene.moonMap).toBe(detailedMap);
+        expect(previewMap.dispose).toHaveBeenCalledOnce();
+    });
+
     it("uses a profile selection that is still being validated", async () => {
         const scene = createScene();
         const loadSceneTextures = vi.fn().mockResolvedValue({

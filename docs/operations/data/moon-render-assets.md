@@ -1,47 +1,64 @@
-# Moon Render Assets
+# Moon render assets
 
-Provenance baseline:
-[Moon Render Asset Provenance](../../evidence/baselines/moon-render-assets-2026-04.md)
+All tiers use the shared Physical renderer. Paths below are under `images/moon/`.
 
-Scientific/rendering research:
-[Moon Rendering](../../research/moon-rendering/research-and-plan.md)
-
-## Runtime Profiles
-
-| Profile | Color | Height |
+| Tier | Color | Terrain |
 | --- | --- | --- |
-| `fast` / Standard | `images/moon/lroc_color_2025_4k_fast.jpg` | `images/moon/ldem_16_gsfc.png` |
-| `quality` / Detailed | `images/moon/lroc_color_2025_16k_quality.jpg` | `images/moon/ldem_16_uint_quality.png` |
+| Low | `lroc_color_2025_2k_low.jpg` | `terrain-low-v1.moon.gz` |
+| Medium | `lroc_color_2025_4k_fast.jpg` | `terrain-medium-v1.moon.gz` |
+| High | `lroc_color_2025_16k_quality.jpg` | `ldem_16_uint_quality.png` |
 
-Artemis II defaults to `quality`; missions without an override normally use
-`fast`. Runtime resolves the profile from URL parameters, configured defaults,
-local storage, and UI state. Failure to load Detailed assets falls back to
-Standard.
+Low/Medium packages contain area-averaged NASA uint16 heights and prepared RGB8
+normals, using the same spherical normal algorithm as High. Heights retain
+half-metre samples with the +10 km encoding offset and 1737.4 km reference radius.
+There is no per-image height normalization. High retains its accepted PNG and
+half-float normal precision. Old `ldem_16_gsfc.png` profile overrides migrate to
+the corresponding physical asset; no legacy image-height decoder remains.
 
-## Ownership
+## Preparation and ownership
 
-The four runtime images are tracked under app `images/moon/`. Deployment also
-stages the data repo's shared `images/` tree, so matching Moon files form a
-mirrored runtime boundary. Verify hashes before staging/release; a differing
-data-repo copy must not silently redefine the tracked app asset. TIFF masters
-and conversion scratch are not runtime assets.
+```sh
+python scripts/generate-moon-preview.py
+node scripts/generate-moon-terrain.mjs
+node scripts/generate-sun-corona.mjs
+```
 
-The April 2026 local source directory is historical and not reproducible by
-path; use the provenance baseline for its source and derivation record.
+The color generator creates the 1K app preview (JPEG quality 78) and Low's 2K
+color (quality 85) from the existing NASA 4K color, using Pillow Lanczos resizing.
+Terrain preparation reuses `buildPhysicalMoonNormalData`; dimensions, source hash,
+format and output hashes are recorded in `images/moon/terrain-v1-provenance.json`.
+The original source chain is in the [provenance baseline](../../evidence/baselines/moon-render-assets-2026-04.md).
 
-## Replacement Procedure
+Moon runtime textures/packages follow the existing app/data mirror contract:
+app `images/moon/` and `moon-mission-data/images/moon/` must be byte-identical.
+Verify hashes before staging or release. The preview and fixed Sun-corona PNGs
+are app UI assets under `src/platform/assets/`, included by module-relative URLs.
+The Sun generator preserves the original raster math; pixel equality is tested.
 
-1. Record source URL, product name, retrieval date, license, and checksum.
-2. Preserve conversion command, tool version, dimensions, bit depth, color
-   handling, and output settings.
-3. Write the derived file to the matching `images/moon/` path or update
-   `src/platform/js/app/moon-render-asset-profiles.js` deliberately.
-4. Record output checksums with `Get-FileHash <path> -Algorithm SHA256`.
-5. Run focused Moon asset/profile tests and start Vite.
-6. Verify Standard and Detailed on a real mission route, including URL/UI
-   switching and automatic fallback.
-7. Run visual comparison before accepting changed color or relief output.
-8. Update provenance evidence with the new source and derivation record.
+## Delivery
 
-Do not replace a height map without documented provenance and a lossless
-conversion path; the current baseline lacks complete height-map provenance.
+Vite development serves staged local assets. Production retains the configured
+runtime asset base/CDN. Upload the new terrain and 2K color assets before releasing
+the consuming app; the runtime manifest now requires all six profile assets.
+
+Vite bundles module workers. The source-based static deployment and Python build
+also run `scripts/build-moon-worker.mjs`, producing a self-contained worker at the
+same relative path before `src` is revisioned. Worker dependencies cannot rely on
+the page's import map. Gzip uses the native API when available and a bundled
+JavaScript fallback otherwise. Decode failures retain the existing Moon/preview.
+
+## Device policy
+
+URL, global setting and saved tier precede the automatic default. A successful
+user selection updates all three. Default is Medium; Low applies for memory
+≤2 GB, ≤2 logical cores, Save-Data, slow-2G/2G/3G, or touch/coarse pointer with
+unknown memory or ≤4 GB. High is never automatic.
+
+Use the smallest observed GPU texture limit: below 5760, High becomes Medium;
+below 2048, Medium/High becomes Low. Unsupported controls are disabled. Interactive
+pixel ratio is capped at 2 desktop, 1.5 touch, or 1 constrained. GPU dimensions
+do not guarantee available memory. See [architecture and budgets](../../designs/rendering/moon-rendering.md).
+
+Validate native height units, normal orientation/precision, cancellation, all
+three profiles and the unchanged High photographic thresholds before replacing
+assets. Record source, conversion settings, versions and hashes with each change.

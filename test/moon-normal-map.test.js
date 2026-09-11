@@ -4,7 +4,9 @@ import { DataUtils } from "three";
 
 import { buildMoonNormalMapFromHeightTexture } from "../src/platform/js/rendering/moon-normal-map.js";
 
+let decodedHeightData;
 function stubDocumentWithPixels(pixelData, sampleWidth = 4, sampleHeight = 4) {
+    decodedHeightData = Float32Array.from(pixelData.filter((_, i) => i % 4 === 0), value => value / 255);
     const originalDocument = globalThis.document;
     const context2d = {
         drawImage: vi.fn(),
@@ -49,7 +51,7 @@ describe("moon-normal-map", () => {
         ]));
 
         const displacementTexture = new THREE.Texture();
-        displacementTexture.image = { width: 2, height: 2 };
+        displacementTexture.image = { width: 2, height: 2, data: decodedHeightData };
         displacementTexture.flipY = true;
         displacementTexture.wrapS = THREE.RepeatWrapping;
         displacementTexture.wrapT = THREE.MirroredRepeatWrapping;
@@ -81,7 +83,7 @@ describe("moon-normal-map", () => {
         const sourceData = new Uint8ClampedArray(pixels);
 
         const flipYTrue = new THREE.Texture();
-        flipYTrue.image = { width: 4, height: 4 };
+        flipYTrue.image = { width: 4, height: 4, data: Float32Array.from(sourceData.filter((_,i)=>i%4===0),v=>v/255) };
         flipYTrue.flipY = true;
         stubDocumentWithPixels(sourceData);
         const normalFlipYTrue = buildMoonNormalMapFromHeightTexture(flipYTrue);
@@ -90,7 +92,7 @@ describe("moon-normal-map", () => {
         vi.unstubAllGlobals();
 
         const flipYFalse = new THREE.Texture();
-        flipYFalse.image = { width: 4, height: 4 };
+        flipYFalse.image = { width: 4, height: 4, data: Float32Array.from(sourceData.filter((_,i)=>i%4===0),v=>v/255) };
         flipYFalse.flipY = false;
         stubDocumentWithPixels(sourceData);
         const normalFlipYFalse = buildMoonNormalMapFromHeightTexture(flipYFalse);
@@ -116,7 +118,7 @@ describe("moon-normal-map", () => {
         }
         stubDocumentWithPixels(new Uint8ClampedArray(pixels));
         const displacementTexture = new THREE.Texture();
-        displacementTexture.image = { width: 4, height: 4 };
+        displacementTexture.image = { width: 4, height: 4, data: decodedHeightData };
         displacementTexture.flipY = true;
 
         const weak = buildMoonNormalMapFromHeightTexture(displacementTexture, {

@@ -1,0 +1,423 @@
+{
+  "date": "2026-09-11",
+  "status": "local validation; unmerged app/data branches",
+  "startupMethod": "Fresh Chrome contexts, 1600x1000, local staged assets, HMR disabled; first actual Moon onAfterRender transitions. Three seconds of default four-view playback. Single runs, not performance guarantees.",
+  "startup": [
+    {
+      "run": "physical-final-low-tuned",
+      "url": "http://127.0.0.1:7275/artemis2/?moonRenderProfile=low",
+      "events": [
+        {
+          "name": "geo",
+          "event": "mesh-created",
+          "time": 3063.60000000149
+        },
+        {
+          "key": "geo:1024:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 3729.39999999851,
+          "width": 1024,
+          "profile": "low",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:2048:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 5774.30000000447,
+          "width": 2048,
+          "profile": "low",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:2048:1024:1024",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 6366.20000000298,
+          "width": 2048,
+          "profile": "low",
+          "dem": 1024,
+          "normal": 1024
+        }
+      ],
+      "playback": {
+        "initialButton": "\u25b6",
+        "playingButton": "\u23f8",
+        "periodMs": 3027.6000000000004,
+        "animationFrameCount": 58,
+        "moonDrawCalls": 240,
+        "medianFrameMs": 53.30000000000109,
+        "p95FrameMs": 80
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "shaderSurfaces": [
+        {
+          "scene": "geo",
+          "sharedRenderer": "MoonRenderer",
+          "profile": "low",
+          "surfaces": [
+            {
+              "surface": "main",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Frame and ShootZoomAutoTightWide1.1\u00b0ControlsResetCreativeEar",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Craft \u2192 EarthZoomAutoTightWide26.7\u00b0",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Craft \u2192 MoonZoomAutoTightWide1.5\u00b0Visible lunar surfaceFar Si",
+              "model": "physical-dem",
+              "terrainGuard": true
+            }
+          ]
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": "physical-final-medium",
+      "url": "http://127.0.0.1:7275/artemis2/?moonRenderProfile=fast",
+      "events": [
+        {
+          "name": "geo",
+          "event": "mesh-created",
+          "time": 2694.7000000029802
+        },
+        {
+          "key": "geo:1024:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 3438,
+          "width": 1024,
+          "profile": "low",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:4096:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 5597.70000000298,
+          "width": 4096,
+          "profile": "fast",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:4096:2048:2048",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 6798.20000000298,
+          "width": 4096,
+          "profile": "fast",
+          "dem": 2048,
+          "normal": 2048
+        }
+      ],
+      "playback": {
+        "initialButton": "\u25b6",
+        "playingButton": "\u23f8",
+        "periodMs": 3012.1999999955297,
+        "animationFrameCount": 49,
+        "moonDrawCalls": 204,
+        "medianFrameMs": 66.69999999999891,
+        "p95FrameMs": 89.10000000000036
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "shaderSurfaces": [
+        {
+          "scene": "geo",
+          "sharedRenderer": "MoonRenderer",
+          "profile": "fast",
+          "surfaces": [
+            {
+              "surface": "main",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Frame and ShootZoomAutoTightWide1.1\u00b0ControlsResetCreativeEar",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Craft \u2192 EarthZoomAutoTightWide26.7\u00b0",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Craft \u2192 MoonZoomAutoTightWide1.5\u00b0Visible lunar surfaceFar Si",
+              "model": "physical-dem",
+              "terrainGuard": true
+            }
+          ]
+        }
+      ],
+      "errors": []
+    },
+    {
+      "run": "physical-final-high",
+      "url": "http://127.0.0.1:7275/artemis2/?moonRenderProfile=quality",
+      "events": [
+        {
+          "name": "geo",
+          "event": "mesh-created",
+          "time": 2934
+        },
+        {
+          "key": "geo:1024:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 3638.10000000149,
+          "width": 1024,
+          "profile": "low",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:0:0",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 6951.20000000298,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 0,
+          "normal": 0
+        },
+        {
+          "key": "geo:16384:5760:5760",
+          "name": "geo",
+          "event": "textured-frame",
+          "time": 18195.5,
+          "width": 16384,
+          "profile": "quality",
+          "dem": 5760,
+          "normal": 5760
+        }
+      ],
+      "playback": {
+        "initialButton": "\u25b6",
+        "playingButton": "\u23f8",
+        "periodMs": 3031.8999999970183,
+        "animationFrameCount": 60,
+        "moonDrawCalls": 248,
+        "medianFrameMs": 53.29999999999927,
+        "p95FrameMs": 79.70000000000073
+      },
+      "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "shaderSurfaces": [
+        {
+          "scene": "geo",
+          "sharedRenderer": "MoonRenderer",
+          "profile": "quality",
+          "surfaces": [
+            {
+              "surface": "main",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Frame and ShootZoomAutoTightWide1.1\u00b0ControlsResetCreativeEar",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Craft \u2192 EarthZoomAutoTightWide26.7\u00b0",
+              "model": "physical-dem",
+              "terrainGuard": true
+            },
+            {
+              "surface": "Craft \u2192 MoonZoomAutoTightWide1.5\u00b0Visible lunar surfaceFar Si",
+              "model": "physical-dem",
+              "terrainGuard": true
+            }
+          ]
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "drawBenchmark": {
+    "method": "Moon-only 1024x1024 offscreen rendering; 10 warm-up draws, 60 measured draws with GPU elapsed queries (or labeled synchronous readback fallback); excludes other mission views/UI and startup. Inspect GPU before interpreting performance.",
+    "baseUrl": "http://127.0.0.1:7275",
+    "hardwareRequested": true,
+    "results": [
+      {
+        "tier": "low",
+        "model": "physical-dem",
+        "profile": "low",
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "timing": "GPU elapsed query",
+        "draws": 60,
+        "medianMs": 0.11776,
+        "p95Ms": 0.125952,
+        "litPixels": 411480,
+        "triangles": 65024,
+        "normalEncoding": "physical-spherical-rgba8",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "resourceSummary": "256x128 / 2048px + DEM 1024px uint16 (36/15/0 ms)"
+      },
+      {
+        "tier": "medium",
+        "model": "physical-dem",
+        "profile": "fast",
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "timing": "GPU elapsed query",
+        "draws": 60,
+        "medianMs": 0.68608,
+        "p95Ms": 0.958464,
+        "litPixels": 410303,
+        "triangles": 146688,
+        "normalEncoding": "physical-spherical-rgba8",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "resourceSummary": "384x192 / 4096px + DEM 2048px uint16 (91/54/0 ms)"
+      },
+      {
+        "tier": "high",
+        "model": "physical-dem",
+        "profile": "quality",
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "timing": "GPU elapsed query",
+        "draws": 60,
+        "medianMs": 1.358848,
+        "p95Ms": 1.73568,
+        "litPixels": 405605,
+        "triangles": 1046528,
+        "normalEncoding": "physical-spherical-half-float",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "resourceSummary": "1024x512 / 16384px + DEM 5760px uint16 (196/4391/1148 ms)"
+      }
+    ]
+  },
+  "terrainProvenance": {
+    "source": "images/moon/ldem_16_uint_quality.png",
+    "sourceSha256": "37b3a7f19157298e21a3a0cb982827f20bf71fbbfe4f79565da95b9dbdc19a81",
+    "sourceWidth": 5760,
+    "sourceHeight": 2880,
+    "heightUnits": "NASA uint16: half metres with +10000 metre offset; radius 1737400 metres",
+    "reduction": "area average, rounded to original half-metre units; no normalization",
+    "normals": "buildPhysicalMoonNormalData; slopeBoost=1; same function used by High worker",
+    "format": "MOONDEM1 little-endian header + uint16 heights + RGB8 physical normals; gzip level 9",
+    "outputs": [
+      {
+        "tier": "low",
+        "file": "images/moon/terrain-low-v1.moon.gz",
+        "width": 1024,
+        "height": 512,
+        "bytes": 1697438,
+        "sha256": "6f24056ffd8af7dfb1655ef1ea78d851fdc920a09b5d11c0152574a470074eee"
+      },
+      {
+        "tier": "medium",
+        "file": "images/moon/terrain-medium-v1.moon.gz",
+        "width": 2048,
+        "height": 1024,
+        "bytes": 7047045,
+        "sha256": "baee382696e4ba7ce760dc86b03a404f253c7f60aca6f4db4c613ec12d579642"
+      }
+    ]
+  },
+  "staticBuildSmoke": {
+    "profiles": [
+      {
+        "tier": "low",
+        "resources": "256x128 / 2048px + DEM 1024px uint16 (64/30/0 ms)"
+      },
+      {
+        "tier": "medium",
+        "resources": "384x192 / 4096px + DEM 2048px uint16 (85/102/0 ms)"
+      },
+      {
+        "tier": "high",
+        "resources": "1024x512 / 16384px + DEM 5760px uint16 (160/6180/1327 ms)"
+      }
+    ],
+    "workers": [
+      {
+        "file": "terrain-low-v1.moon.gz",
+        "disableNative": false,
+        "width": 1024,
+        "height": 512,
+        "normalType": "uint8",
+        "heights": [
+          0.3020981252193451,
+          0.3020065724849701,
+          0.3018539845943451,
+          0.3018234670162201,
+          0.3017013669013977,
+          0.3015792965888977,
+          0.3016098141670227,
+          0.3014724850654602
+        ]
+      },
+      {
+        "file": "terrain-low-v1.moon.gz",
+        "disableNative": true,
+        "width": 1024,
+        "height": 512,
+        "normalType": "uint8",
+        "heights": [
+          0.3020981252193451,
+          0.3020065724849701,
+          0.3018539845943451,
+          0.3018234670162201,
+          0.3017013669013977,
+          0.3015792965888977,
+          0.3016098141670227,
+          0.3014724850654602
+        ]
+      },
+      {
+        "file": "ldem_16_uint_quality.png",
+        "disableNative": false,
+        "width": 5760,
+        "height": 2880,
+        "normalType": "half-float",
+        "heights": [
+          0.3035477101802826,
+          0.3038681745529175,
+          0.3037002980709076,
+          0.3033340871334076,
+          0.3033493459224701,
+          0.3033646047115326,
+          0.3035171926021576,
+          0.3034866750240326
+        ]
+      }
+    ],
+    "errors": []
+  },
+  "validation": {
+    "unitPassed": 1456,
+    "unitSkipped": 31,
+    "unitFiles": 205,
+    "loadingBrowserChecks": 24,
+    "loadingEngines": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ],
+    "observerRegressions": 12,
+    "auxiliaryLayoutBaselineFailures": 3,
+    "auxiliaryBaselineCommit": "80a17af108ceaf8d0c6f9b58e1d5349b257b897b"
+  }
+}

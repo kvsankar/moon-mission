@@ -27,7 +27,20 @@ export function createMoonObserverProfileLoader({
         try {
             let resources;
             try {
-                resources = await loadResources(profile, { signal: controller?.signal || null });
+                resources = await loadResources(profile, {
+                    signal: controller?.signal || null,
+                    onPreview: async (preview) => {
+                        if (requestId !== latestRequestId || controller?.signal.aborted) {
+                            disposeResources(preview);
+                            return;
+                        }
+                        await applyResources({
+                            profile: preview.moonRenderProfile || "low",
+                            resources: preview,
+                            isCurrent: () => requestId === latestRequestId,
+                        });
+                    },
+                });
             } catch (error) {
                 if (requestId !== latestRequestId || error?.name === "AbortError") return false;
                 throw error;

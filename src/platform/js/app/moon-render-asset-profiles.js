@@ -1,52 +1,41 @@
+import { MOON_HEIGHT_SCALE, MOON_HEIGHT_BIAS } from "../rendering/moon-terrain-package.js";
+import { constrainMoonRenderProfile, resolveDefaultMoonProfile } from "../core/domain/render-device-policy.js";
+
 const DEFAULT_FAST_MOON_RENDER_ASSET_PATHS = Object.freeze({
     moonMap: "images/moon/lroc_color_2025_4k_fast.jpg",
-    moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
+    moonDisplacementMap: "images/moon/terrain-medium-v1.moon.gz",
 });
 
 const DEFAULT_LOW_MOON_RENDER_ASSET_PATHS = Object.freeze({
-    moonMap: DEFAULT_FAST_MOON_RENDER_ASSET_PATHS.moonMap,
-    moonDisplacementMap: "",
+    moonMap: "images/moon/lroc_color_2025_2k_low.jpg",
+    moonDisplacementMap: "images/moon/terrain-low-v1.moon.gz",
 });
 
 const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     geometryWidthSegments: 384,
     geometryHeightSegments: 192,
     normalMapMaxWidth: 2048,
-    normalMapStrength: 2.2,
-    normalDetailBoost: 1.85,
-    normalDetailRadius: 4,
     normalScale: 2.0,
     displacementScale: 0.012,
     displacementBias: -0.0046,
     physicalGeometryWidthSegments: 384,
     physicalGeometryHeightSegments: 192,
-    physicalDisplacementScale: 0.012,
-    physicalDisplacementBias: -0.0046,
-    physicalNormalHeightScale: 0.0,
+    physicalDisplacementScale: MOON_HEIGHT_SCALE,
+    physicalDisplacementBias: MOON_HEIGHT_BIAS,
+    physicalNormalHeightScale: MOON_HEIGHT_SCALE,
     physicalNormalResolutionCompensation: 1.0,
     physicalNormalSlopeBoost: 1.0,
     physicalNormalSlopeBoostStart: 0.16,
     physicalNormalSlopeBoostEnd: 0.34,
-    physicalTerrainShadowTexelStride: 0.0,
-    physicalTerrainShadowSamples: 0,
+    physicalTerrainShadowTexelStride: 1.0,
+    physicalTerrainShadowSamples: 8,
     roughness: 0.958,
     metalness: 0.0,
     lommelSeeligerBlend: 0.20,
-    lsClampMin: 0.76,
-    lsClampMax: 1.0,
-    oppositionStrength: 0.0022,
     shadowLift: 0.0,
-    highlightBoost: 1.15,
     shadowWeightExponent: 1.9,
-    highlightWeightExponent: 1.2,
-    terminatorContrast: 1.8,
-    terminatorReliefStrength: 7.0,
-    terminatorShadowFloor: 0.04,
-    terminatorIndirectOcclusion: 0.96,
-    terrainReliefStrength: 1.8,
     terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 6.0,
-    terrainShadowSlopeBias: 0.0014,
     terrainShadowSamples: 6,
     shadowNormalBias: 0.00022,
     shadowBias: -0.000004,
@@ -56,9 +45,6 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     geometryWidthSegments: 512,
     geometryHeightSegments: 512,
     normalMapMaxWidth: 5760,
-    normalMapStrength: 2.4,
-    normalDetailBoost: 2.0,
-    normalDetailRadius: 4,
     normalScale: 2.2,
     displacementScale: 0.013,
     displacementBias: -0.0048,
@@ -78,21 +64,10 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     roughness: 0.955,
     metalness: 0.0,
     lommelSeeligerBlend: 0.20,
-    lsClampMin: 0.74,
-    lsClampMax: 1.0,
-    oppositionStrength: 0.0023,
     shadowLift: 0.0,
-    highlightBoost: 1.20,
     shadowWeightExponent: 1.92,
-    highlightWeightExponent: 1.2,
-    terminatorContrast: 1.8,
-    terminatorReliefStrength: 7.5,
-    terminatorShadowFloor: 0.0,
-    terminatorIndirectOcclusion: 1.0,
-    terrainReliefStrength: 2.2,
     terrainShadowStrength: 1.2,
     terrainShadowTexelStride: 7.0,
-    terrainShadowSlopeBias: 0.0014,
     terrainShadowSamples: 12,
     shadowNormalBias: 0.00018,
     shadowBias: -0.000003,
@@ -100,24 +75,24 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
 
 const DEFAULT_LOW_MOON_RENDER_SETTINGS = Object.freeze({
     ...DEFAULT_FAST_MOON_RENDER_SETTINGS,
+    geometryWidthSegments: 256,
+    geometryHeightSegments: 128,
+    normalMapMaxWidth: 1024,
+    physicalGeometryWidthSegments: 256,
+    physicalGeometryHeightSegments: 128,
+    physicalTerrainShadowSamples: 4,
+});
+
+export const MOON_PREVIEW_RENDER_SETTINGS = Object.freeze({
+    ...DEFAULT_LOW_MOON_RENDER_SETTINGS,
     geometryWidthSegments: 128,
     geometryHeightSegments: 64,
-    normalMapMaxWidth: 512,
-    normalMapStrength: 0.0,
-    normalDetailBoost: 0.0,
-    normalScale: 0.0,
-    displacementScale: 0.0,
-    displacementBias: 0.0,
     physicalGeometryWidthSegments: 128,
     physicalGeometryHeightSegments: 64,
-    physicalDisplacementScale: 0.0,
-    physicalDisplacementBias: 0.0,
-    physicalNormalHeightScale: 0.0,
-    physicalTerrainShadowTexelStride: 0.0,
+    physicalDisplacementScale: 0,
+    physicalDisplacementBias: 0,
+    physicalNormalHeightScale: 0,
     physicalTerrainShadowSamples: 0,
-    terrainReliefStrength: 0.0,
-    terrainShadowStrength: 0.0,
-    terrainShadowSamples: 0,
 });
 
 export const MOON_RENDER_ASSET_PROFILE_STORAGE_KEY = "moonRenderAssetProfile";
@@ -166,42 +141,6 @@ function normalizeProfileName(value) {
     return null;
 }
 
-function resolveMissionSlug({ searchText = "", pathname = "" } = {}) {
-    try {
-        const params = new URLSearchParams(searchText);
-        const missionFromQuery = String(params.get("mission") || "").trim().toLowerCase();
-        if (missionFromQuery) {
-            return missionFromQuery;
-        }
-    } catch {
-        // Ignore malformed query strings.
-    }
-
-    const segments = String(pathname || "")
-        .split("/")
-        .map((segment) => segment.trim().toLowerCase())
-        .filter(Boolean);
-    if (segments.length === 0) {
-        return "";
-    }
-    const lastSegment = segments[segments.length - 1];
-    if (lastSegment && lastSegment !== "mission.html" && lastSegment !== "index.html") {
-        return lastSegment;
-    }
-    return "";
-}
-
-function resolveMissionDefaultMoonRenderProfile({
-    searchText = "",
-    pathname = "",
-} = {}) {
-    const missionSlug = resolveMissionSlug({ searchText, pathname });
-    if (missionSlug === "artemis2") {
-        return "quality";
-    }
-    return null;
-}
-
 function normalizeAssetPath(pathValue, fallbackValue) {
     const normalized = String(pathValue || "").trim();
     return normalized || fallbackValue;
@@ -213,6 +152,9 @@ function migrateLegacyMoonAssetPath(profileName, assetKey, pathValue) {
         return normalized;
     }
 
+    if (assetKey === "moonDisplacementMap" && normalized === "images/moon/ldem_16_gsfc.png") {
+        return DEFAULT_MOON_RENDER_ASSET_PROFILES[profileName].moonDisplacementMap;
+    }
     if (assetKey === "moonMap") {
         if (profileName === "fast" && normalized === "images/moon/Solarsystemscope_texture_8k_moon.jpg") {
             return DEFAULT_FAST_MOON_RENDER_ASSET_PATHS.moonMap;
@@ -231,161 +173,9 @@ function normalizeFiniteNumber(value, fallbackValue) {
 }
 
 function mergeRenderSettings(defaultSettings, overrides) {
-    if (!overrides || typeof overrides !== "object") {
-        return { ...defaultSettings };
-    }
-
-    return {
-        geometryWidthSegments: normalizeFiniteNumber(
-            overrides.geometryWidthSegments,
-            defaultSettings.geometryWidthSegments,
-        ),
-        geometryHeightSegments: normalizeFiniteNumber(
-            overrides.geometryHeightSegments,
-            defaultSettings.geometryHeightSegments,
-        ),
-        normalMapMaxWidth: normalizeFiniteNumber(
-            overrides.normalMapMaxWidth,
-            defaultSettings.normalMapMaxWidth,
-        ),
-        normalMapStrength: normalizeFiniteNumber(
-            overrides.normalMapStrength,
-            defaultSettings.normalMapStrength,
-        ),
-        normalDetailBoost: normalizeFiniteNumber(
-            overrides.normalDetailBoost,
-            defaultSettings.normalDetailBoost,
-        ),
-        normalDetailRadius: normalizeFiniteNumber(
-            overrides.normalDetailRadius,
-            defaultSettings.normalDetailRadius,
-        ),
-        normalScale: normalizeFiniteNumber(overrides.normalScale, defaultSettings.normalScale),
-        displacementScale: normalizeFiniteNumber(
-            overrides.displacementScale,
-            defaultSettings.displacementScale,
-        ),
-        displacementBias: normalizeFiniteNumber(
-            overrides.displacementBias,
-            defaultSettings.displacementBias,
-        ),
-        physicalGeometryWidthSegments: normalizeFiniteNumber(
-            overrides.physicalGeometryWidthSegments,
-            defaultSettings.physicalGeometryWidthSegments,
-        ),
-        physicalGeometryHeightSegments: normalizeFiniteNumber(
-            overrides.physicalGeometryHeightSegments,
-            defaultSettings.physicalGeometryHeightSegments,
-        ),
-        physicalDisplacementScale: normalizeFiniteNumber(
-            overrides.physicalDisplacementScale,
-            defaultSettings.physicalDisplacementScale,
-        ),
-        physicalDisplacementBias: normalizeFiniteNumber(
-            overrides.physicalDisplacementBias,
-            defaultSettings.physicalDisplacementBias,
-        ),
-        physicalNormalHeightScale: normalizeFiniteNumber(
-            overrides.physicalNormalHeightScale,
-            defaultSettings.physicalNormalHeightScale,
-        ),
-        physicalNormalResolutionCompensation: normalizeFiniteNumber(
-            overrides.physicalNormalResolutionCompensation,
-            defaultSettings.physicalNormalResolutionCompensation,
-        ),
-        physicalNormalSlopeBoost: normalizeFiniteNumber(
-            overrides.physicalNormalSlopeBoost,
-            defaultSettings.physicalNormalSlopeBoost,
-        ),
-        physicalNormalSlopeBoostStart: normalizeFiniteNumber(
-            overrides.physicalNormalSlopeBoostStart,
-            defaultSettings.physicalNormalSlopeBoostStart,
-        ),
-        physicalNormalSlopeBoostEnd: normalizeFiniteNumber(
-            overrides.physicalNormalSlopeBoostEnd,
-            defaultSettings.physicalNormalSlopeBoostEnd,
-        ),
-        physicalTerrainShadowTexelStride: normalizeFiniteNumber(
-            overrides.physicalTerrainShadowTexelStride,
-            defaultSettings.physicalTerrainShadowTexelStride,
-        ),
-        physicalTerrainShadowSamples: normalizeFiniteNumber(
-            overrides.physicalTerrainShadowSamples,
-            defaultSettings.physicalTerrainShadowSamples,
-        ),
-        roughness: normalizeFiniteNumber(overrides.roughness, defaultSettings.roughness),
-        metalness: normalizeFiniteNumber(overrides.metalness, defaultSettings.metalness),
-        lommelSeeligerBlend: normalizeFiniteNumber(
-            overrides.lommelSeeligerBlend,
-            defaultSettings.lommelSeeligerBlend,
-        ),
-        lsClampMin: normalizeFiniteNumber(overrides.lsClampMin, defaultSettings.lsClampMin),
-        lsClampMax: normalizeFiniteNumber(overrides.lsClampMax, defaultSettings.lsClampMax),
-        oppositionStrength: normalizeFiniteNumber(
-            overrides.oppositionStrength,
-            defaultSettings.oppositionStrength,
-        ),
-        shadowLift: normalizeFiniteNumber(overrides.shadowLift, defaultSettings.shadowLift),
-        highlightBoost: normalizeFiniteNumber(
-            overrides.highlightBoost,
-            defaultSettings.highlightBoost,
-        ),
-        shadowWeightExponent: normalizeFiniteNumber(
-            overrides.shadowWeightExponent,
-            defaultSettings.shadowWeightExponent,
-        ),
-        highlightWeightExponent: normalizeFiniteNumber(
-            overrides.highlightWeightExponent,
-            defaultSettings.highlightWeightExponent,
-        ),
-        terminatorContrast: normalizeFiniteNumber(
-            overrides.terminatorContrast,
-            defaultSettings.terminatorContrast,
-        ),
-        terminatorReliefStrength: normalizeFiniteNumber(
-            overrides.terminatorReliefStrength,
-            defaultSettings.terminatorReliefStrength,
-        ),
-        terminatorShadowFloor: normalizeFiniteNumber(
-            overrides.terminatorShadowFloor,
-            defaultSettings.terminatorShadowFloor,
-        ),
-        terminatorIndirectOcclusion: normalizeFiniteNumber(
-            overrides.terminatorIndirectOcclusion,
-            defaultSettings.terminatorIndirectOcclusion,
-        ),
-        terrainReliefStrength: normalizeFiniteNumber(
-            overrides.terrainReliefStrength,
-            normalizeFiniteNumber(
-                overrides.terrainShadowStrength,
-                defaultSettings.terrainReliefStrength,
-            ),
-        ),
-        terrainShadowStrength: normalizeFiniteNumber(
-            overrides.terrainShadowStrength,
-            defaultSettings.terrainShadowStrength,
-        ),
-        terrainShadowTexelStride: normalizeFiniteNumber(
-            overrides.terrainShadowTexelStride,
-            defaultSettings.terrainShadowTexelStride,
-        ),
-        terrainShadowSlopeBias: normalizeFiniteNumber(
-            overrides.terrainShadowSlopeBias,
-            defaultSettings.terrainShadowSlopeBias,
-        ),
-        terrainShadowSamples: normalizeFiniteNumber(
-            overrides.terrainShadowSamples,
-            defaultSettings.terrainShadowSamples,
-        ),
-        shadowNormalBias: normalizeFiniteNumber(
-            overrides.shadowNormalBias,
-            defaultSettings.shadowNormalBias,
-        ),
-        shadowBias: normalizeFiniteNumber(
-            overrides.shadowBias,
-            defaultSettings.shadowBias,
-        ),
-    };
+    return Object.fromEntries(Object.entries(defaultSettings).map(([key, value]) => [
+        key, normalizeFiniteNumber(overrides?.[key], value),
+    ]));
 }
 
 export function resolveMoonRenderAssetProfiles({
@@ -479,40 +269,15 @@ export function resolveMoonRenderAssetProfile({
     search = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 } = {}) {
-    const searchText = search == null
-        ? String(globalObject?.location?.search || "")
-        : String(search || "");
-    const pathname = String(globalObject?.location?.pathname || "");
+    const searchText = search == null ? String(globalObject?.location?.search || "") : String(search || "");
     const params = new URLSearchParams(searchText);
-    const queryProfile = normalizeProfileName(
-        params.get("moonRenderProfile") || params.get("moonProfile"),
-    );
-    if (queryProfile) {
-        return queryProfile;
-    }
-
+    const queryProfile = normalizeProfileName(params.get("moonRenderProfile") || params.get("moonProfile"));
     const globalProfile = normalizeProfileName(globalObject?.MOON_RENDER_ASSET_PROFILE);
-    if (globalProfile) {
-        return globalProfile;
-    }
-
-    const storage = safeGetStorage(globalObject);
-    const storedProfile = normalizeProfileName(
-        storage?.getItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY),
+    const storedProfile = normalizeProfileName(safeGetStorage(globalObject)?.getItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY));
+    return constrainMoonRenderProfile(
+        queryProfile || globalProfile || storedProfile || resolveDefaultMoonProfile(globalObject),
+        globalObject,
     );
-    if (storedProfile) {
-        return storedProfile;
-    }
-
-    const missionDefaultProfile = resolveMissionDefaultMoonRenderProfile({
-        searchText,
-        pathname,
-    });
-    if (missionDefaultProfile) {
-        return missionDefaultProfile;
-    }
-
-    return "fast";
 }
 
 export function resolveMoonRenderAssetSelection({
@@ -522,8 +287,10 @@ export function resolveMoonRenderAssetSelection({
 } = {}) {
     const profiles = resolveMoonRenderAssetProfiles({ globalObject });
     const settingsProfiles = resolveMoonRenderProfileSettings({ globalObject });
-    const resolvedProfile = normalizeProfileName(profile) ||
-        resolveMoonRenderAssetProfile({ search, globalObject });
+    const resolvedProfile = constrainMoonRenderProfile(
+        normalizeProfileName(profile) || resolveMoonRenderAssetProfile({ search, globalObject }),
+        globalObject,
+    );
     const active = profiles[resolvedProfile] || profiles.fast;
     const activeRenderSettings = settingsProfiles[resolvedProfile] || settingsProfiles.fast;
 

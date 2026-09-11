@@ -62,6 +62,14 @@ domain. Other document classes remain separate:
   - `src/platform/js/app/*`
   - `src/platform/js/ui/*`
 
+### Shared Moon rendering
+
+Every 3D Moon uses `MoonRenderer` and the Physical pipeline. Low/Medium/High
+vary assets, precision, geometry and sampling; Current has been removed.
+Main and auxiliary cameras share the mesh; observer/tuner use the same class
+and loader. See [Moon Rendering Architecture](../rendering/moon-rendering.md)
+for ownership, budgets, migration and validation.
+
 ### UI control synchronization model
 
 - The header pill strip and settings panel are synchronized UI surfaces over shared runtime state.

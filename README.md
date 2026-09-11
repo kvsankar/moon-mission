@@ -27,6 +27,15 @@ Manzinus.** Preserve this version as the regression and recovery reference for
 future Moon lighting work. See the [working-version record](docs/research/moon-rendering/terminator-working-version.md)
 for the fix, visual evidence, validation commands, and runtime asset checksums.
 
+## Moon rendering
+
+All 3D Moon views share one Physical renderer with Low, Medium and High quality
+budgets. A bundled preview appears first; terrain loads in the background.
+Low/Medium use compact terrain prepared with the same normal algorithm as High,
+which retains the accepted terminator response. The legacy Current model is retired.
+See [Moon rendering architecture](docs/designs/rendering/moon-rendering.md) for
+code ownership, device defaults, measured performance and remaining limits.
+
 ## Features
 
 I created this animation for educational purposes. It has the following features:

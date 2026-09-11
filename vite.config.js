@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import { cpSync, existsSync } from "fs";
+import { execFileSync } from "node:child_process";
 
 import {
     getAppRoot,
@@ -10,7 +11,7 @@ import {
 } from "./scripts/lib/mission-pages.mjs";
 
 const APP_ROOT = getAppRoot();
-const DIST_ROOT = resolve(APP_ROOT, "dist");
+let DIST_ROOT = resolve(APP_ROOT, "dist");
 
 function copyStaticDeployAssets() {
     const copyTargets = [
@@ -65,6 +66,9 @@ function applyStreamingMediaHeaders(pathname, res) {
 }
 
 function createMissionPageRoutePlugin() {
+    let isDev = false;
+    let didWriteBundle = false;
+    const withLocalAssets = html => html.replace(/<head(?:\s[^>]*)?>/i, match => `${match}<script>window.MOON_MISSION_ASSET_BASE_URL ||= location.origin + "/";</script>`);
     const context = loadMissionPageContext({ appRoot: APP_ROOT });
     const missionFolders = new Set(
         (context.missions || [])
@@ -86,6 +90,9 @@ function createMissionPageRoutePlugin() {
 
     return {
         name: "mission-page-routes",
+        configResolved(config) { isDev = config.command === "serve"; DIST_ROOT = resolve(config.root, config.build.outDir); },
+        writeBundle() { didWriteBundle = true; },
+        transformIndexHtml(html) { return isDev ? withLocalAssets(html) : html; },
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
                 try {
@@ -119,14 +126,16 @@ function createMissionPageRoutePlugin() {
 
                     res.statusCode = 200;
                     res.setHeader("Content-Type", "text/html; charset=utf-8");
-                    res.end(html);
+                    res.end(withLocalAssets(html));
                 } catch (error) {
                     next(error);
                 }
             });
         },
         closeBundle() {
+            if (!didWriteBundle) return;
             copyStaticDeployAssets();
+            execFileSync(process.execPath, [resolve(APP_ROOT, "scripts/build-moon-worker.mjs"), "--out-dir", resolve(DIST_ROOT, "src/platform/js/workers")], { cwd: APP_ROOT, stdio: "inherit" });
             writeMissionPages({
                 appRoot: APP_ROOT,
                 outputRoot: DIST_ROOT,
@@ -136,6 +145,7 @@ function createMissionPageRoutePlugin() {
 }
 
 export default defineConfig({
+    worker: { format: "es" },
     root: ".",
     appType: "mpa",
     publicDir: false,

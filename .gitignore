@@ -191,3 +191,9 @@ docs/third-party-audit-*.md
 
 # Local-only Sun reference image packs used for visual tuning
 docs/design/references/sun-fov/
+
+# Physical Moon terrain profiles and provenance
+!images/moon/terrain-low-v1.moon.gz
+!images/moon/terrain-medium-v1.moon.gz
+!images/moon/terrain-v1-provenance.json
+!images/moon/lroc_color_2025_2k_low.jpg
