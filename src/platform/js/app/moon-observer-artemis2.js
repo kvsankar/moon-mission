@@ -16,6 +16,7 @@ const REFERENCE_REGISTRATION = Object.freeze({
         targetLongitude: -125.3453,
         rollDegrees: 91.14,
         verticalFovDegrees: 6.146,
+        comparisonFovDegrees: 8.0,
     }),
 });
 
@@ -52,6 +53,22 @@ export function resolveReferenceVerticalFovDegrees(settingsText, sensorHeightMm 
     return 2 * Math.atan(Number(sensorHeightMm) / (2 * focalLengthMm)) * 180 / Math.PI;
 }
 
+export function resolveReferenceAngularScale(sourceFovDegrees, comparisonFovDegrees) {
+    const sourceFov = Number(sourceFovDegrees);
+    const comparisonFov = Number(comparisonFovDegrees);
+    if (
+        !Number.isFinite(sourceFov)
+        || !Number.isFinite(comparisonFov)
+        || sourceFov <= 0
+        || comparisonFov <= 0
+    ) {
+        return 1;
+    }
+    const sourceTangent = Math.tan(sourceFov * Math.PI / 360);
+    const comparisonTangent = Math.tan(comparisonFov * Math.PI / 360);
+    return sourceTangent / comparisonTangent;
+}
+
 function resolveReferenceAssetUrl(fileName, mediaBase) {
     const base = String(mediaBase || "").replace(/\/?$/, "/");
     return `${base}web/${encodeURIComponent(String(fileName || ""))}`;
@@ -65,7 +82,9 @@ export function mergeArtemisReferenceRegistration(reference, state, explicitPara
     const has = (key) => explicitParams?.has?.(key) === true;
     return {
         ...state,
-        cameraFovDegrees: has("fov") ? state.cameraFovDegrees : reference.verticalFovDegrees,
+        cameraFovDegrees: has("fov")
+            ? state.cameraFovDegrees
+            : (reference.comparisonFovDegrees || reference.verticalFovDegrees),
         targetMode: has("target") ? state.targetMode : reference.targetMode,
         targetLatitude: has("targetLat") ? state.targetLatitude : reference.targetLatitude,
         targetLongitude: has("targetLon") ? state.targetLongitude : reference.targetLongitude,
@@ -105,6 +124,9 @@ export function createArtemis2MoonReferencePresets({ manifest, ephemeris }) {
             fileName: String(photo.file || ""),
             assetUrl: resolveReferenceAssetUrl(photo.file, manifest?.mediaBase),
             verticalFovDegrees: Number(registration.verticalFovDegrees)
+                || resolveReferenceVerticalFovDegrees(photo.settings),
+            comparisonFovDegrees: Number(registration.comparisonFovDegrees)
+                || Number(registration.verticalFovDegrees)
                 || resolveReferenceVerticalFovDegrees(photo.settings),
             targetMode: registration.targetMode || "center",
             targetLatitude: Number(registration.targetLatitude) || 0,

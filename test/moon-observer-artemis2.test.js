@@ -5,6 +5,7 @@ import {
     createArtemis2MoonReferencePresets,
     mergeArtemisReferenceRegistration,
     parseArtemis2ReferenceTime,
+    resolveReferenceAngularScale,
     resolveReferenceVerticalFovDegrees,
 } from "../src/platform/js/app/moon-observer-artemis2.js";
 import { resolveMoonSpacecraftObserverGeometry } from "../src/platform/js/app/moon-observer-geometry.js";
@@ -31,6 +32,7 @@ describe("Artemis II Moon observer references", () => {
             targetLongitude: -125.3453,
             rollDegrees: 91.14,
             verticalFovDegrees: 6.146,
+            comparisonFovDegrees: 8,
             registrationStatus: "registered",
         });
         expect(Math.hypot(
@@ -52,6 +54,12 @@ describe("Artemis II Moon observer references", () => {
 
     it("derives the Nikon D5 vertical field of view from focal length", () => {
         expect(resolveReferenceVerticalFovDegrees("220mm · f/7.1")).toBeCloseTo(6.218, 2);
+    });
+
+    it("keeps reference and render angular scales aligned in a wider comparison frame", () => {
+        expect(resolveReferenceAngularScale(6.146, 8)).toBeCloseTo(0.767738, 6);
+        expect(resolveReferenceAngularScale(6.146, 6.146)).toBe(1);
+        expect(resolveReferenceAngularScale(6.146, 1)).toBeCloseTo(6.151744, 6);
     });
 
     it("builds a time-stamped Ohm preset from mission ephemeris", () => {
@@ -93,6 +101,7 @@ describe("Artemis II Moon observer references", () => {
             targetLongitude: -125.3453,
             rollDegrees: 91.14,
             verticalFovDegrees: 6.146,
+            comparisonFovDegrees: 8,
             assetUrl: "https://assets.example/artemis2/web/example%20image.jpg",
         });
     });

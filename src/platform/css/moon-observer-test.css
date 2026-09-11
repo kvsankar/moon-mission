@@ -256,6 +256,12 @@ input:disabled {
 }
 
 #observer-reference-image {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: calc(var(--observer-reference-scale, 1) * 100%);
+    height: calc(var(--observer-reference-scale, 1) * 100%);
+    transform: translate(-50%, -50%);
     object-fit: contain;
     background: #000000;
 }

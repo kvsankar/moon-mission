@@ -9,7 +9,7 @@ function luminance(data, index) {
     return data[index] * 0.2126 + data[index + 1] * 0.7152 + data[index + 2] * 0.0722;
 }
 
-function compareRegisteredDarkRegion(referenceBuffer, renderBuffer) {
+function compareRegisteredDarkRegion(referenceBuffer, renderBuffer, ohmBounds) {
     const reference = PNG.sync.read(referenceBuffer);
     const render = PNG.sync.read(renderBuffer);
     expect(render.width).toBe(reference.width);
@@ -34,9 +34,10 @@ function compareRegisteredDarkRegion(referenceBuffer, renderBuffer) {
             if (referenceValue < 16) referenceNearBlack += 1;
             if (renderValue < 16) renderNearBlack += 1;
             if (
-                x >= reference.width * 0.87
-                && y >= reference.height * 0.67
-                && y < reference.height * 0.89
+                x >= reference.width * ohmBounds.xMin
+                && x < reference.width * ohmBounds.xMax
+                && y >= reference.height * ohmBounds.yMin
+                && y < reference.height * ohmBounds.yMax
             ) {
                 ohmPixels += 1;
                 if (referenceValue < 16) ohmReferenceNearBlack += 1;
@@ -52,6 +53,20 @@ function compareRegisteredDarkRegion(referenceBuffer, renderBuffer) {
         ohmNearBlackDelta: ohmRenderNearBlack / ohmPixels
             - ohmReferenceNearBlack / ohmPixels,
     };
+}
+
+function countWidenedDarkContext(renderBuffer, startRow) {
+    const render = PNG.sync.read(renderBuffer);
+    let visibleTerrain = 0;
+    let nearBlack = 0;
+    for (let y = Math.max(0, Math.floor(startRow)); y < render.height; y += 1) {
+        for (let x = 0; x < render.width; x += 1) {
+            const value = luminance(render.data, (y * render.width + x) * 4);
+            if (value > 2) visibleTerrain += 1;
+            if (value < 16) nearBlack += 1;
+        }
+    }
+    return { visibleTerrain, nearBlack };
 }
 
 describe("Moon observer Artemis II comparison", () => {
@@ -81,7 +96,7 @@ describe("Moon observer Artemis II comparison", () => {
         ), null, { timeout: 180000 });
 
         expect(await page.locator("#observer-time").inputValue()).toBe("2026-04-06T22:41:58");
-        expect(await page.locator("#observer-camera-fov").inputValue()).toBe("6.146");
+        expect(await page.locator("#observer-camera-fov").inputValue()).toBe("8");
         expect(await page.locator("#observer-roll").inputValue()).toBe("91.14");
         expect(await page.locator("#observer-target-latitude").inputValue()).toBe("17.3461");
         expect(await page.locator("#observer-target-longitude").inputValue()).toBe("-125.3453");
@@ -90,15 +105,34 @@ describe("Moon observer Artemis II comparison", () => {
         expect(await page.locator('[data-physical-control="physicalExposure"]').inputValue()).toBe("0.4");
         expect(await page.locator('[data-physical-control="physicalToneGamma"]').inputValue()).toBe("1.06");
 
-        const calibration = compareRegisteredDarkRegion(
-            await page.locator("#observer-reference-image").screenshot(),
-            await page.locator("#observer-canvas").screenshot(),
-        );
+        const referenceFrame = page.locator("#observer-reference-frame");
+        const renderCanvas = page.locator("#observer-canvas");
+        const referenceFrameBox = await referenceFrame.boundingBox();
+        const referenceImageBox = await page.locator("#observer-reference-image").boundingBox();
+        const referenceBuffer = await referenceFrame.screenshot();
+        const renderBuffer = await renderCanvas.screenshot();
+        const referenceScale = referenceImageBox.width / referenceFrameBox.width;
+        const referenceInset = (1 - referenceScale) / 2;
+        const calibration = compareRegisteredDarkRegion(referenceBuffer, renderBuffer, {
+            xMin: referenceInset + 0.87 * referenceScale,
+            xMax: referenceInset + referenceScale,
+            yMin: referenceInset + 0.67 * referenceScale,
+            yMax: referenceInset + 0.89 * referenceScale,
+        });
         expect(calibration.pixels).toBeGreaterThan(30000);
         expect(Math.abs(calibration.meanDelta)).toBeLessThan(5);
         expect(Math.abs(calibration.nearBlackDelta)).toBeLessThan(0.025);
         expect(calibration.ohmPixels).toBeGreaterThan(1000);
         expect(Math.abs(calibration.ohmNearBlackDelta)).toBeLessThan(0.04);
+        expect(referenceScale).toBeCloseTo(0.767738, 4);
+        const renderHeight = PNG.sync.read(renderBuffer).height;
+        const sourceBottomRow = (
+            (referenceImageBox.y + referenceImageBox.height - referenceFrameBox.y)
+                / referenceFrameBox.height
+        ) * renderHeight;
+        const darkContext = countWidenedDarkContext(renderBuffer, sourceBottomRow);
+        expect(darkContext.visibleTerrain).toBeGreaterThan(5000);
+        expect(darkContext.nearBlack).toBeGreaterThan(5000);
 
         await page.locator("#observer-compare-overlay").click();
         const referenceBox = await page.locator("#observer-reference-frame").boundingBox();
@@ -113,6 +147,10 @@ describe("Moon observer Artemis II comparison", () => {
             getComputedStyle(element).backgroundColor
         ))).toBe("rgba(0, 0, 0, 0)");
 
+        await page.locator("#observer-mode-geocenter").click();
+        expect(await page.locator("#observer-visuals").getAttribute("data-mode")).toBe("split");
+        expect(await page.locator("#observer-compare-overlay").isDisabled()).toBe(true);
+
         await page.locator("#observer-reference").selectOption("art002e009279");
         await page.waitForFunction(() => (
             document.getElementById("observer-reference-image")?.currentSrc?.includes("55193206753")
@@ -124,6 +162,23 @@ describe("Moon observer Artemis II comparison", () => {
         expect(errors).toEqual([]);
         await page.close();
     }, 210000);
+
+    it("normalizes a non-spacecraft Overlay URL back to Split", async () => {
+        const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+        await page.goto(
+            `${BASE_URL}/moon-observer-test.html?observer=geocenter&reference=art002e009289&tier=low&compare=overlay`,
+            { waitUntil: "domcontentloaded" },
+        );
+        await page.waitForFunction(() => (
+            document.querySelectorAll("#observer-reference option").length === 6
+            && document.getElementById("observer-resources")?.textContent?.includes("128x64")
+        ));
+        expect(await page.locator("#observer-mode-geocenter").getAttribute("aria-pressed")).toBe("true");
+        expect(await page.locator("#observer-visuals").getAttribute("data-mode")).toBe("split");
+        expect(await page.locator("#observer-compare-overlay").isDisabled()).toBe(true);
+        expect(new URL(page.url()).searchParams.get("compare")).toBe("split");
+        await page.close();
+    }, 60000);
 
     it("stacks Split frames on a narrow viewport", async () => {
         const page = await browser.newPage({ viewport: { width: 390, height: 844 } });

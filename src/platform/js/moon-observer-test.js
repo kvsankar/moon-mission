@@ -9,6 +9,7 @@ import { createMoonObserverProfileLoader } from "./app/moon-observer-profile-loa
 import {
     loadArtemis2MoonReferencePresets,
     mergeArtemisReferenceRegistration,
+    resolveReferenceAngularScale,
 } from "./app/moon-observer-artemis2.js";
 import {
     resolveBrightLimbAngleDegrees,
@@ -207,6 +208,7 @@ function updateReferenceDisplay() {
     frame.hidden = !hasReference;
     image.style.opacity = String(state.compareMode === "overlay" ? state.referenceOpacity : 1);
     if (!activeReference) {
+        frame.style.removeProperty("--observer-reference-scale");
         image.removeAttribute("src");
         delete image.dataset.referenceId;
         referenceLoadError = "";
@@ -215,6 +217,13 @@ function updateReferenceDisplay() {
         syncRuntimeStatus();
         return;
     }
+    frame.style.setProperty(
+        "--observer-reference-scale",
+        String(resolveReferenceAngularScale(
+            activeReference.verticalFovDegrees,
+            state.cameraFovDegrees,
+        )),
+    );
     const nextSource = activeReference.assetUrl;
     if (image.dataset.referenceId !== activeReference.id) {
         referenceLoadError = "";
@@ -227,6 +236,7 @@ function updateReferenceDisplay() {
         activeReference.location,
         `${activeReference.localTime} ${activeReference.timezoneOffset}`,
         activeReference.settings,
+        `Source FoV ${activeReference.verticalFovDegrees.toFixed(3)} deg`,
         activeReference.registrationStatus === "registered"
             ? "Registered camera"
             : "Unregistered camera · Split comparison only",
@@ -282,7 +292,9 @@ function syncControls() {
         state.observerMode === "artemis2" && state.targetMode === "surface"
     );
     document.getElementById("observer-reference-opacity").disabled = !activeReference || state.compareMode !== "overlay";
-    document.getElementById("observer-compare-overlay").disabled = !activeReference || activeReference.registrationStatus !== "registered";
+    document.getElementById("observer-compare-overlay").disabled = !activeReference
+        || activeReference.registrationStatus !== "registered"
+        || state.observerMode !== "artemis2";
     document.getElementById("observer-reference").value = state.referenceId;
     setPressed(document.getElementById("observer-mode-geocenter"), state.observerMode === "geocenter");
     setPressed(document.getElementById("observer-mode-site"), state.observerMode === "site");
@@ -592,10 +604,12 @@ function bindControls() {
     });
     document.getElementById("observer-mode-geocenter").addEventListener("click", () => {
         state.observerMode = "geocenter";
+        if (state.compareMode === "overlay") state.compareMode = "split";
         updateObservation();
     });
     document.getElementById("observer-mode-site").addEventListener("click", () => {
         state.observerMode = "site";
+        if (state.compareMode === "overlay") state.compareMode = "split";
         updateObservation();
     });
     document.getElementById("observer-mode-artemis2").addEventListener("click", () => {
@@ -649,6 +663,7 @@ function bindControls() {
     });
     ["split", "overlay", "render"].forEach((mode) => {
         document.getElementById(`observer-compare-${mode}`).addEventListener("click", () => {
+            if (mode === "overlay" && state.observerMode !== "artemis2") return;
             state.compareMode = mode;
             syncControls();
             syncUrl();
@@ -720,7 +735,13 @@ async function initialize() {
                     new Set(initialUrlParams.keys()),
                 ));
             }
-            if (requestedReference.registrationStatus !== "registered" && state.compareMode === "overlay") {
+            if (
+                state.compareMode === "overlay"
+                && (
+                    requestedReference.registrationStatus !== "registered"
+                    || state.observerMode !== "artemis2"
+                )
+            ) {
                 state.compareMode = "split";
             }
             updateReferenceDisplay();
