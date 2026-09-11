@@ -532,7 +532,7 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v37-physical-spherical-horizon");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v39-fragment-terrain-horizon");
         expect(shader.fragmentShader).toContain("float moonSunDiskVisibleFraction(float rawNdotL)");
         expect(shader.fragmentShader)
             .toContain("float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );");
@@ -571,32 +571,12 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader).toContain("bool moonPhysicalModelActive = uMoonPhysicalModelBlend > 0.5;");
         expect(shader.fragmentShader).toContain("if ( moonPhysicalModelActive ) {");
         expect(shader.fragmentShader).toContain("float moonPhysicalToneWeight = pow(");
-        expect(shader.fragmentShader).toContain(`if ( moonPhysicalModelActive ) {
-        // USGS lunar-Lambert: (1-L)*mu0 + 2*L*mu0/(mu0+mu).
-        // Evaluate the reflectance directly so the single-scattering term can
-        // preserve real low-incidence terrain without a divergent scale ratio.
-        float moonPhysicalLsResponse = 2.0 * moonNdotL
-            / max( moonNdotL + moonNdotV, 1e-4 );
-        float moonPhysicalDiffuseResponse = mix(
-            moonNdotL,
-            moonPhysicalLsResponse,
-            clamp( uMoonLsBlend, 0.0, 1.0 )
-        );
-        reflectedLight.directDiffuse = moonSunDiffuseUnit
+        expect(shader.fragmentShader).toContain("float moonPhysicalLsResponse = 2.0 * moonNdotL");
+        expect(shader.fragmentShader).toContain("smoothstep( -MOON_SUN_SIN_ALPHA, 0.085, moonMacroscopicRawNdotLForVis )");
+        expect(shader.fragmentShader).toContain(`reflectedLight.directDiffuse = moonSunDiffuseUnit
             * moonPhysicalDiffuseResponse
-            * moonSunVisibility;
-    } else {
-        // Preserve Current's established, deliberately bounded response.
-        float moonLsScale = 1.0;
-        if ( moonNdotL > 1e-4 ) {
-            float moonLs = moonNdotL / max( moonNdotL + moonNdotV, 1e-4 );
-            moonLsScale = moonLs / moonNdotL;
-        } else {
-            moonLsScale = 0.0;
-        }
-        moonLsScale = clamp( moonLsScale, min(uMoonLsClampMin, uMoonLsClampMax), max(uMoonLsClampMin, uMoonLsClampMax) );
-        reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
-    }`);
+            * moonSunVisibility
+            * moonPhysicalGrazingWeight;`);
         expect(shader.fragmentShader).toContain("clamp( 1.0 - moonSmoothNdotL, 0.0, 1.0 )");
         expect(shader.fragmentShader).toContain("float moonShadowRiseStart = 0.0012;");
         expect(shader.fragmentShader).toContain("float moonShadowRiseFull = 0.0065;");

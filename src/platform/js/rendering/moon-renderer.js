@@ -551,6 +551,10 @@ function applyMoonPhotometricShader(material) {
     }
 
     material.onBeforeCompile = (shader, renderer = null) => {
+        // Three.js emits USE_DISPLACEMENTMAP only in its vertex prefix.
+        // Physical's fragment horizon test therefore needs its own define/UV.
+        const moonPhysicalDisplacement = !!material.displacementMap
+            && material.userData.moonPhysicalModelBlend > 0.5;
         shader.uniforms.uMoonLsBlend = { value: material.userData.moonLsBlend };
         shader.uniforms.uMoonOppositionStrength = { value: material.userData.moonOppositionStrength };
         shader.uniforms.uMoonLsClampMin = { value: material.userData.moonLsClampMin };
@@ -591,7 +595,8 @@ function applyMoonPhotometricShader(material) {
                 `#include <common>
 varying vec3 vMoonGeometricNormalView;
 varying vec3 vMoonDisplacedFromCenterView;
-varying float vMoonBaseRadiusView;`,
+varying float vMoonBaseRadiusView;
+varying vec2 vMoonHeightUv;`,
             )
             .replace(
                 "#include <beginnormal_vertex>",
@@ -602,13 +607,19 @@ vMoonGeometricNormalView = normalize( normalMatrix * objectNormal );`,
                 "#include <displacementmap_vertex>",
                 `#include <displacementmap_vertex>
 vMoonDisplacedFromCenterView = mat3( modelViewMatrix ) * transformed;
-vMoonBaseRadiusView = length( mat3( modelViewMatrix ) * position );`,
+vMoonBaseRadiusView = length( mat3( modelViewMatrix ) * position );
+#ifdef USE_DISPLACEMENTMAP
+    vMoonHeightUv = vDisplacementMapUv;
+#else
+    vMoonHeightUv = vec2( 0.0 );
+#endif`,
             );
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
                 "#include <common>",
                 `#include <common>
+${moonPhysicalDisplacement ? "#define MOON_PHYSICAL_DISPLACEMENT" : ""}
 uniform float uMoonLsBlend;
 uniform float uMoonOppositionStrength;
 uniform float uMoonLsClampMin;
@@ -640,6 +651,7 @@ uniform float uMoonPhysicalToneGamma;
 varying vec3 vMoonGeometricNormalView;
 varying vec3 vMoonDisplacedFromCenterView;
 varying float vMoonBaseRadiusView;
+varying vec2 vMoonHeightUv;
 
 // Sun's angular half-radius as seen from the lunar surface (~0.267 deg).
 // sin(alpha) ~ 0.00466 — sets the width of the macroscopic terminator
@@ -730,7 +742,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // horizon test admits real high terrain without allowing a merely
     // sun-facing normal to see through the Moon.
     float moonMacroscopicRawNdotLForVis = moonSmoothRawNdotLForVis;
-#if defined( USE_DISPLACEMENTMAP )
+#if defined( MOON_PHYSICAL_DISPLACEMENT )
     if ( moonPhysicalModelActive ) {
         float moonDisplacedRadiusView = max(
             length( vMoonDisplacedFromCenterView ),
@@ -756,9 +768,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     float moonTerrainHorizonLift = 0.0;
     float moonFinalCavityDarkenFromHeight = 0.0;
 
-#if defined( USE_DISPLACEMENTMAP ) || defined( USE_NORMALMAP )
-    #if defined( USE_DISPLACEMENTMAP )
-        vec2 moonHeightUv = vDisplacementMapUv;
+#if defined( MOON_PHYSICAL_DISPLACEMENT ) || defined( USE_NORMALMAP )
+    #if defined( MOON_PHYSICAL_DISPLACEMENT )
+        vec2 moonHeightUv = vMoonHeightUv;
     #else
         vec2 moonHeightUv = vNormalMapUv;
     #endif
@@ -833,9 +845,22 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             moonPhysicalLsResponse,
             clamp( uMoonLsBlend, 0.0, 1.0 )
         );
+        // DEM normals can face the Sun even at grazing radial incidence.
+        // Their resolved BRDF otherwise stays bright until the spherical
+        // visibility gate closes, leaving a cut-out edge. Fade that response
+        // over the last ~5 degrees of horizon clearance. This is a terrain
+        // shading approximation, not an enlargement of the solar disk.
+        // Raised terrain retains its position-based horizon clearance; a
+        // smooth surface (normal scale zero) keeps its original response.
+        float moonPhysicalGrazingWeight = mix(
+            1.0,
+            smoothstep( -MOON_SUN_SIN_ALPHA, 0.085, moonMacroscopicRawNdotLForVis ),
+            clamp( length( normal - normalize( nonPerturbedNormal ) ) * 4.0, 0.0, 1.0 )
+        );
         reflectedLight.directDiffuse = moonSunDiffuseUnit
             * moonPhysicalDiffuseResponse
-            * moonSunVisibility;
+            * moonSunVisibility
+            * moonPhysicalGrazingWeight;
     } else {
         // Preserve Current's established, deliberately bounded response.
         float moonLsScale = 1.0;
@@ -899,8 +924,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         moonPhysicalModelActive &&
         uMoonTerrainShadowStrength > 0.0 &&
         uMoonPhysicalHeightScale > 0.0 &&
-        moonLightTangentPlanarLength > 1e-4 &&
-        moonLightTangent.z > 0.0
+        moonLightTangentPlanarLength > 1e-4
     ) {
         // Trace the physical DEM along the Sun azimuth. Heights are decoded
         // in lunar-radius units; the blocker angle includes sphere curvature.
@@ -915,8 +939,10 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             * uMoonPhysicalHeightScale
             + uMoonPhysicalHeightBias;
         float moonPhysicalBaseRadius = 1.0 + moonPhysicalBaseHeight;
+        // Elevated terrain can see a Sun below the radial horizon. Trace its
+        // signed altitude too, or nearby hills cannot shadow those lit peaks.
         float moonSunAltitude = atan(
-            max( moonLightTangent.z, 0.0 ),
+            moonLightTangent.z,
             moonLightTangentPlanarLength
         );
         float moonPhysicalHorizonShadow = 0.0;
@@ -1088,7 +1114,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v37-physical-spherical-horizon",
+            "moon-photometric-v39-fragment-terrain-horizon",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

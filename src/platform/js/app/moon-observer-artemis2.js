@@ -13,7 +13,79 @@ export const ARTEMIS2_MOON_REFERENCE_IDS = Object.freeze([
     "art002e009289",
 ]);
 
+// Crater-feature camera fits; see docs/research/moon-rendering/artemis-reference-calibration.md.
+// Errors are measured in a 1497 x 998 comparison frame.
 const REFERENCE_REGISTRATION = Object.freeze({
+    art002e009277: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: -23.840551,
+        targetLongitude: -89.073070,
+        rollDegrees: -165.517498,
+        verticalFovDegrees: 6.263701,
+        comparisonFovDegrees: 6.263701,
+        matchedFeatures: 2868,
+        medianReprojectionErrorPixels: 1.138,
+    }),
+    art002e009278: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: -34.332229,
+        targetLongitude: -41.811398,
+        rollDegrees: 40.161465,
+        verticalFovDegrees: 9.615388,
+        comparisonFovDegrees: 9.615388,
+        matchedFeatures: 931,
+        medianReprojectionErrorPixels: 1.415,
+    }),
+    art002e009279: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: 0.581248,
+        targetLongitude: -121.314855,
+        rollDegrees: 24.778944,
+        verticalFovDegrees: 7.789263,
+        comparisonFovDegrees: 7.789263,
+        matchedFeatures: 3385,
+        medianReprojectionErrorPixels: 0.805,
+    }),
+    art002e010208: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: 0.100086,
+        targetLongitude: -118.313771,
+        rollDegrees: -90.846345,
+        verticalFovDegrees: 16.680493,
+        comparisonFovDegrees: 16.680493,
+        matchedFeatures: 3311,
+        medianReprojectionErrorPixels: 0.435,
+    }),
+    art002e009281: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: 34.724673,
+        targetLongitude: -143.191383,
+        rollDegrees: -28.511341,
+        verticalFovDegrees: 6.645702,
+        comparisonFovDegrees: 6.645702,
+        matchedFeatures: 1423,
+        medianReprojectionErrorPixels: 0.931,
+    }),
+    art002e009283: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: -55.010704,
+        targetLongitude: -134.868381,
+        rollDegrees: -37.892542,
+        verticalFovDegrees: 3.461792,
+        comparisonFovDegrees: 3.461792,
+        matchedFeatures: 614,
+        medianReprojectionErrorPixels: 1.296,
+    }),
+    art002e009287: Object.freeze({
+        targetMode: "surface",
+        targetLatitude: -3.546541,
+        targetLongitude: -143.077811,
+        rollDegrees: 94.437300,
+        verticalFovDegrees: 16.682829,
+        comparisonFovDegrees: 16.682829,
+        matchedFeatures: 1235,
+        medianReprojectionErrorPixels: 0.486,
+    }),
     art002e009289: Object.freeze({
         targetMode: "surface",
         targetLatitude: 17.3461,
@@ -23,6 +95,18 @@ const REFERENCE_REGISTRATION = Object.freeze({
         comparisonFovDegrees: 8.0,
     }),
 });
+
+// Display exposure corrections verified against the processed reference JPEGs.
+// Raw shutter/aperture ratios alone worsened several photos and are not applied.
+const REFERENCE_DISPLAY_EXPOSURE = Object.freeze({
+    art002e010208: 1.00,
+    art002e009281: 1.05,
+    art002e009283: 0.60,
+});
+
+export function resolveArtemisReferenceExposure(referenceId) {
+    return REFERENCE_DISPLAY_EXPOSURE[referenceId] || 0.40;
+}
 
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
@@ -154,6 +238,9 @@ export function createArtemis2MoonReferencePresets({ manifest, ephemeris }) {
             targetLongitude: Number(registration.targetLongitude) || 0,
             rollDegrees: Number(registration.rollDegrees) || 0,
             registrationStatus: registration.targetMode ? "registered" : "unregistered",
+            displayExposure: resolveArtemisReferenceExposure(referenceId),
+            registrationMatchedFeatures: registration.matchedFeatures || null,
+            registrationMedianErrorPixels: registration.medianReprojectionErrorPixels || null,
             spacecraftPositionKm,
             sunPositionKm,
             earthPositionKm,

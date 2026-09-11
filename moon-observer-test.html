@@ -75,6 +75,7 @@
 
             <section class="observer-section">
                 <h2>View</h2>
+                <button id="observer-registered-framing" type="button" disabled>Match photo framing</button>
                 <div class="observer-segmented observer-segmented--three" role="group" aria-label="Reference comparison mode">
                     <button id="observer-compare-split" type="button" aria-pressed="true">Split</button>
                     <button id="observer-compare-overlay" type="button" aria-pressed="false">Overlay</button>
@@ -91,7 +92,7 @@
                     <output id="observer-disk-size-value">82%</output>
                 </label>
                 <label class="observer-range">
-                    <span>Camera FOV</span>
+                    <span>Manual FOV</span>
                     <input id="observer-camera-fov" type="range" min="1" max="70" step="0.001">
                     <output id="observer-camera-fov-value">6.200 deg</output>
                 </label>
@@ -118,6 +119,11 @@
 
             <section class="observer-section">
                 <h2>Physical Tuning</h2>
+                <label class="observer-exposure-match">
+                    <input id="observer-match-exposure" type="checkbox" checked>
+                    Match photo brightness
+                </label>
+                <p class="observer-navigation-hint">Adjusting Exposure switches to manual brightness.</p>
                 <div id="observer-physical-controls" class="observer-physical-controls"></div>
             </section>
         </aside>
@@ -125,12 +131,50 @@
         <section class="observer-stage" aria-label="Moon reference comparison">
             <div id="observer-visuals" class="observer-visuals" data-mode="split" data-has-reference="false">
                 <figure id="observer-reference-frame" class="observer-frame observer-frame--reference" hidden>
-                    <figcaption id="observer-reference-caption">NASA reference</figcaption>
-                    <img id="observer-reference-image" alt="Selected Artemis II Moon reference">
+                    <div id="observer-reference-viewport" class="observer-viewport" tabindex="0" aria-label="Photo: drag to pan, scroll to zoom, Home to fit">
+                        <figcaption id="observer-reference-caption">NASA reference</figcaption>
+                        <img id="observer-reference-image" draggable="false" alt="Selected Artemis II Moon reference">
+                    </div>
+                    <div id="observer-reference-controls" class="observer-image-controls" role="group" aria-label="photo view controls">
+                        <div class="observer-navigation">
+                            <button type="button" data-zoom="0.8" aria-label="Zoom out photo">&#8722;</button>
+                            <output id="observer-reference-zoom" aria-label="photo zoom">100%</output>
+                            <button type="button" data-zoom="1.25" aria-label="Zoom in photo">+</button>
+                            <button type="button" data-fit>Fit photo</button>
+                            <button type="button" data-pan="-0.06,0" aria-label="Pan photo left">&#8592;</button>
+                            <button type="button" data-pan="0.06,0" aria-label="Pan photo right">&#8594;</button>
+                            <button type="button" data-pan="0,-0.06" aria-label="Pan photo up">&#8593;</button>
+                            <button type="button" data-pan="0,0.06" aria-label="Pan photo down">&#8595;</button>
+                        </div>
+                        <span class="observer-navigation-hint">Drag to pan &#183; scroll to zoom</span>
+                    </div>
                 </figure>
                 <figure class="observer-frame observer-frame--render">
-                    <figcaption>Physical render</figcaption>
-                    <canvas id="observer-canvas"></canvas>
+                    <div id="observer-render-viewport" class="observer-viewport" tabindex="0" aria-label="Render: drag to pan, scroll to zoom, Home to fit">
+                        <figcaption id="observer-render-caption">Physical render</figcaption>
+                        <canvas id="observer-canvas"></canvas>
+                    </div>
+                    <div id="observer-render-controls" class="observer-image-controls" role="group" aria-label="render view controls">
+                        <div class="observer-navigation">
+                            <button type="button" data-zoom="0.8" aria-label="Zoom out render">&#8722;</button>
+                            <output id="observer-render-zoom" aria-label="render zoom">100%</output>
+                            <button type="button" data-zoom="1.25" aria-label="Zoom in render">+</button>
+                            <button type="button" data-fit>Fit Moon</button>
+                            <button type="button" data-pan="-0.06,0" aria-label="Pan render left">&#8592;</button>
+                            <button type="button" data-pan="0.06,0" aria-label="Pan render right">&#8594;</button>
+                            <button type="button" data-pan="0,-0.06" aria-label="Pan render up">&#8593;</button>
+                            <button type="button" data-pan="0,0.06" aria-label="Pan render down">&#8595;</button>
+                        </div>
+                        <span class="observer-navigation-hint">Drag to pan &#183; scroll to zoom</span>
+                    <div class="observer-rotation" role="group" aria-label="Rotate rendered Moon">
+                        <button type="button" data-observer-rotate="-90" aria-label="Rotate render minus 90 degrees">&#8630; 90&deg;</button>
+                        <label for="observer-image-roll">Rotation</label>
+                        <input id="observer-image-roll" type="number" min="-180" max="180" step="0.01" aria-label="Render rotation in degrees">
+                        <span aria-hidden="true">&deg;</span>
+                        <button type="button" data-observer-rotate="90" aria-label="Rotate render plus 90 degrees">90&deg; &#8631;</button>
+                        <button id="observer-rotation-reset" type="button" title="Reset rotation to zero">Reset</button>
+                    </div>
+                    </div>
                 </figure>
             </div>
             <div id="observer-status" class="observer-status" role="status">Loading Moon assets</div>

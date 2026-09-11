@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { normalizeImageView, bindImageNavigation, fullMoonVerticalFov } from "./app/moon-observer-image-view.js";
 
 import {
     MOON_PHYSICAL_RENDER_CONTROLS,
@@ -97,6 +98,14 @@ function readStateFromUrl() {
     const requestedCompareMode = String(params.get("compare") || DEFAULT_STATE.compareMode).toLowerCase();
     const requestedTargetMode = String(params.get("target") || DEFAULT_STATE.targetMode).toLowerCase();
     const nextState = {
+        framing: params.get("framing") === "camera" ? "camera" : "whole",
+        photoExposureMode: params.get("photoExposure") === "manual"
+            || (!params.has("photoExposure") && params.has("physicalExposure")
+                && Math.abs(Number(params.get("physicalExposure")) - createMoonRenderPipelineState().physicalExposure) > 1e-6)
+            ? "manual" : "matched",
+        referenceBaseScale: clamp(params.get("photoScale"), 0.01, 20, 1),
+        referenceView: normalizeImageView({ zoom: params.get("photoZoom") ?? 1, x: params.get("photoX") ?? 0, y: params.get("photoY") ?? 0 }),
+        renderView: normalizeImageView({ zoom: params.get("renderZoom") ?? 1, x: params.get("renderX") ?? 0, y: params.get("renderY") ?? 0 }),
         ...DEFAULT_STATE,
         time: Number.isFinite(requestedTime.getTime()) ? requestedTime.toISOString() : DEFAULT_STATE.time,
         observerMode: ["site", "artemis2"].includes(requestedObserver) ? requestedObserver : "geocenter",
@@ -176,6 +185,14 @@ function syncUrl() {
         params.set("lon", String(state.longitude));
         params.set("elevation", String(state.elevationMeters));
     }
+    params.set("framing", state.framing);
+    params.set("photoExposure", state.photoExposureMode);
+    params.set("photoScale", String(state.referenceBaseScale));
+    for (const [prefix, view] of [["photo", state.referenceView], ["render", state.renderView]]) {
+        params.set(`${prefix}Zoom`, String(view.zoom));
+        params.set(`${prefix}X`, String(view.x));
+        params.set(`${prefix}Y`, String(view.y));
+    }
     params.set("roll", String(state.rollDegrees));
     params.set("disk", String(state.diskSizePercent));
     params.set("fov", String(state.cameraFovDegrees));
@@ -219,10 +236,7 @@ function updateReferenceDisplay() {
     }
     frame.style.setProperty(
         "--observer-reference-scale",
-        String(resolveReferenceAngularScale(
-            activeReference.verticalFovDegrees,
-            state.cameraFovDegrees,
-        )),
+        String(state.referenceBaseScale),
     );
     const nextSource = activeReference.assetUrl;
     if (image.dataset.referenceId !== activeReference.id) {
@@ -241,6 +255,26 @@ function updateReferenceDisplay() {
             ? "Registered camera"
             : "Unregistered camera · Split comparison only",
     ].filter(Boolean).join(" · ");
+}
+
+function syncImageViews() {
+    const viewport = document.getElementById("observer-reference-viewport");
+    viewport.style.setProperty("--photo-x", `${state.referenceView.x * viewport.clientWidth}px`);
+    viewport.style.setProperty("--photo-y", `${state.referenceView.y * viewport.clientHeight}px`);
+    viewport.style.setProperty("--photo-zoom", String(state.referenceView.zoom));
+    for (const [pane, view] of [["reference", state.referenceView], ["render", state.renderView]]) {
+        document.getElementById(`observer-${pane}-zoom`).textContent = `${Math.round(view.zoom * 100)}%`;
+        const controls = document.getElementById(`observer-${pane}-controls`);
+        controls.querySelector('[data-zoom="0.8"]').disabled = view.zoom <= 0.25;
+        controls.querySelector('[data-zoom="1.25"]').disabled = view.zoom >= 12;
+    }
+}
+
+function fitRenderedMoon() {
+    state.framing = "whole";
+    state.targetMode = "center";
+    state.renderView = normalizeImageView();
+    updateObservation();
 }
 
 function populateReferenceSelect() {
@@ -336,6 +370,11 @@ function activateArtemisReference(reference, { applyRegistration = true } = {}) 
     state.time = reference.timeIso;
     if (applyRegistration) {
         Object.assign(state, mergeArtemisReferenceRegistration(reference, state));
+        state.framing = "whole";
+        state.targetMode = "center";
+        state.renderView = normalizeImageView();
+        state.referenceView = normalizeImageView();
+        state.referenceBaseScale = 1;
     }
     if (reference.registrationStatus !== "registered" && state.compareMode === "overlay") {
         state.compareMode = "split";
@@ -345,12 +384,29 @@ function activateArtemisReference(reference, { applyRegistration = true } = {}) 
     syncReferenceCarousel({ scroll: true });
 }
 
+function applyReferenceExposure() {
+    if (state.photoExposureMode !== "matched") return;
+    const exposure = state.observerMode === "artemis2" && activeReference
+        ? activeReference.displayExposure
+        : createMoonRenderPipelineState().physicalExposure;
+    if (state.physicalExposure === exposure) return;
+    state.physicalExposure = exposure;
+    moonRenderer?.setRenderPipeline(buildPipelineState());
+}
+
 function syncControls() {
+    syncImageViews();
+    const photoExposure = document.getElementById("observer-match-exposure");
+    photoExposure.checked = state.photoExposureMode === "matched";
+    photoExposure.disabled = state.observerMode !== "artemis2" || !activeReference || state.lightingModel !== "physical-dem";
+    document.getElementById("observer-registered-framing").disabled = activeReference?.registrationStatus !== "registered" || state.observerMode !== "artemis2";
+    document.getElementById("observer-render-caption").textContent = state.lightingModel === "physical-dem" ? "Physical render" : "Current render";
     document.getElementById("observer-time").value = toUtcInputValue(state.time);
     document.getElementById("observer-latitude").value = String(state.latitude);
     document.getElementById("observer-longitude").value = String(state.longitude);
     document.getElementById("observer-elevation").value = String(state.elevationMeters);
     document.getElementById("observer-roll").value = String(state.rollDegrees);
+    document.getElementById("observer-image-roll").value = String(state.rollDegrees);
     document.getElementById("observer-disk-size").value = String(state.diskSizePercent);
     document.getElementById("observer-camera-fov").value = String(state.cameraFovDegrees);
     document.getElementById("observer-target-latitude").value = String(state.targetLatitude);
@@ -390,6 +446,8 @@ function syncControls() {
     }
     document.querySelectorAll("[data-physical-control]").forEach((input) => {
         input.disabled = state.lightingModel !== "physical-dem";
+        input.value = String(state[input.dataset.physicalControl]);
+        input.nextElementSibling.textContent = Number(state[input.dataset.physicalControl]).toFixed(2);
     });
     updateReferenceDisplay();
 }
@@ -413,6 +471,7 @@ function createPhysicalControls() {
         output.textContent = Number(state[control.key]).toFixed(2);
         input.addEventListener("input", () => {
             state[control.key] = Number(input.value);
+            if (control.key === "physicalExposure") state.photoExposureMode = "manual";
             output.textContent = state[control.key].toFixed(2);
             applyPipeline();
         });
@@ -468,7 +527,13 @@ function updateCameraProjection() {
     const aspect = width / height;
     if (state.observerMode === "artemis2") {
         spacecraftCamera.aspect = aspect;
-        spacecraftCamera.fov = state.cameraFovDegrees;
+        spacecraftCamera.fov = state.framing === "whole" && latestGeometry
+            ? fullMoonVerticalFov(latestGeometry.observerDistanceKm / MOON_RADIUS_KM, aspect, state.diskSizePercent / 100)
+            : state.cameraFovDegrees;
+        spacecraftCamera.zoom = state.renderView.zoom;
+        spacecraftCamera.setViewOffset(width, height, -state.renderView.x * width, -state.renderView.y * height, width, height);
+        canvas.dataset.framing = state.framing;
+        canvas.dataset.baseFov = String(spacecraftCamera.fov);
         spacecraftCamera.updateProjectionMatrix();
         renderer.setSize(width, height, false);
         return spacecraftCamera;
@@ -479,12 +544,15 @@ function updateCameraProjection() {
     earthCamera.right = halfHeight * aspect;
     earthCamera.top = halfHeight;
     earthCamera.bottom = -halfHeight;
+    earthCamera.zoom = state.renderView.zoom;
+    earthCamera.setViewOffset(width, height, -state.renderView.x * width, -state.renderView.y * height, width, height);
     earthCamera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     return earthCamera;
 }
 
 function renderFrame() {
+    syncImageViews();
     renderer.render(scene, updateCameraProjection());
 }
 
@@ -501,6 +569,7 @@ function moonSurfacePoint(latitudeDegrees, longitudeDegrees) {
 
 function updateObservation() {
     try {
+        applyReferenceExposure();
         if (state.observerMode === "artemis2") {
             if (!activeReference) {
                 setStatus("Select an Artemis II reference image.");
@@ -544,7 +613,7 @@ function updateObservation() {
                 latestGeometry.observerPositionKm.z / MOON_RADIUS_KM,
             );
             spacecraftCamera.up.set(rolledUp.x, rolledUp.y, rolledUp.z);
-            const target = state.targetMode === "surface" && moonRenderer?.container
+            const target = state.framing === "camera" && state.targetMode === "surface" && moonRenderer?.container
                 ? moonSurfacePoint(state.targetLatitude, state.targetLongitude)
                     .applyQuaternion(moonRenderer.container.quaternion)
                 : new THREE.Vector3(0, 0, 0);
@@ -730,6 +799,49 @@ function bindControls() {
             updateObservation();
         });
     }
+    for (const [pane, key] of [["reference", "referenceView"], ["render", "renderView"]]) {
+        bindImageNavigation({
+            viewport: document.getElementById(`observer-${pane}-viewport`),
+            controls: document.getElementById(`observer-${pane}-controls`),
+            getView: () => state[key],
+            setView: (view) => { state[key] = view; syncImageViews(); syncUrl(); if (pane === "render") renderFrame(); },
+            fit: () => {
+                if (pane === "render") fitRenderedMoon();
+                else { state.referenceView = normalizeImageView(); state.referenceBaseScale = 1; updateReferenceDisplay(); syncImageViews(); syncUrl(); }
+            },
+        });
+    }
+    document.getElementById("observer-match-exposure").addEventListener("change", (event) => {
+        state.photoExposureMode = event.target.checked ? "matched" : "manual";
+        applyReferenceExposure();
+        applyPipeline();
+    });
+    document.getElementById("observer-registered-framing").addEventListener("click", () => {
+        if (activeReference?.registrationStatus !== "registered") return;
+        Object.assign(state, mergeArtemisReferenceRegistration(activeReference, state));
+        state.framing = "camera";
+        state.referenceBaseScale = resolveReferenceAngularScale(activeReference.verticalFovDegrees, state.cameraFovDegrees);
+        state.referenceView = normalizeImageView();
+        state.renderView = normalizeImageView();
+        updateObservation();
+    });
+    const setImageRotation = (degrees) => {
+        if (!Number.isFinite(degrees)) return;
+        state.rollDegrees = Math.round((((degrees + 180) % 360 + 360) % 360 - 180) * 100) / 100;
+        updateObservation();
+    };
+    document.querySelectorAll("[data-observer-rotate]").forEach((button) => {
+        button.addEventListener("click", () => {
+            setImageRotation(state.rollDegrees + Number(button.dataset.observerRotate));
+        });
+    });
+    document.getElementById("observer-image-roll").addEventListener("change", (event) => {
+        setImageRotation(event.target.valueAsNumber);
+        syncControls();
+    });
+    document.getElementById("observer-rotation-reset").addEventListener("click", () => {
+        setImageRotation(0);
+    });
     document.getElementById("observer-roll").addEventListener("input", (event) => {
         state.rollDegrees = Number(event.target.value);
         updateObservation();
@@ -739,6 +851,7 @@ function bindControls() {
         updateObservation();
     });
     document.getElementById("observer-camera-fov").addEventListener("input", (event) => {
+        state.framing = "camera";
         state.cameraFovDegrees = Number(event.target.value);
         updateObservation();
     });
@@ -747,6 +860,7 @@ function bindControls() {
         updateObservation();
     });
     document.getElementById("observer-target-surface").addEventListener("click", () => {
+        state.framing = "camera";
         state.targetMode = "surface";
         updateObservation();
     });
@@ -852,6 +966,10 @@ async function initialize() {
                 state.time = defaultReference.timeIso;
                 Object.assign(state, mergeArtemisReferenceRegistration(defaultReference, state));
             }
+        }
+        if (state.framing === "whole") state.targetMode = "center";
+        else if (activeReference && !initialUrlParams.has("photoScale")) {
+            state.referenceBaseScale = resolveReferenceAngularScale(activeReference.verticalFovDegrees, state.cameraFovDegrees);
         }
         syncReferenceCarousel({ scroll: true });
     } catch (error) {

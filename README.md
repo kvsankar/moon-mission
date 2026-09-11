@@ -19,6 +19,14 @@ The full mission list is in the `Mission Catalog` section later in this README.
 
 ![Mission Preview](images/social/chandrayaan3-landscape.png)
 
+## Known-good Moon terminator version
+
+**`moon-terminator-working-2026-09-11` is the accepted working checkpoint that
+solves the original hard terminator cutoff and missing illumination above
+Manzinus.** Preserve this version as the regression and recovery reference for
+future Moon lighting work. See the [working-version record](docs/research/moon-rendering/terminator-working-version.md)
+for the fix, visual evidence, validation commands, and runtime asset checksums.
+
 ## Features
 
 I created this animation for educational purposes. It has the following features:

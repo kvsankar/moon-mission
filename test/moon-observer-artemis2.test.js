@@ -7,6 +7,7 @@ import {
     parseArtemis2ReferenceTime,
     resolveReferenceAngularScale,
     resolveReferenceVerticalFovDegrees,
+    resolveArtemisReferenceExposure,
 } from "../src/platform/js/app/moon-observer-artemis2.js";
 import { resolveMoonSpacecraftObserverGeometry } from "../src/platform/js/app/moon-observer-geometry.js";
 
@@ -55,6 +56,15 @@ describe("Artemis II Moon observer references", () => {
             y: expect.closeTo(0.29063994, 7),
             z: expect.closeTo(0.00021684, 7),
         });
+    });
+
+    it("uses only validated display exposure corrections with a stable fallback", () => {
+        expect(resolveArtemisReferenceExposure("art002e010208")).toBe(1.00);
+        expect(resolveArtemisReferenceExposure("art002e009281")).toBe(1.05);
+        expect(resolveArtemisReferenceExposure("art002e009283")).toBe(0.60);
+        for (const id of ["art002e009277", "art002e009278", "art002e009279", "art002e009287", "art002e009289", "unknown"]) {
+            expect(resolveArtemisReferenceExposure(id)).toBe(0.40);
+        }
     });
 
     it("converts the manifest local timestamp with its EDT offset", () => {
