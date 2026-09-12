@@ -23,6 +23,7 @@ not the lighting interpretation.
 
 - Use the smooth sphere for the initial terrain-free preview. In every completed tier, allow raised terrain across the smooth terminator only when the ray from its displaced surface position clears the base lunar sphere.
 - Use the DEM-derived normal for local direct illumination.
+- Apply solar horizon visibility, grazing attenuation and terrain shadows to both diffuse sunlight and solar specular highlights; preserve other light contributions separately.
 - Use the DEM height field for horizon/cast shadows when the selected tier supplies a DEM.
 - Retain a restrained Lommel-Seeliger/Lambert blend and Earthshine.
 - Exclude the retired artistic terminator contrast, cavity darkening, opposition and shadow-crush stages.

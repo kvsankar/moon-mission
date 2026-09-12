@@ -539,6 +539,17 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     #endif
     vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color * moonSunShadowFactor
                                    * RECIPROCAL_PI * material.diffuseColor;
+    // Three's stock GGX highlight is accumulated separately from diffuse.
+    // Isolate only the Sun's part so the same horizon/terrain visibility can
+    // suppress it without suppressing earthshine or explicit shot fill lights.
+    // Match the stock direct-light operation order, including its shadow factor.
+    vec3 moonSunSpecularContribution = moonNdotL
+        * ( directionalLights[0].color * moonSunShadowFactor )
+        * BRDF_GGX( moonLightDir, moonViewDir, moonNormal, material );
+    vec3 moonOtherDirectSpecular = max(
+        reflectedLight.directSpecular - moonSunSpecularContribution,
+        vec3( 0.0 )
+    );
     float moonSunShadowFactorForDiffuse = moonSunShadowFactor;
 
         moonSunShadowFactorForDiffuse = mix(
@@ -636,6 +647,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             * moonSunVisibility
             * moonPhysicalGrazingWeight;
 
+    float moonSolarSpecularVisibility = moonSunVisibility * moonPhysicalGrazingWeight;
     moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
     reflectedLight.directDiffuse *= mix(1.0, 1.0 + uMoonShadowLift, moonShadowWeight);
 
@@ -730,7 +742,10 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         moonTerrainShadowMaximum
     );
     reflectedLight.directDiffuse *= 1.0 - moonTerrainShadow;
+    moonSolarSpecularVisibility *= 1.0 - moonTerrainShadow;
 #endif
+    reflectedLight.directSpecular = moonOtherDirectSpecular
+        + moonSunSpecularContribution * moonSolarSpecularVisibility;
 #endif
     reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );`,
             )
@@ -770,7 +785,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         // Numeric lighting controls are uniforms. Only generated shader source
         // belongs in the program key; otherwise each slider value recompiles it.
         const physicalDisplacement = !!material.displacementMap;
-        return `moon-physical-v40-shared-${Number(physicalDisplacement)}-${Math.max(0, Math.min(20, Math.round(material.displacementMap ? material.userData.moonTerrainShadowSamples || 0 : 0)))}`;
+        return `moon-physical-v41-solar-specular-${Number(physicalDisplacement)}-${Math.max(0, Math.min(20, Math.round(material.displacementMap ? material.userData.moonTerrainShadowSamples || 0 : 0)))}`;
     };
 
     material.userData.refreshMoonShaderUniforms = () => {

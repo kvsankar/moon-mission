@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { chromium } from "playwright";
+import { chromium, firefox, webkit } from "playwright";
 import { PNG } from "pngjs";
 
 const BASE_URL = process.env.VITE_TEST_BASE_URL || "http://127.0.0.1:7275";
+const browserType = { chromium, firefox, webkit }[process.env.MOON_TEST_BROWSER || "chromium"];
 let browser;
 
 function luminance(data, index) {
@@ -71,7 +72,7 @@ function countWidenedDarkContext(renderBuffer, startRow) {
 
 describe("Moon observer Artemis II comparison", () => {
     beforeAll(async () => {
-        browser = await chromium.launch({ headless: true });
+        browser = await browserType.launch({ headless: true });
         const newPage = browser.newPage.bind(browser);
         browser.newPage = async (...args) => {
             const page = await newPage(...args);
@@ -415,6 +416,100 @@ describe("Moon observer Artemis II comparison", () => {
         expect(samples[2]).toMatchObject({ lightingModel: 'current', raisedPoint: 255, deepNight: 0, day: 255 });
         await page.close();
     }, 60000);
+
+    it.each(["low", "medium", "high"])("keeps the eclipsed Moon dark at %s quality without removing fill light", async (tier) => {
+        const page = await browser.newPage();
+        const errors = [];
+        page.on("pageerror", error => errors.push(error.message));
+        page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+        // Test-only access to the real loaded renderer: no separate shader or
+        // synthetic replacement for the production terrain/normal maps.
+        await page.route("**/src/platform/js/moon-observer-test.js*", async route => {
+            const response = await route.fetch();
+            const body = (await response.text()).replace(/\ninitialize\(\);/, `
+window.__moonEclipseTest = {
+    ready: () => !!moonRenderer?.mesh?.material?.normalMap && moonRenderer.mesh.material.displacementMap?.image?.width > 1,
+    get: () => ({ THREE, moonRenderer, renderer })
+};
+initialize();`);
+            await route.fulfill({ response, body });
+        });
+        await page.goto(`${BASE_URL}/moon-observer-test.html?observer=geocenter&compare=render&tier=${tier}`);
+        await page.waitForFunction(() => window.__moonEclipseTest?.ready(), null, { timeout: 180000 });
+        expect(await page.evaluate(() => window.__moonEclipseTest.get().moonRenderer.mesh.material.displacementMap.image.width))
+            .toBe({ low: 1024, medium: 2048, high: 5760 }[tier]);
+        const metrics = await page.evaluate(() => {
+            const { THREE, moonRenderer: moon, renderer } = window.__moonEclipseTest.get();
+            const scene = new THREE.Scene();
+            const mesh = moon.mesh.clone();
+            mesh.onBeforeRender = () => mesh.material.userData.refreshMoonShaderUniforms();
+            scene.add(mesh);
+            const sun = new THREE.DirectionalLight(0xffffff, 3.1);
+            const fill = new THREE.DirectionalLight(0x9fb2d8, 0);
+            fill.position.set(0, 0, 8);
+            scene.add(sun, sun.target, fill, fill.target);
+            const size = 512;
+            const target = new THREE.WebGLRenderTarget(size, size);
+            target.texture.colorSpace = THREE.SRGBColorSpace;
+            const pixels = new Uint8Array(size * size * 4);
+            const results = [];
+            const sample = camera => {
+                renderer.setRenderTarget(target);
+                renderer.setClearColor(0x000000, 1);
+                renderer.clear();
+                renderer.render(scene, camera);
+                renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels);
+                let maximum = 0, bright = 0, total = 0, count = 0;
+                for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+                    // Exclude the extreme limb, where real raised terrain can
+                    // see sunlight. This interior is geometrically on the night side.
+                    const radial = Math.hypot((x + 0.5 - size / 2) * 2.4 / size, (y + 0.5 - size / 2) * 2.4 / size);
+                    if (radial >= 0.97) continue;
+                    const index = (y * size + x) * 4;
+                    const value = Math.max(pixels[index], pixels[index + 1], pixels[index + 2]);
+                    maximum = Math.max(maximum, value); total += value; count++;
+                    if (value > 16) bright++;
+                }
+                return { maximum, bright, mean: total / count };
+            };
+            for (const perspective of [false, true]) {
+                const camera = perspective
+                    ? new THREE.PerspectiveCamera(THREE.MathUtils.radToDeg(2 * Math.atan(1.2 / 8)), 1, 0.1, 20)
+                    : new THREE.OrthographicCamera(-1.2, 1.2, 1.2, -1.2, 0.1, 20);
+                camera.position.set(0, 0, 8); camera.lookAt(0, 0, 0); camera.updateMatrixWorld();
+                for (const azimuth of [-0.04, 0, 0.04]) {
+                    sun.position.set(Math.sin(azimuth) * 8, 0, -Math.cos(azimuth) * 8);
+                    mesh.rotation.z = azimuth * 5;
+                    results.push({ perspective, azimuth, ...sample(camera) });
+                }
+                sun.position.set(0, 0, -8);
+                fill.intensity = 0.35;
+                const withSun = sample(camera);
+                sun.intensity = 0;
+                const fillOnly = sample(camera);
+                results.push({ perspective, fill: true, withSun, fillOnly });
+                fill.intensity = 0;
+                sun.intensity = 3.1;
+            }
+            renderer.setRenderTarget(null);
+            target.dispose();
+            return results;
+        });
+        console.log("Eclipse interior regression", tier, JSON.stringify(metrics));
+        for (const result of metrics) {
+            if (result.fill) {
+                expect(result.fillOnly.mean).toBeGreaterThan(2);
+                expect(Math.abs(result.withSun.mean - result.fillOnly.mean)).toBeLessThan(0.05);
+                expect(result.withSun.maximum).toBeLessThanOrEqual(result.fillOnly.maximum + 1);
+            } else {
+                expect(result.bright).toBe(0);
+                expect(result.maximum).toBeLessThanOrEqual(1);
+            }
+        }
+        expect(errors).toEqual([]);
+        await page.close();
+    }, 210000);
+
 
     it("illuminates the reference ridges above Manzinus while preserving adjacent darkness", async () => {
         const page = await browser.newPage({ viewport: { width: 3300, height: 2050 } });

@@ -39,6 +39,8 @@ Every completed tier has terrain. Low and Medium use smaller versions of High's 
 
 \*Color + float height + GPU normal textures, assuming full resolution; excludes geometry, shadows and render targets. Separate WebGL contexts allocate separate GPU resources.
 
+Solar diffuse and specular contributions share the same horizon, grazing and terrain-shadow visibility; other lights remain separate. This prevents [night-side eclipse speckles](../../evidence/audits/moon-eclipse-speckles-2026-09-12.md).
+
 The shared shadow loop is compiled to each tier's sample budget. High retains the accepted terminator calculations and photographic settings. Low loses fine crater/ridge detail; High remains the comparison reference for close-ups.
 
 ## Loading and compatibility
