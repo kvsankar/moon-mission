@@ -31,6 +31,7 @@ function createRuntimeInitActions(deps) {
     async function init(callback, { isCurrent: isParentCurrent = () => true } = {}) {
         const requestId = ++latestInitRequest;
         const sceneConfig = getConfig();
+        const superseded = () => ({ status: "superseded", config: sceneConfig });
         const scene = getScene(sceneConfig);
         const transitionRevision = getTransitionRevision();
         const isCurrent = () =>
@@ -38,9 +39,11 @@ function createRuntimeInitActions(deps) {
             !!scene && scene.stopCreationFlag !== true &&
             getConfig() === sceneConfig && getScene(sceneConfig) === scene &&
             getTransitionRevision() === transitionRevision;
-        if (!isCurrent()) return;
+        if (!isCurrent()) return superseded();
         if (scene && scene.state >= getSceneStateInitDone()) {
-            return;
+            if (getCurrentDimension() === "2D") initSVG();
+            loadLandingDataAndProcess();
+            return loadOrbitDataIfNeededAndProcess(callback, { isCurrent });
         }
 
         resetViewTransformState(sceneConfig);
@@ -71,22 +74,23 @@ function createRuntimeInitActions(deps) {
         });
 
         await sleep();
-        if (!isCurrent()) return;
+        if (!isCurrent()) return superseded();
 
         setAnimDate(d3Select("#date"));
 
         await sleep();
-        if (!isCurrent()) return;
+        if (!isCurrent()) return superseded();
         if (getCurrentDimension() === "2D") {
             initSVG();
         }
 
         await sleep();
-        if (!isCurrent()) return;
-        loadOrbitDataIfNeededAndProcess(callback);
+        if (!isCurrent()) return superseded();
+        const orbitLoad = loadOrbitDataIfNeededAndProcess(callback, { isCurrent });
         loadLandingDataAndProcess();
 
         setSceneState(sceneConfig, getSceneStateInitDone());
+        return orbitLoad;
     }
 
     return {

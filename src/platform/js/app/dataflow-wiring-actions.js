@@ -1,6 +1,7 @@
 import { createSvgActions } from "./svg-actions.js";
 import { createOrbitLoadActions } from "./orbit-load-actions.js";
 import { createLandingLoadActions } from "./landing-load-actions.js";
+import { refreshLandingGeometry } from "./landing-geometry-readiness.js";
 import { createOrbitElementsActions } from "./orbit-elements-actions.js";
 import { createBodyLocationActions } from "./body-location-actions.js";
 import { createCraftScaleActions } from "./craft-scale-actions.js";
@@ -188,15 +189,15 @@ function createDataflowWiringActions(deps) {
     const { loadLandingDataAndProcess } = createLandingLoadActions({
         getGlobalConfig,
         getConfigsList,
-        getLandingDataLoaded,
+        getConfig,
+        getScene: (config) => animationScenes[config],
+        onLandingDataReady: ({ scene, data }) => refreshLandingGeometry(scene, data),
         setLandingDataLoaded,
         setLandingNpzLoaded,
         setLandingNpzData,
         setLandingChebyshevLoaded,
         setLandingChebyshevData,
-        resolveLandingNpzUrl,
         resolveLandingChebyshevUrl,
-        loadNpz,
         loadChebyshev,
         loadProgress,
         onEphemerisLoaded: ({ config, source, url, bodies = [] }) => {

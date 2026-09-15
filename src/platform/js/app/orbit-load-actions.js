@@ -294,17 +294,19 @@ export function createOrbitLoadActions({
         scene.addSpacecraftCurve?.();
     }
 
-    async function loadOrbitDataIfNeededAndProcess(callback) {
+    async function loadOrbitDataIfNeededAndProcess(callback, { isCurrent: isParentCurrent = () => true } = {}) {
         const config = getConfig();
+        const superseded = () => ({ status: "superseded", config });
         const scene = animationScenes[config];
-        if (!scene) return;
+        if (!isParentCurrent()) return superseded();
+        if (!scene) return { status: "failed", config, error: new Error(`Scene unavailable for ${config}`) };
         const dimension = getCurrentDimension();
         const revision = getTransitionRevision();
         const request = {};
         latestRequestByConfig.set(config, request);
         const ownsCache = () => latestRequestByConfig.get(config) === request
             && animationScenes[config] === scene;
-        const isCurrent = () => ownsCache() && getConfig() === config
+        const isCurrent = () => isParentCurrent() && ownsCache() && getConfig() === config
             && getCurrentDimension() === dimension && getTransitionRevision() === revision;
         const context = { config, isCurrent };
         // Resolve source policy and URLs before yielding; callbacks must never
@@ -344,7 +346,7 @@ export function createOrbitLoadActions({
                 updateProgressLabel(msg);
             }
             await sleep();
-            if (!ownsCache()) return;
+            if (!ownsCache()) return superseded();
             const requiredSources = new Set();
 
             try {
@@ -376,7 +378,7 @@ export function createOrbitLoadActions({
                     }
                     console.log(`Loading NPZ ephemeris from ${npzUrl}`);
                     const loadedNpz = await loadNpz(npzUrl);
-                    if (!ownsCache()) return;
+                    if (!ownsCache()) return superseded();
                     npzData[config] = loadedNpz;
                     npzDataLoaded[config] = true;
                     console.log(
@@ -401,7 +403,7 @@ export function createOrbitLoadActions({
                     console.log(`Loading Chebyshev data from ${chebUrl}`);
 
                     const loadedChebyshev = await loadChebyshev(chebUrl);
-                    if (!ownsCache()) return;
+                    if (!ownsCache()) return superseded();
                     chebyshevData[config] = loadedChebyshev;
                     chebyshevDataLoaded[config] = true;
                     console.log(
@@ -429,7 +431,7 @@ export function createOrbitLoadActions({
                             }
                             console.log(`Loading Sun Chebyshev data from ${sunChebUrl}`);
                             const sunChebData = await loadChebyshev(sunChebUrl);
-                            if (!ownsCache()) return;
+                            if (!ownsCache()) return superseded();
                             chebyshevData[config].SUN = sunChebData;
                         }
                     }
@@ -464,7 +466,7 @@ export function createOrbitLoadActions({
                                 supportChebUrl,
                                 await loadChebyshev(supportChebUrl),
                             );
-                            if (!ownsCache()) return;
+                            if (!ownsCache()) return superseded();
                         }
 
                         const merged = mergeMissingChebyshevBodySeries(
@@ -508,7 +510,7 @@ export function createOrbitLoadActions({
 
                 orbitDataLoaded[config] = true;
                 orbitRecordsByConfig.set(config, records);
-                if (!isCurrent()) return;
+                if (!isCurrent()) return superseded();
                 setDataLoaded(true);
 
                 if (progress) {
@@ -518,17 +520,18 @@ export function createOrbitLoadActions({
                     hideElementById("progressbar");
                 }
                 const completed = await processOrbitData(context);
-                if (completed === false || !isCurrent()) return;
+                if (completed === false || !isCurrent()) return superseded();
                 if (progress) {
                     progress.completeStage("process", "Processing orbit data ...");
                 }
                 ensure3DCurvesReady(config);
                 loadOrbitStyleMetaInBackground(config, isCurrent);
                 await sleep();
-                if (!isCurrent()) return;
+                if (!isCurrent()) return superseded();
                 callback();
+                return { status: "ready", config };
             } catch (error) {
-                if (!isCurrent()) return;
+                if (!isCurrent()) return superseded();
                 console.error("Error loading orbit ephemeris data:", error);
                 if (progress) {
                     progress.abortSession();
@@ -539,29 +542,36 @@ export function createOrbitLoadActions({
                 for (const source of requiredSources) {
                     reportStatus(config, source, "error", error?.message || String(error));
                 }
+                return { status: "failed", config, error };
             }
-            return;
         }
 
-        if (progress && progress.isActive()) {
-            progress.setStage("process", 0, "Processing orbit data ...");
+        try {
+            if (progress && progress.isActive()) {
+                progress.setStage("process", 0, "Processing orbit data ...");
+            }
+            // Inactive requests may fill their own cache, but their shared UI
+            // publications were suppressed. Replay provenance when activated.
+            for (const record of orbitRecordsByConfig.get(config) || []) {
+                recordEphemeris(record);
+                setStatus(config, record.source, "ok");
+            }
+            const completed = await processOrbitData(context);
+            if (completed === false || !isCurrent()) return superseded();
+            if (progress && progress.isActive()) {
+                progress.completeStage("process", "Processing orbit data ...");
+            }
+            ensure3DCurvesReady(config);
+            loadOrbitStyleMetaInBackground(config, isCurrent);
+            await sleep();
+            if (!isCurrent()) return superseded();
+            callback();
+            return { status: "ready", config };
+        } catch (error) {
+            if (!isCurrent()) return superseded();
+            progress?.abortSession();
+            return { status: "failed", config, error };
         }
-        // Inactive requests may fill their own cache, but their shared UI
-        // publications were suppressed. Replay provenance when activated.
-        for (const record of orbitRecordsByConfig.get(config) || []) {
-            recordEphemeris(record);
-            setStatus(config, record.source, "ok");
-        }
-        const completed = await processOrbitData(context);
-        if (completed === false || !isCurrent()) return;
-        if (progress && progress.isActive()) {
-            progress.completeStage("process", "Processing orbit data ...");
-        }
-        ensure3DCurvesReady(config);
-        loadOrbitStyleMetaInBackground(config, isCurrent);
-        await sleep();
-        if (!isCurrent()) return;
-        callback();
     }
 
     return { loadOrbitDataIfNeededAndProcess };

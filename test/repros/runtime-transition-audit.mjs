@@ -1,6 +1,6 @@
 // Opt-in audit reproductions, not a replacement for the normal test suite.
-// Assertions express the desired contracts. RTA-01/02 now pass; RTA-03 still
-// fails while its linked camera finding remains open. Production modules run with injected
+// Assertions express the desired contracts. RTA-01/02/03 now pass and have
+// owning unit regressions as well. Production modules run with injected
 // effect ports; no runtime source or screenshot baseline is changed.
 import assert from "node:assert/strict";
 import { createOrbitLoadActions } from "../../src/platform/js/app/orbit-load-actions.js";

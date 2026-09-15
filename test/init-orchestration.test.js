@@ -27,7 +27,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart: vi.fn(),
@@ -76,7 +76,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart,
@@ -119,7 +119,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart,
@@ -167,7 +167,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart: vi.fn(),
@@ -214,7 +214,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart: vi.fn(),
@@ -254,7 +254,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart: vi.fn(),
@@ -304,7 +304,7 @@ describe("createInitOrchestrationActions", () => {
 
         const actions = createInitOrchestrationActions({
             initConfig: vi.fn().mockResolvedValue(undefined),
-            init: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
             getConfig: () => "geo",
             isOrbitDataProcessed: () => true,
             missionStart: vi.fn(),
@@ -359,7 +359,7 @@ describe("createInitOrchestrationActions", () => {
                 const firstEntered = deferred();
                 const secondEntered = deferred();
                 const initConfig = vi.fn().mockResolvedValue(undefined);
-                const init = vi.fn().mockResolvedValue(undefined);
+                const init = vi.fn().mockResolvedValue({ status: "ready", config: "geo" });
                 const gatedStage = stage === "initConfig" ? initConfig : init;
                 gatedStage.mockImplementationOnce(() => {
                     firstEntered.resolve();
@@ -378,6 +378,8 @@ describe("createInitOrchestrationActions", () => {
                     init,
                     getConfig: () => "geo",
                     isOrbitDataProcessed: () => false,
+                    setLocation: vi.fn(), setDimension: vi.fn(), updateCraftScale: vi.fn(),
+                    getSetView: () => vi.fn(), getChangeCameraFromTo: () => vi.fn(),
                     d3: { select: () => ({ text: failureText }) },
                     d3SelectAll: () => ({ attr: buttonAttr }),
                     render,
@@ -402,13 +404,13 @@ describe("createInitOrchestrationActions", () => {
                     expect(render).not.toHaveBeenCalled();
                     expect(requestAnimationFrame).not.toHaveBeenCalled();
                     expect(scheduleTimeout).not.toHaveBeenCalled();
-                    second.resolve();
+                    second.resolve({ status: "ready", config: "geo" });
                     await newer;
                     expect(render).toHaveBeenCalledTimes(1);
-                    expect(scheduleTimeout).toHaveBeenCalledTimes(1);
+                    expect(scheduleTimeout).not.toHaveBeenCalled();
                 } finally {
                     first.resolve();
-                    second.resolve();
+                    second.resolve({ status: "ready", config: "geo" });
                     errorSpy.mockRestore();
                 }
             });

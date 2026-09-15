@@ -21,7 +21,7 @@ import {
     resolveFrameModeForRuntimeMode,
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
-import { loadMissionConfig } from "./data/mission-data.js";
+import { whenMissionConfigLoaded } from "./data/mission-data.js";
 import { resolveDockviewEnabled } from "./core/domain/dockview-policy.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import {
@@ -964,9 +964,10 @@ function registerMissionRuntimeCleanup() {
 
 registerMissionRuntimeCleanup();
 
-// Resolve the cached mission/profile config before importing or mounting the
-// workspace. In particular, CY3's SSIM profile selects the legacy scene layout.
-loadMissionConfig().then(async (missionConfig) => {
+// Wait for a successful runtime-driven load (including an explicit retry) before
+// importing or mounting the workspace. Never use defaults after a config failure:
+// CY3's SSIM profile, for example, explicitly selects the legacy scene layout.
+whenMissionConfigLoaded().then(async (missionConfig) => {
     const enabled = resolveDockviewEnabled({
         urlSearch: window.location.search,
         viewportWidth: window.innerWidth,

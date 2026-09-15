@@ -22,6 +22,7 @@ const GENERATED_ORBIT_SEGMENT_COLOR = "#ffb347";
 export function createSpacecraftCurveActions({
     THREE,
     getGlobalConfig,
+    getLandingChebyshevData = () => null,
     planetProperties,
     getViewOrbitDescent,
     getViewOrbit,
@@ -319,6 +320,14 @@ export function createSpacecraftCurveActions({
 
         addAllCurves();
 
+        addLandingCurve(scene);
+    }
+
+    function addLandingCurve(scene) {
+        if (!scene || scene.stopCreationFlag || !scene.motherContainer || scene.landingOrbitLine) {
+            return false;
+        }
+        const globalConfig = getGlobalConfig();
         if (
             scene.name == "lunar" &&
             globalConfig &&
@@ -328,7 +337,7 @@ export function createSpacecraftCurveActions({
         ) {
             const validLandingCurve = scene.landingCurve.filter(isValidVector3);
             if (validLandingCurve.length < 2) {
-                return;
+                return false;
             }
 
             const landingOrbitGeometry = createLineGeometryFromPoints(validLandingCurve);
@@ -338,10 +347,13 @@ export function createSpacecraftCurveActions({
                 landingOrbitGeometry,
                 landingOrbitMaterial,
             );
+            scene.landingOrbitData = getLandingChebyshevData(scene.name);
             scene.landingOrbitLine.visible = getViewOrbitDescent();
             scene.motherContainer.add(scene.landingOrbitLine);
             render();
+            return true;
         }
+        return false;
     }
 
     function disposeSpacecraftCurve(scene) {
@@ -385,16 +397,7 @@ export function createSpacecraftCurveActions({
         }
         scene.orbitTrailLinesByBodyId = {};
 
-        if (scene.landingOrbitLine) {
-            if (scene.landingOrbitLine.geometry) {
-                scene.landingOrbitLine.geometry.dispose();
-            }
-            if (scene.landingOrbitLine.material) {
-                scene.landingOrbitLine.material.dispose();
-            }
-            scene.motherContainer.remove(scene.landingOrbitLine);
-            scene.landingOrbitLine = null;
-        }
+        disposeLandingCurve(scene);
 
         scene.curvesById = {};
         scene.curveVelocitiesById = {};
@@ -406,5 +409,16 @@ export function createSpacecraftCurveActions({
         scene.leftOrbitPoints = 0;
     }
 
-    return { addSpacecraftCurve, disposeSpacecraftCurve };
+    function disposeLandingCurve(scene) {
+        const line = scene.landingOrbitLine;
+        if (line) {
+            line.geometry?.dispose?.();
+            line.material?.dispose?.();
+            scene.motherContainer?.remove(line);
+            scene.landingOrbitLine = null;
+        }
+        scene.landingOrbitData = null;
+    }
+
+    return { addSpacecraftCurve, addLandingCurve, disposeLandingCurve, disposeSpacecraftCurve };
 }

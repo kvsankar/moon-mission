@@ -1,4 +1,14 @@
 const DEFAULT_MESSAGE = "Loading mission...";
+const DEFAULT_HINT = "Preparing the timeline and 3D scene. This can take a moment.";
+
+function setMissionLoadingRetry(onRetry, documentRef) {
+    const doc = resolveDocument(documentRef);
+    const button = doc?.getElementById?.("mission-loading-retry");
+    if (!button) return;
+    button.hidden = typeof onRetry !== "function";
+    button.disabled = button.hidden;
+    button.onclick = typeof onRetry === "function" ? onRetry : null;
+}
 
 function resolveDocument(documentRef) {
     return documentRef || globalThis?.document || null;
@@ -27,9 +37,13 @@ function showMissionLoadingOverlay(message = DEFAULT_MESSAGE, documentRef) {
     const overlay = getLoadingOverlay(doc);
     if (!overlay) return;
     setMissionLoadingMessage(message, doc);
+    setMissionLoadingRetry(null, doc);
+    const hint = doc.getElementById?.("mission-loading-overlay-hint");
+    if (hint) hint.textContent = DEFAULT_HINT;
     overlay.hidden = false;
     overlay.dataset.state = "loading";
     overlay.dataset.blocking = "true";
+    overlay.setAttribute?.("aria-busy", "true");
     doc.documentElement?.classList?.remove("mission-loading-complete");
 }
 
@@ -49,6 +63,8 @@ function hideMissionLoadingOverlay(documentRef) {
     overlay.dataset.state = "ready";
     overlay.dataset.blocking = "false";
     overlay.hidden = true;
+    overlay.setAttribute?.("aria-busy", "false");
+    setMissionLoadingRetry(null, doc);
     doc.documentElement?.classList?.add("mission-loading-complete");
 }
 
@@ -57,9 +73,13 @@ function failMissionLoadingOverlay(message, documentRef) {
     if (!doc) return;
     const overlay = getLoadingOverlay(doc);
     if (!overlay) return;
-    setMissionLoadingMessage(message || "Mission failed to load. Please refresh and try again.", doc);
+    setMissionLoadingMessage(message || "Mission data could not be loaded.", doc);
     overlay.hidden = false;
     overlay.dataset.state = "error";
+    overlay.dataset.blocking = "false";
+    overlay.setAttribute?.("aria-busy", "false");
+    const hint = doc.getElementById?.("mission-loading-overlay-hint");
+    if (hint) hint.textContent = "Check your connection, retry, or choose another origin.";
 }
 
 export {
@@ -68,4 +88,5 @@ export {
     setMissionLoadingOverlayBlocking,
     setMissionLoadingMessage,
     showMissionLoadingOverlay,
+    setMissionLoadingRetry,
 };

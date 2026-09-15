@@ -164,6 +164,7 @@ function createMissionSceneActionBundle(deps) {
     const spacecraftCurveActions = createSpacecraftCurveActions({
         THREE,
         getGlobalConfig,
+        getLandingChebyshevData,
         planetProperties,
         getViewOrbitDescent,
         getViewOrbit,

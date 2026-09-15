@@ -9,6 +9,7 @@ import {
     setMissionLoadingOverlayBlocking,
     setMissionLoadingMessage,
     showMissionLoadingOverlay,
+    setMissionLoadingRetry,
 } from "../ui/mission-loading-overlay.js";
 
 function createInitOrchestrationActions(deps) {
@@ -16,7 +17,6 @@ function createInitOrchestrationActions(deps) {
         initConfig,
         init,
         getConfig,
-        isOrbitDataProcessed,
         missionStart,
         missionSetTime,
         setRealtimeSpeed,
@@ -122,17 +122,18 @@ function createInitOrchestrationActions(deps) {
     }
 
     function hideLoadingOverlayAfterResponsiveFrames({
+        runId,
         requiredStableFrames = 3,
         maxFrameGapMs = 140,
         maxWaitMs = 5000,
     } = {}) {
         if (typeof requestAnimationFrame !== "function") {
-            scheduleTimeout(() => hideMissionLoadingOverlay(), 0);
+            scheduleTimeout(() => { if (runId === latestInitRunId) hideMissionLoadingOverlay(); }, 0);
             return;
         }
         let done = false;
         const finish = () => {
-            if (done) return;
+            if (done || runId !== latestInitRunId) return;
             done = true;
             hideMissionLoadingOverlay();
         };
@@ -141,7 +142,7 @@ function createInitOrchestrationActions(deps) {
         let previousFrameMs = 0;
         let startMs = 0;
         const step = (frameMs) => {
-            if (done) return;
+            if (done || runId !== latestInitRunId) return;
             if (!Number.isFinite(startMs) || startMs <= 0) {
                 startMs = frameMs;
             }
@@ -191,7 +192,7 @@ function createInitOrchestrationActions(deps) {
                 startTextureLoadAfterCoreReady(scene, runId);
             }
             setMissionLoadingMessage("Finalizing controls...");
-            hideLoadingOverlayAfterResponsiveFrames();
+            hideLoadingOverlayAfterResponsiveFrames({ runId });
             return;
         }
         setMissionLoadingMessage("Finalizing controls...");
@@ -220,38 +221,11 @@ function createInitOrchestrationActions(deps) {
         }
     }
 
-    /**
-     * @param {{ onReady?: Function, pollIntervalMs?: number, runId?: number }} [options]
-     */
-    async function waitUntilOrbitDataProcessed({
-        onReady,
-        pollIntervalMs = 50,
-        runId = 0,
-    } = {}) {
-        if (runId !== latestInitRunId) {
-            return;
-        }
-        const cfg = getConfig();
-        if (!isOrbitDataProcessed(cfg)) {
-            scheduleTimeout(() => {
-                waitUntilOrbitDataProcessed({
-                    onReady,
-                    pollIntervalMs,
-                    runId,
-                });
-            }, pollIntervalMs);
-            return;
-        }
-
-        if (runId === latestInitRunId && typeof onReady === "function") {
-            onReady();
-        }
-    }
-
-    async function initAnimation(flags) {
+    async function initAnimation(flags, { handoffs = 0, background = false } = {}) {
         const runId = ++latestInitRunId;
         markInputActivity();
         showMissionLoadingOverlay("Loading mission data...");
+        if (background) setMissionLoadingOverlayBlocking(false);
         const applyTimeSetOrLocationRefresh = (timeMs) => {
             const clampedTimeMs = clampTimeToMissionSpan(timeMs);
             setAnimTime?.(clampedTimeMs);
@@ -287,59 +261,73 @@ function createInitOrchestrationActions(deps) {
             await initConfig();
             if (runId !== latestInitRunId) return;
             setMissionLoadingMessage("Preparing orbit data...");
-            await init(() => {}, { isCurrent: () => runId === latestInitRunId });
+            const outcome = await init(() => {}, { isCurrent: () => runId === latestInitRunId });
             if (runId !== latestInitRunId) return;
+            if (outcome?.status === "superseded") {
+                // A plane/dimension request can supersede data work without
+                // creating another startup owner. Follow the latest view once;
+                // repeated interruption becomes retryable, never an endless loop.
+                if (handoffs < 1) return initAnimation({ ...flags, reset: false }, { handoffs: handoffs + 1, background: true });
+                throw new Error("The view changed before loading could finish");
+            }
+            if (outcome?.status !== "ready") {
+                throw outcome?.error || new Error("Mission initialization did not produce a ready outcome");
+            }
 
-            await waitUntilOrbitDataProcessed({
-                runId,
-                onReady: () => {
-                    if (runId !== latestInitRunId) {
-                        return;
-                    }
-                    const startupAction = resolveStartupAnimationModeImpl({
-                        flags,
-                        nowTimeMs: Date.now(),
-                        startTime: Number(getStartTime?.()),
-                        latestEndTime: Number(getLatestEndTime?.()),
-                    });
+            const applyReady = () => {
+                if (runId !== latestInitRunId) {
+                    return;
+                }
+                const startupAction = resolveStartupAnimationModeImpl({
+                    flags,
+                    nowTimeMs: Date.now(),
+                    startTime: Number(getStartTime?.()),
+                    latestEndTime: Number(getLatestEndTime?.()),
+                });
 
-                    applyStartupAnimationMode(startupAction);
+                applyStartupAnimationMode(startupAction);
 
-                    setDimension(true);
+                setDimension(true);
 
-                    const setView = getSetView();
-                    if (typeof setView === "function") {
-                        setView();
-                    }
-                    // Dimension switch can finalize asynchronously (3D init), so apply
-                    // startup view settings again once the scene is actually ready.
-                    reapplyStartupViewWhenReady(runId);
+                const setView = getSetView();
+                if (typeof setView === "function") {
+                    setView();
+                }
+                // Dimension switch can finalize asynchronously (3D init), so apply
+                // startup view settings again once the scene is actually ready.
+                reapplyStartupViewWhenReady(runId);
 
-                    // Also resets camera parameters in manual/manual mode for consistent startup.
-                    const changeCameraFromTo = getChangeCameraFromTo();
-                    if (typeof changeCameraFromTo === "function") {
-                        changeCameraFromTo();
-                    }
+                // Also resets camera parameters in manual/manual mode for consistent startup.
+                const changeCameraFromTo = getChangeCameraFromTo();
+                if (typeof changeCameraFromTo === "function") {
+                    changeCameraFromTo();
+                }
 
-                    updateCraftScale();
+                updateCraftScale();
 
-                    // Re-run the frame once startup view/camera state has settled.
-                    setLocation();
+                // Re-run the frame once startup view/camera state has settled.
+                setLocation();
 
-                    // Some startup paths (for example missions that begin in 3D and
-                    // don't re-enter the orbit-processing unlock path) can leave
-                    // controls disabled. Always release the startup blanket-disable.
-                    releaseStartupButtonDisable();
-                    settleLoadingOverlayWhenInteractive(runId);
-                },
-            });
+                // Some startup paths (for example missions that begin in 3D and
+                // don't re-enter the orbit-processing unlock path) can leave
+                // controls disabled. Always release the startup blanket-disable.
+                releaseStartupButtonDisable();
+                settleLoadingOverlayWhenInteractive(runId);
+            };
+            applyReady();
         } catch (error) {
             if (runId !== latestInitRunId) return;
-            d3.select("#eventinfo").text("Failed to load the animation. Please restart the browser and try again.");
-            failMissionLoadingOverlay("Mission failed to load. Please refresh and try again.");
+            const message = "Mission data could not be loaded.";
+            d3.select("#eventinfo").text(message);
+            releaseStartupButtonDisable();
+            failMissionLoadingOverlay(message);
+            setMissionLoadingRetry(() => {
+                if (runId !== latestInitRunId) return;
+                setMissionLoadingRetry(null);
+                return initAnimation(flags, { background: true });
+            });
             console.error("Error: exception in initAnimation(): " + error);
-            d3SelectAll("button").attr("disabled", true);
-            return;
+            return { status: "failed", error };
         }
 
         if (runId !== latestInitRunId) return;
@@ -348,6 +336,7 @@ function createInitOrchestrationActions(deps) {
             requestAnimationFrame(animateLoop);
             animationLoopStarted = true;
         }
+        return { status: "ready" };
     }
 
     return {

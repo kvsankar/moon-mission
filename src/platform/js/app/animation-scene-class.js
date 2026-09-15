@@ -645,6 +645,14 @@ function createAnimationSceneClass(deps) {
             spacecraftCurveActions.addSpacecraftCurve(this);
         }
 
+        addLandingCurve() {
+            return spacecraftCurveActions.addLandingCurve(this);
+        }
+
+        disposeLandingCurve() {
+            spacecraftCurveActions.disposeLandingCurve(this);
+        }
+
         disposeSpacecraftCurve() {
             spacecraftCurveActions.disposeSpacecraftCurve(this);
         }

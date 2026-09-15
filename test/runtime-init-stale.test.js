@@ -18,7 +18,7 @@ function createHarness(pauseAt = 1, useRevision = true) {
         initRepeatButtons: vi.fn(),
         setAnimDate: vi.fn(),
         initSVG: vi.fn(),
-        loadOrbitDataIfNeededAndProcess: vi.fn(),
+        loadOrbitDataIfNeededAndProcess: vi.fn().mockResolvedValue({ status: "ready", config: "geo" }),
         loadLandingDataAndProcess: vi.fn(),
         setSceneState: vi.fn(),
     };
@@ -52,8 +52,8 @@ describe("runtime initialization ownership", () => {
         await h.actions.init(currentCallback);
         h.resume.resolve();
         await old;
-        expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledTimes(warm ? 0 : 1);
-        if (!warm) expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledWith(currentCallback);
+        expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledTimes(1);
+        expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledWith(currentCallback, expect.objectContaining({ isCurrent: expect.any(Function) }));
     });
 
     it("does not initiate work after its parent startup is superseded before the next init call", async () => {
@@ -95,15 +95,20 @@ describe("runtime initialization ownership", () => {
         const callback = vi.fn();
         h.resume.resolve();
         await h.actions.init(callback);
-        expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledWith(callback);
+        expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledWith(callback, expect.objectContaining({ isCurrent: expect.any(Function) }));
         expect(h.effects.loadLandingDataAndProcess).toHaveBeenCalledTimes(1);
         expect(h.effects.setSceneState).toHaveBeenCalledWith("geo", 2);
     });
 
-    it("does not repeat effects for a warm initialized scene", async () => {
+    it("rechecks load outcomes for a warm scene without repeating shell initialization", async () => {
         const h = createHarness();
         h.scenes.geo.state = 2;
-        await h.actions.init(vi.fn());
-        for (const effect of Object.values(h.effects)) expect(effect).not.toHaveBeenCalled();
+        expect(await h.actions.init(vi.fn())).toMatchObject({ status: "ready" });
+        expect(h.effects.loadOrbitDataIfNeededAndProcess).toHaveBeenCalledOnce();
+        expect(h.effects.loadLandingDataAndProcess).toHaveBeenCalledOnce();
+        expect(h.effects.initSVG).toHaveBeenCalledOnce();
+        expect(h.effects.initSVG.mock.invocationCallOrder[0]).toBeLessThan(h.effects.loadOrbitDataIfNeededAndProcess.mock.invocationCallOrder[0]);
+        expect(h.effects.initRepeatButtons).not.toHaveBeenCalled();
+        expect(h.effects.resetViewTransformState).not.toHaveBeenCalled();
     });
 });

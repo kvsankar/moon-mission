@@ -484,6 +484,30 @@ html[data-app-view="selector"] .mission-loading-overlay,
     border-color: rgba(255, 128, 128, 0.62);
 }
 
+.mission-loading-overlay[data-state="error"] .mission-loading-overlay__card {
+    pointer-events: auto;
+}
+
+.mission-loading-overlay[data-state="error"][data-blocking="false"] {
+    bottom: calc(var(--timeline-dock-height, 0px) + var(--timeline-dock-offset, 18px) + var(--control-panel-visual-height, 0px) + var(--ui-space-3));
+}
+
+.mission-loading-overlay__retry {
+    margin-top: var(--ui-space-3);
+    min-height: 44px;
+    padding: var(--ui-space-2) var(--ui-space-4);
+    border: 1px solid var(--ui-border-2);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
+    cursor: pointer;
+}
+
+.mission-loading-overlay__retry:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+}
+
 .mission-loading-overlay__copy {
     min-width: 0;
 }

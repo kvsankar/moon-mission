@@ -67,7 +67,7 @@ function createInitConfigOrchestrationActions(deps) {
     }
 
     async function ensureGlobalConfigLoaded() {
-        const hasGlobalConfig = getGlobalConfig() !== null;
+        const hasGlobalConfig = getGlobalConfig() != null;
 
         if (progress) {
             const progressActive =
@@ -88,10 +88,16 @@ function createInitConfigOrchestrationActions(deps) {
         }
 
         const loadedBaseConfig = await loadMissionConfig();
+        if (!loadedBaseConfig) {
+            throw new Error("Required mission configuration failed to load");
+        }
         const loadedGlobalConfig =
             typeof loadComparisonOverlay === "function"
                 ? await loadComparisonOverlay(loadedBaseConfig)
                 : loadedBaseConfig;
+        if (!loadedGlobalConfig) {
+            throw new Error("Required mission configuration failed to load");
+        }
         setGlobalConfig(loadedGlobalConfig);
         applyMissionViewDefaults(loadedGlobalConfig);
         setEventInfos(loadedGlobalConfig?.eventInfos || []);

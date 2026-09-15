@@ -109,7 +109,23 @@ inputs are explicit and the behavior is independently testable.
 - Warm activation can reuse cached data and must restore its provenance and
   authored style state without allowing old callbacks to select the view.
 
-### Refactor Verification
+### Required Data Readiness And Recovery
+
+- Required orbit startup resolves explicitly to `ready`, `failed` or
+  `superseded`; success-only polling must not hide a terminal request failure.
+- A failure shows an actionable Retry control and ends the busy indicator.
+  Retry starts a new owned attempt, reuses valid data, and does not duplicate
+  the animation loop or publish obsolete errors. Failed configuration loads
+  are not cached as successful configuration.
+- A pending retry leaves origin navigation usable. If an internal view change
+  supersedes startup without a newer startup owner, one automatic latest-view
+  handoff is allowed; repeated interruption offers Retry rather than spinning.
+- Landing data is a separate scene dependency. Late completion installs descent
+  geometry for the matching live scene; a warm activation can use cached data.
+  Repeated identical data is idempotent. Changed landing data replaces only its
+  descent geometry and disposes the replaced resources.
+
+### Structural Refactor Verification
 
 - Structural refactors preserve behavior unless an owning feature
   specification changes it.

@@ -34,8 +34,10 @@ Current audit evidence:
 RTA-01 through RTA-03 have executable opt-in desired-contract reproductions in
 `npm run test:audit:transitions`. The subsequent user request to continue
 authorized the bounded RTA-01/02 implementation; those probes now pass and
-their regressions run in the normal unit suite. RTA-03 still fails and remains
-runtime work. See [supersession fix evidence](../../evidence/reviews/runtime-transition-supersession-2026-09-15.md).
+their regressions run in the normal unit suite. Subsequent approved work fixed
+RTA-03/04/05 as well: [recovery and readiness evidence](../../evidence/reviews/runtime-recovery-and-readiness-2026-09-15.md).
+All three original audit probes now pass. RTA-06 and wider coverage migration
+remain open. See also [supersession evidence](../../evidence/reviews/runtime-transition-supersession-2026-09-15.md).
 
 ## Parallel Workstreams
 

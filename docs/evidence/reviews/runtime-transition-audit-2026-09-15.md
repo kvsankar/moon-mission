@@ -2,8 +2,9 @@
 
 Remediation follow-up: [Transition Supersession Fixes](runtime-transition-supersession-2026-09-15.md)
 implements RTA-01/02 with regression tests and independent review. The findings
-and red-probe results below describe the original audit checkpoint; RTA-03
-through RTA-06 remain open.
+and red-probe results below describe the original audit checkpoint.
+[Recovery/readiness follow-up](runtime-recovery-and-readiness-2026-09-15.md)
+also closes RTA-03/04/05. RTA-06 remains open.
 
 ## Scope And Method
 

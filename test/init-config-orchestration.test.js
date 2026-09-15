@@ -56,6 +56,29 @@ function buildDeps(overrides = {}) {
 }
 
 describe("createInitConfigOrchestrationActions", () => {
+    it("fails required configuration without publishing defaults and allows explicit retry", async () => {
+        const loadedConfig = { ui: { dockviewEnabled: false } };
+        const deps = buildDeps({
+            loadMissionConfig: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce(loadedConfig),
+            loadComparisonOverlay: vi.fn(async config => config),
+        });
+        const actions = createInitConfigOrchestrationActions(deps);
+
+        await expect(actions.ensureGlobalConfigLoaded()).rejects.toThrow("Required mission configuration failed to load");
+        expect(deps.getGlobalConfig()).toBeNull();
+        expect(deps.loadComparisonOverlay).not.toHaveBeenCalled();
+        expect(deps.setGlobalConfig).not.toHaveBeenCalled();
+        expect(deps.setEventInfos).not.toHaveBeenCalled();
+        expect(deps.bindInfoPanelControls).not.toHaveBeenCalled();
+        expect(deps.applyMissionMetadata).not.toHaveBeenCalled();
+        expect(deps.loadMissionConfig).toHaveBeenCalledOnce();
+
+        await actions.ensureGlobalConfigLoaded();
+        expect(deps.getGlobalConfig()).toBe(loadedConfig);
+        expect(deps.setGlobalConfig).toHaveBeenCalledExactlyOnceWith(loadedConfig);
+        expect(deps.loadMissionConfig).toHaveBeenCalledTimes(2);
+    });
+
     it("applies mission-config view defaults when config loads", async () => {
         const deps = buildDeps();
         const actions = createInitConfigOrchestrationActions(deps);

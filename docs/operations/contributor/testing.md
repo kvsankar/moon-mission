@@ -63,11 +63,16 @@ See [paired audit and harness plan](../../plans/implementation/runtime-transitio
 for remaining coverage and migration rules.
 
 `npm run test:audit:transitions` runs opt-in deterministic reproductions for
-three audited architecture findings. RTA-01/02 now pass; it deliberately exits
-nonzero for the still-open RTA-03 camera contract. The fixed race regressions
+three audited architecture findings. RTA-01/02/03 now pass; the command exits
+zero. The fixed race and camera regressions
 also run in the normal unit suite. The diagnostic script itself is outside
 normal unit/CI discovery; it is
-neither an expected-green gate nor a test that blesses broken behavior.
+an additional diagnostic, not a substitute for the owning unit regressions.
+
+`npm run test:browser:recovery` exercises actual orbit/config HTTP failures,
+keyboard Retry and origin changes during a held retry. It also checks that
+the recovery card stays clear of playback. The suite starts no server; use
+the same local test server as the other browser suites.
 
 Quick default visual run (managed server lifecycle):
 

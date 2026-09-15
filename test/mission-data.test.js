@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveDockviewEnabled } from "../src/platform/js/core/domain/dockview-policy.js";
 
 function createJsonResponse(value, status = 200) {
     return {
@@ -88,7 +89,58 @@ describe("mission-data", () => {
 
         await expect(loadMissionConfig()).resolves.toBeNull();
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(consoleWarn).toHaveBeenCalledWith("Could not load config.json, using defaults");
+        expect(consoleWarn).toHaveBeenCalledWith("Could not load required config.json (404)");
         expect(consoleError).not.toHaveBeenCalled();
+    });
+
+    it("deduplicates failed loads but allows an explicit retry and caches its success", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        vi.spyOn(console, "debug").mockImplementation(() => {});
+        const baseConfig = { spacecraft_mnemonic: "CH3", origins: ["geo"], geo: {} };
+        global.fetch
+            .mockResolvedValueOnce(createJsonResponse({}, 503))
+            .mockResolvedValueOnce(createJsonResponse(baseConfig))
+            .mockResolvedValueOnce(createJsonResponse({ ui: { dockviewEnabled: false } }))
+            .mockResolvedValueOnce(createJsonResponse({}, 404));
+        const { loadMissionConfig } = await import("../src/platform/js/data/mission-data.js");
+
+        expect(await Promise.all([loadMissionConfig(), loadMissionConfig()])).toEqual([null, null]);
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        await Promise.resolve();
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+
+        const [retried, concurrent] = await Promise.all([loadMissionConfig(), loadMissionConfig()]);
+        expect(retried).not.toBeNull();
+        expect(retried).toBe(concurrent);
+        expect(retried.ui.dockviewEnabled).toBe(false);
+        expect(global.fetch).toHaveBeenCalledTimes(4);
+        expect(await loadMissionConfig()).toBe(retried);
+        expect(global.fetch).toHaveBeenCalledTimes(4);
+    });
+
+    it("waits for successful config before choosing Dockview, without initiating retries", async () => {
+        vi.spyOn(console, "warn").mockImplementation(() => {});
+        vi.spyOn(console, "debug").mockImplementation(() => {});
+        global.fetch
+            .mockResolvedValueOnce(createJsonResponse({}, 503))
+            .mockResolvedValueOnce(createJsonResponse({ spacecraft_mnemonic: "CH3", origins: ["geo"], geo: {} }))
+            .mockResolvedValueOnce(createJsonResponse({ ui: { dockviewEnabled: false } }))
+            .mockResolvedValueOnce(createJsonResponse({}, 404));
+        const { loadMissionConfig, whenMissionConfigLoaded } = await import("../src/platform/js/data/mission-data.js");
+        const chooseWorkspace = vi.fn(missionConfig => resolveDockviewEnabled({
+            urlSearch: "?testProfile=ssim", viewportWidth: 1280, missionConfig,
+        }));
+        const workspaceReady = whenMissionConfigLoaded().then(chooseWorkspace);
+        expect(global.fetch).not.toHaveBeenCalled();
+        await expect(loadMissionConfig()).resolves.toBeNull();
+        await Promise.resolve();
+        expect(chooseWorkspace).not.toHaveBeenCalled();
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+
+        const retried = await loadMissionConfig();
+        await expect(workspaceReady).resolves.toBe(false);
+        expect(chooseWorkspace).toHaveBeenCalledExactlyOnceWith(retried);
+        await expect(whenMissionConfigLoaded()).resolves.toBe(retried);
+        expect(global.fetch).toHaveBeenCalledTimes(4);
     });
 });

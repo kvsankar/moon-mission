@@ -48,6 +48,19 @@ function harness({ processSleep = async () => {}, loaded = {}, loadJson, process
 afterEach(() => vi.unstubAllGlobals());
 
 describe("orbit request identity and publication", () => {
+    it("returns failed then ready outcomes when a request is retried", async () => {
+        const h = harness();
+        const failed = h.loading.loadOrbitDataIfNeededAndProcess(vi.fn());
+        await vi.waitFor(() => expect(h.requests).toHaveLength(1));
+        h.requests[0].reject(new Error("offline"));
+        expect(await failed).toMatchObject({ status: "failed", config: "geo" });
+        expect(h.loaded.geo).not.toBe(true);
+        const retry = h.loading.loadOrbitDataIfNeededAndProcess(vi.fn());
+        await vi.waitFor(() => expect(h.requests).toHaveLength(2));
+        h.requests[1].resolve({ SC: { segments: [] } });
+        expect(await retry).toMatchObject({ status: "ready", config: "geo" });
+        expect(h.processed.geo).toBe(true);
+    });
     it("propagates cancelled SVG construction without publishing readiness", async () => {
         const h = harness({ loaded: { geo: true }, processVectors: async () => false });
         h.state.dimension = "2D";

@@ -18,6 +18,16 @@ import {
 let missionConfigLoaded = false;
 let missionConfigValue = null;
 let missionConfigPromise = null;
+let resolveMissionConfigReady;
+const missionConfigReady = new Promise(resolve => {
+    resolveMissionConfigReady = resolve;
+});
+
+// Observe the first successful config without starting a request or a retry.
+// Failed loads leave observers pending until the runtime explicitly retries.
+export function whenMissionConfigLoaded() {
+    return missionConfigReady;
+}
 
 export function getMissionDataPath() {
     const dataPath = window?.missionConfig?.dataPath;
@@ -59,7 +69,7 @@ export async function loadMissionConfig() {
         try {
             const response = await fetch(configUrl, { cache: "no-store" });
             if (!response.ok) {
-                console.warn("Could not load config.json, using defaults");
+                console.warn(`Could not load required config.json (${response.status})`);
                 return null;
             }
 
@@ -115,8 +125,11 @@ export async function loadMissionConfig() {
     })();
 
     missionConfigValue = await missionConfigPromise;
-    missionConfigLoaded = true;
+    missionConfigLoaded = missionConfigValue !== null;
     missionConfigPromise = null;
+    if (missionConfigLoaded) {
+        resolveMissionConfigReady(missionConfigValue);
+    }
     return missionConfigValue;
 }
 
