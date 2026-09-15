@@ -35,6 +35,13 @@ npm run dev
 
 Default local URL: `http://localhost:7274/`
 
+The development server binds to `127.0.0.1` and disables browser cross-origin
+access (`server.cors: false`). Local pages, workers and popouts use the same
+origin; remote CDN/R2 permissions are unaffected. Do not enable wildcard CORS
+or host access to work around a local configuration issue. Generated
+`coverage/` and `.tmp/` outputs are excluded from the Vite watcher so report
+generation does not reload an active animation/browser test.
+
 Vite serves staged local render assets. Stage data before checking texture loading;
 production still uses its configured asset base/CDN. Use data `main`, including
 commit `f8aba77` or later, for the complete Moon quality tiers and V2 compact assets.

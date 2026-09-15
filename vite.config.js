@@ -153,7 +153,11 @@ export default defineConfig({
         port: 7274,
         host: "127.0.0.1",
         open: false,
-        cors: true,
+        // Local pages, workers and popouts share this origin. Do not expose
+        // development source/assets to unrelated browser origins.
+        cors: false,
+        // Coverage HTML and scratch builds are outputs, not application edits.
+        watch: { ignored: ["**/coverage/**", "**/.tmp/**"] },
         fs: {
             allow: [
                 ".",

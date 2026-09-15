@@ -19,18 +19,22 @@ The preserved May planning snapshot is
 
 ## Current Priority
 
-### 1. Apply bounded dependency remediation
+### 1. Coordinate remaining dependency remediation
 
-The parallel advisory triage is complete. No demonstrated exposure required
-interrupting the runtime reliability fixes, which are now complete below.
-Next, update Vite and Vitest/coverage within their current major versions,
-review development CORS, and verify tests/builds. Do not use blind audit-fix
-upgrades. Coordinate the later major Swiper update across npm and production
-CDN JavaScript/CSS; an npm-only change does not update the deployed carousel.
+The same-major toolchain slice is complete: Vite 7.3.6, Vitest/coverage 3.2.7,
+loopback-only serving with wildcard CORS disabled, and generated-report watcher
+isolation. See [update evidence](../evidence/reviews/dependency-updates-2026-09-15.md).
+The audit now reports 13 affected package entries (one critical), down from 18.
+
+Next, coordinate the major Swiper update across npm and production CDN
+JavaScript/CSS; an npm-only change does not update the deployed carousel.
+Keep the optional MCP upgrade and major Vitest/mocker migration as separate
+tested slices. Do not apply blind audit-fix upgrades.
 
 Evidence and version candidates:
 [Dependency Advisory Triage](../evidence/reviews/dependency-triage-2026-09-15.md).
-Triage changed no dependency versions; advisories remain until remediation.
+Swiper, MCP-related and other deferred advisories remain; the toolchain update
+is not a clean security audit. No runtime dependency versions changed in it.
 
 ### 2. Reduce camera-state ownership ambiguity (RTA-06)
 
@@ -65,6 +69,9 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Same-major Vite/Vitest updates and local development-server hardening:
+  [dependency update evidence](../evidence/reviews/dependency-updates-2026-09-15.md).
 
 - The roadmap was updated before implementation, then reviewed UI/harness and
   RTA-01/02 work was checkpointed in `5e5edd0`.
