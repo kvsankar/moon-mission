@@ -86,6 +86,7 @@ function createControlPanelTimelineController(deps = {}) {
 
     function closeMobileOnlyMediaPanelIfNeeded() {
         if (shouldAllowMediaMarkersVisible()) return;
+        if (windowRef?.__moonMissionDockviewSpike?.progressiveWorkspace) return;
         invokeMissionPanelActionImpl("workflow:media-browser", "close");
     }
 

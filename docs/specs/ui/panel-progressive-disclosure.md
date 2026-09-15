@@ -8,15 +8,69 @@ canonical_for:
 
 # Panel Progressive Disclosure Spec
 
-Last updated: 2026-05-22
+Last updated: 2026-09-15
 
 This spec defines how resizable workflow panels adapt their information density
 as available space changes. The goal is not to hide useful information for its
 own sake; the goal is to keep each panel readable, stable, and useful at the
 size the user has chosen.
 
-The first tracked implementation target is the thumbnail strip in the Mission
-Media panel.
+The thumbnail strip in Mission Media is the first implementation. The shared
+workspace and Frame and Shoot extend the same principle to simultaneous tools
+and controls, as requested in September 2026.
+
+## Workspace Space Budget
+
+The scene and shared mission clock/playback take priority. Less available space
+must mean fewer simultaneous tools and less secondary detail, not smaller text
+or crowded controls. Width and height both count; a short desktop window is a
+constrained experience even when it is wide.
+
+| Level | Available viewport | Default visible workspace |
+| --- | --- | --- |
+| Full | At least 1680×860 | Existing multi-panel arrangement |
+| Compact | At least 1280×680 | Main scene, broadcast, Frame and Shoot, media |
+| Minimal | At least 960×600 | Main scene and one selected tool, initially media |
+| Focused | Below either minimal bound | Main scene or one explicitly opened tool |
+
+These are initial, named thresholds, not device detection. Explicitly forced
+legacy panels retain their layout, while their panel-local disclosure still
+uses measured geometry. The existing mobile shell remains the primary narrow
+navigation surface.
+
+- A visible Tools entry exposes automatically collapsed tools and secondary
+  workspace actions. The most constrained desktop level also exposes a direct
+  Scene return action. All tool names remain available in the Tools surface.
+- Automatically collapsed panels remain open in the mission registry. Opening
+  one restores/focuses it rather than toggling it closed.
+- At minimal/focused levels, an explicit tool choice replaces the previous
+  secondary tool. Mission time, camera settings, media selection and playback
+  are retained.
+- Automatic collapse must not overwrite the user's expanded desktop layout.
+  Growing the viewport restores its layout, respecting subsequent explicit
+  panel closes/opens. Derived disclosure levels are not saved preferences.
+- Hidden groups must not intercept input or keep rendering auxiliary scenes.
+- Reducing height follows the same priority rules as reducing width.
+
+## Frame And Shoot Space Budget
+
+Use the actual scene viewport dimensions, including when its containing window
+is large. A short or narrow panel must not let its upper hover controls cover
+the local timeline.
+
+- Full panels may expose the existing upper controls and local timeline.
+- Compact panels retain the image, essential camera status and clear launchers
+  for View options and time controls. Secondary controls open in a bounded,
+  scrollable disclosure surface using their existing state and event handlers.
+- Minimal panels reduce passive metrics as well; the full values remain in an
+  explicit details surface or an expanded view.
+- Popovers close with Escape, return focus to their invoker, and reposition or
+  close safely across resizes. Keyboard and touch must not depend on hover.
+- Growing a panel restores detail without changing camera, mission time,
+  selected feature, exposure or playback.
+
+Delivery:
+[Progressive Workspace UX](../../plans/implementation/progressive-workspace-ux.md).
 
 ## Goals
 

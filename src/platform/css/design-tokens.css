@@ -1,0 +1,101 @@
+/* Shared by the mission selector, runtime, and detached mission views.
+ * Component geometry and scientific/mission colors stay with their owners.
+ */
+:root {
+    color-scheme: dark;
+
+    --ui-bg-0: #080c12;
+    --ui-surface-1: #101720;
+    --ui-surface-2: #18212d;
+    --ui-surface-overlay: rgba(16, 23, 32, 0.96);
+    --ui-surface-hover: #222e3d;
+    --ui-border-1: #303c4b;
+    --ui-border-2: #52647a;
+    --ui-text-1: #e6edf5;
+    --ui-text-2: #acb9ca;
+    --ui-text-muted: #8c9bae;
+    --ui-accent-1: #8ab8ed;
+    --ui-accent-2: #6599d7;
+    --ui-selected-bg: #20354d;
+    --ui-selected-border: #648bb8;
+    --ui-selected-text: #dcecff;
+    --ui-focus: #acd2ff;
+    --ui-annotation-accent: #79abff;
+    --ui-annotation-accent-soft: rgba(77, 141, 255, 0.22);
+
+    --ui-font-sans: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --ui-font-condensed: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", Arial, sans-serif;
+    --ui-font-mono: "IBM Plex Mono", "Cascadia Code", "Lucida Console", monospace;
+    --ui-type-micro: 8px;
+    --ui-type-label: 9px;
+    --ui-type-control: 10px;
+    --ui-type-body-sm: 11px;
+    --ui-type-body: 12px;
+    --ui-type-body-lg: 13px;
+    --ui-type-subtitle: 14px;
+    --ui-type-title-sm: 16px;
+    --ui-type-title: 20px;
+    --ui-type-display: 36px;
+    --ui-weight-normal: 400;
+    --ui-weight-medium: 500;
+    --ui-weight-strong: 600;
+    --ui-tracking-label: 0.025em;
+    --ui-tracking-kicker: 0.06em;
+
+    --ui-space-1: 2px;
+    --ui-space-2: 4px;
+    --ui-space-3: 6px;
+    --ui-space-4: 8px;
+    --ui-space-5: 12px;
+    --ui-space-6: 16px;
+    --ui-space-7: 24px;
+    --ui-radius-xs: 4px;
+    --ui-radius-sm: 6px;
+    --ui-radius-md: 8px;
+    --ui-radius-pill: 999px;
+    --ui-shadow-panel: 0 4px 16px rgba(0, 0, 0, 0.24);
+    --ui-shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --ui-duration-fast: 140ms;
+    --ui-duration-normal: 200ms;
+    --ui-touch-target: 44px;
+
+    /* Compatibility names consumed by existing control families. Launcher
+     * role is conveyed by shape, label and expanded state, not another hue.
+     */
+    --header-pill-current-color: var(--ui-selected-text);
+    --header-pill-launcher-color: var(--ui-text-2);
+    --header-pill-launcher-border: var(--ui-selected-border);
+    --header-pill-launcher-bg: var(--ui-selected-bg);
+
+    /* Preserve established stacking order while naming its owners. Local
+     * stacking inside a panel and dynamic panel-manager z-order stay local.
+     */
+    --ui-layer-scene: 0;
+    --ui-layer-scene-overlay: 7;
+    --ui-layer-timeline: 6;
+    --ui-layer-persistent-panel: 9;
+    --ui-layer-panel-chrome: 10;
+    --ui-layer-header: 22;
+    --ui-layer-mobile: 23;
+    --ui-layer-timeline-media: 5000;
+    --ui-layer-config-popover: 10000;
+    --ui-layer-modal: 100000;
+    --ui-config-popover-z: var(--ui-layer-config-popover);
+}
+
+/* Shared interaction affordances also cover controls generated at runtime. */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+}
+
+:where(input[type="checkbox"], input[type="radio"], input[type="range"]) {
+    accent-color: var(--ui-accent-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --ui-duration-fast: 0ms;
+        --ui-duration-normal: 0ms;
+    }
+}

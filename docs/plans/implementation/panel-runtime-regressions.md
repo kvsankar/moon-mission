@@ -8,6 +8,18 @@ canonical_for:
 
 # Panel Runtime Regressions
 
+## September 15 Disposition — Ready For Independent Review
+
+The three assertions reproduced, but they applied legacy panel geometry and
+grips to the default Dockview workspace. The explicit legacy route passes the
+geometry and grip checks. The image-loading test now holds texture requests
+pending and accepts both current loading states. New browser coverage verifies
+Dockview dividers and maximize/restore at both desktop viewports.
+
+See [visual design and regression evidence](../../evidence/reviews/visual-design-tokens-2026-09-15.md).
+No panel runtime correction was needed. Independent review and the recorded
+broader SSIM limitation remain before final roadmap closure.
+
 ## Source Evidence
 
 [Feature Specification Migration Review](../../evidence/reviews/documentation-migration-feature-specifications-2026-09-02.md)

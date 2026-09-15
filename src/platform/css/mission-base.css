@@ -30,38 +30,6 @@
 */
 
 :root {
-    --ui-bg-0: #060b12;
-    --ui-surface-1: rgba(15, 23, 36, 0.88);
-    --ui-surface-2: rgba(21, 32, 51, 0.92);
-    --ui-border-1: rgba(255, 255, 255, 0.14);
-    --ui-border-2: rgba(255, 255, 255, 0.24);
-    --ui-text-1: #e8eef8;
-    --ui-text-2: #a9b4c7;
-    --ui-accent-1: #4d8dff;
-    --ui-accent-2: #2f6fe6;
-    --ui-annotation-accent: #79abff;
-    --ui-annotation-accent-soft: rgba(77, 141, 255, 0.22);
-    --ui-radius-sm: 8px;
-    --ui-radius-md: 10px;
-    --ui-focus: rgba(100, 164, 255, 0.75);
-    --ui-font-sans: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    --ui-font-condensed: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", Arial, sans-serif;
-    --ui-font-mono: "IBM Plex Mono", "Cascadia Code", "Lucida Console", monospace;
-    --ui-type-micro: 8px;
-    --ui-type-label: 9px;
-    --ui-type-control: 10px;
-    --ui-type-body-sm: 11px;
-    --ui-type-body: 12px;
-    --ui-type-body-lg: 13px;
-    --ui-type-title-sm: 16px;
-    --ui-tracking-label: 0.05em;
-    --ui-tracking-kicker: 0.08em;
-    --header-pill-current-color: #7fe3ff;
-    --header-pill-launcher-color: #b8d48a;
-    --header-pill-launcher-border: rgba(184, 212, 138, 0.58);
-    --header-pill-launcher-bg: rgba(118, 150, 74, 0.16);
-    --ui-layer-modal: 100000;
-    --ui-config-popover-z: 2147483000;
     --timeline-dock-height: 94px;
     --timeline-dock-offset: 6px;
     --dockview-top-strip-height: 46px;
@@ -76,7 +44,7 @@ html, body {
 
 body {
     background-color: var(--ui-bg-0);
-    color: #B3B3B3;
+    color: var(--ui-text-2);
     font-size: x-small;
     font-family: var(--ui-font-sans);
     touch-action: pan-x pan-y;
@@ -114,7 +82,7 @@ textarea {
     align-items: center;
     width: 100%;
     box-sizing: border-box;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 /* .navbar button { padding-right: 10px; margin-right: 10px; } */
@@ -126,7 +94,7 @@ textarea {
 .blurb__row {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--ui-space-4);
     min-width: 0;
 }
 
@@ -137,7 +105,7 @@ textarea {
 
 .blurb__details {
     display: grid;
-    gap: 2px;
+    gap: var(--ui-space-1);
     margin-top: 2px;
     max-height: 96px;
     overflow: hidden;
@@ -145,9 +113,9 @@ textarea {
     transform: translateY(0);
     transition:
         max-height 0.24s ease,
-        margin-top 0.18s ease,
-        opacity 0.18s ease,
-        transform 0.18s ease;
+        margin-top var(--ui-duration-fast) ease,
+        opacity var(--ui-duration-fast) ease,
+        transform var(--ui-duration-fast) ease;
 }
 
 .blurb--compact .blurb__details {
@@ -169,10 +137,10 @@ textarea {
     align-self: flex-start;
     min-height: 24px;
     padding: 0 10px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.58);
-    color: #dbe7ff;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-condensed);
     font-size: var(--ui-type-control);
     font-weight: 700;
@@ -180,12 +148,12 @@ textarea {
     line-height: 1;
     text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease;
 }
 
 .blurb__toggle:hover {
-    background: rgba(45, 75, 125, 0.28);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-surface-hover);
+    border-color: var(--ui-selected-border);
 }
 
 .blurb__toggle:focus-visible {
@@ -208,7 +176,7 @@ textarea {
     background: var(--ui-surface-2);
     border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-md);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--ui-shadow-panel);
     width: 320px;
     min-width: 276px;
     max-width: min(92vw, 332px);
@@ -240,14 +208,14 @@ textarea {
     text-transform: none;
     cursor: pointer;
     backdrop-filter: blur(6px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: var(--ui-shadow-panel);
+    transition: background var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease, box-shadow var(--ui-duration-fast) ease;
 }
 
 #settings-panel-fieldset {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 #settings-panel-button:hover {
@@ -267,7 +235,7 @@ textarea {
 
 #header-pill-strip {
     --header-pill-toggle-lane: 24px;
-    --header-pill-group-label-color: rgba(142, 166, 202, 0.72);
+    --header-pill-group-label-color: var(--ui-text-2);
     pointer-events: all;
     display: grid;
     grid-template-rows: auto auto auto;
@@ -286,18 +254,18 @@ textarea {
     top: 5px;
     bottom: 3px;
     width: 22px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 12px;
-    background: rgba(10, 18, 32, 0.82);
-    color: #dbe7ff;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
     font-size: 0;
-    font-weight: 700;
+    font-weight: var(--ui-weight-strong);
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease;
     z-index: 2;
 }
 
@@ -305,7 +273,7 @@ textarea {
     display: block;
     width: 12px;
     height: 2px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: currentColor;
     box-shadow:
         0 -4px 0 currentColor,
@@ -314,8 +282,8 @@ textarea {
 }
 
 .header-pill-strip__toggle:hover {
-    background: rgba(45, 75, 125, 0.28);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-surface-hover);
+    border-color: var(--ui-selected-border);
 }
 
 .header-pill-strip__toggle:focus-visible {
@@ -339,13 +307,12 @@ textarea {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 22;
+    z-index: var(--ui-layer-header);
     height: var(--dockview-top-strip-height);
     overflow: hidden;
-    background: rgba(7, 10, 18, 0.92);
-    border-bottom: 1px solid rgba(83, 124, 184, 0.28);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
-    backdrop-filter: blur(10px);
+    background: var(--ui-surface-overlay);
+    border-bottom: 1px solid var(--ui-border-1);
+    box-shadow: none;
 }
 
 .dockview-panels-enabled .navbar {
@@ -384,8 +351,8 @@ textarea {
 
 .dockview-panels-enabled #mission-summary {
     overflow: hidden;
-    color: rgba(190, 208, 238, 0.82);
-    font-size: 10px;
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-control);
     line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -409,10 +376,10 @@ textarea {
     z-index: 34;
     width: min(220px, 40vw);
     padding: 7px;
-    border: 1px solid rgba(83, 124, 184, 0.32);
-    border-radius: 8px;
-    background: rgba(7, 12, 22, 0.88);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-overlay);
+    box-shadow: var(--ui-shadow-popover);
     backdrop-filter: blur(8px);
 }
 
@@ -426,13 +393,13 @@ textarea {
     height: 24px;
     padding: 0 8px;
     overflow: hidden;
-    border: 1px solid rgba(121, 171, 255, 0.36);
-    border-radius: 7px;
-    background: rgba(9, 20, 36, 0.9);
-    color: #dceaff;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-condensed);
-    font-size: 10px;
-    font-weight: 700;
+    font-size: var(--ui-type-control);
+    font-weight: var(--ui-weight-strong);
     line-height: 22px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -441,27 +408,27 @@ textarea {
 
 .dockview-panel-launch-strip__pill:hover,
 .dockview-panel-launch-strip__pill:focus-visible {
-    border-color: rgba(127, 211, 255, 0.72);
-    background: rgba(37, 75, 122, 0.42);
-    outline: none;
+    border-color: var(--ui-selected-border);
+    background: var(--ui-surface-hover);
+    outline: 2px solid var(--ui-focus);
 }
 
 .dockview-panel-launch-strip__pill[aria-pressed="true"],
 .dockview-panel-launch-strip__pill[aria-expanded="true"] {
-    border-color: rgba(184, 212, 138, 0.68);
-    background: rgba(118, 150, 74, 0.24);
-    color: #f0ffd3;
+    border-color: var(--ui-selected-border);
+    background: var(--ui-selected-bg);
+    color: var(--ui-selected-text);
 }
 
 .dockview-panel-launch-strip__pill--controls {
     margin-left: 4px;
-    border-color: rgba(127, 211, 255, 0.46);
-    color: #c9efff;
+    border-color: var(--ui-selected-border);
+    color: var(--ui-selected-text);
 }
 
 .dockview-panel-launch-strip__pill--reset-view {
-    border-color: rgba(127, 211, 255, 0.42);
-    color: #d8ecff;
+    border-color: var(--ui-selected-border);
+    color: var(--ui-selected-text);
 }
 
 .dockview-panel-launch-strip__pill--fullscreen {
@@ -476,9 +443,9 @@ textarea {
 
 .dockview-panel-launch-strip__pill--fullscreen.is-active,
 .dockview-panel-launch-strip__pill--fullscreen[aria-pressed="true"] {
-    border-color: rgba(184, 212, 138, 0.68);
-    background: rgba(118, 150, 74, 0.24);
-    color: #f0ffd3;
+    border-color: var(--ui-selected-border);
+    background: var(--ui-selected-bg);
+    color: var(--ui-selected-text);
 }
 
 .dockview-panel-launch-strip__pill--fullscreen:disabled,
@@ -510,10 +477,10 @@ textarea {
     max-height: calc(100% - 20px);
     padding: 8px 10px 8px 50px;
     overflow: visible;
-    border: 1px solid rgba(83, 124, 184, 0.32);
-    border-radius: 8px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
     background: rgba(7, 12, 22, 0.82);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    box-shadow: var(--ui-shadow-panel);
     opacity: 1;
     transform: translateY(0);
     visibility: visible;
@@ -539,7 +506,7 @@ textarea {
     bottom: auto;
     width: 28px;
     height: 28px;
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
 }
 
 .dockview-panels-enabled .mission-main-view-pane #header-pill-strip:not(.header-pill-strip--collapsed) .header-pill-strip__toggle {
@@ -607,10 +574,10 @@ textarea {
     gap: 7px;
     padding: 10px 28px 10px 10px;
     overflow: hidden auto;
-    border: 1px solid rgba(83, 124, 184, 0.32);
-    border-radius: 8px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
     background: rgba(7, 12, 22, 0.86);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    box-shadow: var(--ui-shadow-panel);
     transform: translateX(-50%);
     backdrop-filter: blur(8px);
 }
@@ -678,11 +645,11 @@ textarea {
     height: 22px;
     padding: 0 8px;
     overflow: hidden;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.82);
-    color: #aebbd2;
-    font-size: 9px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-label);
     font-weight: 800;
     letter-spacing: 0;
     line-height: 20px;
@@ -693,8 +660,8 @@ textarea {
 
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item #moon-profile-pill-quality:hover,
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-toggle-launcher__body .mission-main-view-lunar-toggle-item #moon-profile-pill-quality[aria-pressed="true"] {
-    border-color: rgba(120, 170, 255, 0.72);
-    background: rgba(77, 141, 255, 0.22);
+    border-color: var(--ui-selected-border);
+    background: var(--ui-selected-bg);
     color: var(--header-pill-current-color);
 }
 
@@ -714,9 +681,9 @@ textarea {
     width: 32px;
     height: 32px;
     border: 1px solid rgba(100, 130, 180, 0.5);
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background: rgba(10, 18, 32, 0.86);
-    color: #dbe7ff;
+    color: var(--ui-text-1);
     cursor: pointer;
 }
 
@@ -726,7 +693,7 @@ textarea {
     left: 8px;
     right: 8px;
     height: 2px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: currentColor;
     content: "";
 }
@@ -744,10 +711,10 @@ textarea {
     display: none;
     margin-top: 6px;
     padding: 7px;
-    border: 1px solid rgba(83, 124, 184, 0.32);
-    border-radius: 8px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
     background: rgba(7, 12, 22, 0.82);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+    box-shadow: var(--ui-shadow-panel);
     backdrop-filter: blur(8px);
 }
 
@@ -777,7 +744,7 @@ textarea {
     display: grid;
     grid-template-columns: 62px minmax(0, max-content);
     justify-content: start;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-group__label {
@@ -787,7 +754,7 @@ textarea {
 }
 
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-segment {
-    gap: 2px;
+    gap: var(--ui-space-1);
 }
 
 .dockview-panels-enabled .mission-main-view-pane .mission-main-view-view-launcher__body .header-pill-segment__btn {
@@ -819,7 +786,7 @@ textarea {
     flex-wrap: nowrap;
     align-items: stretch;
     justify-content: flex-start;
-    gap: 4px;
+    gap: var(--ui-space-2);
     width: min(210px, 34vw);
     max-height: min(360px, calc(100vh - var(--dockview-top-strip-height) - 130px));
     overflow: hidden auto;
@@ -838,7 +805,7 @@ textarea {
     height: 22px;
     padding: 0 8px;
     overflow: hidden;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 800;
     letter-spacing: 0;
     line-height: 20px;
@@ -848,19 +815,19 @@ textarea {
 }
 
 .dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-group {
-    gap: 4px;
+    gap: var(--ui-space-2);
 }
 
 .dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-group__label {
     min-width: 48px;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
 }
 
 .dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-segment__btn {
     min-width: 30px;
     height: 20px;
     padding: 0 6px;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
 }
 
 .dockview-panels-enabled .mission-main-view-pane #header-pill-strip .header-pill-segment {
@@ -875,7 +842,7 @@ textarea {
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .header-pill-strip__spacer {
@@ -909,7 +876,7 @@ textarea {
     color: var(--header-pill-group-label-color);
     font-family: var(--ui-font-condensed);
     font-size: var(--ui-type-control);
-    font-weight: 700;
+    font-weight: var(--ui-weight-strong);
     letter-spacing: var(--ui-tracking-label);
     text-transform: uppercase;
     opacity: 0.78;
@@ -923,10 +890,10 @@ textarea {
     align-items: center;
     gap: 1px;
     padding: 1px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.82);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: var(--ui-surface-2);
+    box-shadow: none;
 }
 
 .header-pill-segment--single {
@@ -936,9 +903,11 @@ textarea {
 .header-pill-group--panels .header-pill-segment,
 .header-pill-group--annotations .header-pill-segment {
     gap: 1px;
-    border-color: rgba(184, 212, 138, 0.22);
-    border-radius: 999px;
-    background: rgba(16, 24, 22, 0.78);
+    border-color: var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
 }
 
 .header-pill-segment__btn {
@@ -946,16 +915,16 @@ textarea {
     min-width: 36px;
     padding: 0 7px;
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: transparent;
-    color: #aebbd2;
+    color: var(--ui-text-2);
     font-family: var(--ui-font-condensed);
     font-size: var(--ui-type-label);
-    font-weight: 700;
+    font-weight: var(--ui-weight-strong);
     letter-spacing: var(--ui-tracking-label);
     text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease;
 }
 
 .header-pill-group--panels .header-pill-segment__btn,
@@ -963,7 +932,7 @@ textarea {
 .header-pill-segment--single .header-pill-segment__btn,
 .header-pill-segment__btn[aria-haspopup="dialog"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"] {
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
 }
 
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn {
@@ -980,8 +949,8 @@ textarea {
 }
 
 .header-pill-segment__btn:hover {
-    color: #dbe7ff;
-    background: rgba(45, 75, 125, 0.28);
+    color: var(--ui-text-1);
+    background: var(--ui-surface-hover);
 }
 
 .header-pill-segment__btn:focus-visible {
@@ -993,10 +962,10 @@ textarea {
 .header-pill-segment__btn[aria-pressed="true"],
 .header-pill-segment__btn.is-open,
 .header-pill-segment__btn[aria-expanded="true"] {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: var(--header-pill-current-color);
-    text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
+    text-shadow: none;
 }
 
 .header-pill-segment__btn:disabled,
@@ -1011,30 +980,30 @@ textarea {
 .header-pill-group--choice .header-pill-segment__btn.is-active[aria-disabled="true"],
 .header-pill-group--choice .header-pill-segment__btn[aria-pressed="true"][aria-disabled="true"] {
     opacity: 1 !important;
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: var(--header-pill-current-color);
-    text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
+    text-shadow: none;
 }
 
 .header-toggle-pill {
     height: 21px;
     padding: 0 9px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.82);
-    color: #aebbd2;
-    font-size: 9px;
-    font-weight: 700;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-label);
+    font-weight: var(--ui-weight-strong);
     letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease;
 }
 
 .header-toggle-pill:hover {
-    color: #dbe7ff;
-    background: rgba(45, 75, 125, 0.28);
+    color: var(--ui-text-1);
+    background: var(--ui-surface-hover);
 }
 
 .header-toggle-pill:focus-visible {
@@ -1043,33 +1012,34 @@ textarea {
 }
 
 .header-toggle-pill[aria-pressed="true"] {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: var(--header-pill-current-color);
-    text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
+    text-shadow: none;
 }
 
 .header-toggle-pill.is-open,
 .header-toggle-pill[aria-expanded="true"] {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: var(--header-pill-current-color);
-    text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
+    text-shadow: none;
 }
 
 .header-toggle-pill[aria-haspopup="dialog"] {
+    border-radius: var(--ui-radius-xs);
     color: var(--header-pill-launcher-color);
-    border-color: rgba(184, 212, 138, 0.18);
-    background: rgba(16, 24, 22, 0.78);
+    border-color: var(--ui-border-1);
+    background: var(--ui-surface-2);
 }
 
 .header-toggle-pill[aria-haspopup="dialog"]:hover,
 .header-toggle-pill[aria-haspopup="dialog"].is-open,
 .header-toggle-pill[aria-haspopup="dialog"][aria-expanded="true"] {
-    color: #d9efad;
+    color: var(--ui-selected-text);
     border-color: var(--header-pill-launcher-border);
     background: var(--header-pill-launcher-bg);
-    text-shadow: 0 0 10px rgba(184, 212, 138, 0.24);
+    text-shadow: none;
 }
 
 .header-toggle-pill:disabled,
@@ -1086,8 +1056,9 @@ textarea {
 .header-pill-group--annotations .header-pill-segment__btn,
 .header-pill-segment__btn[aria-haspopup="dialog"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"] {
+    border-radius: var(--ui-radius-xs);
     color: var(--header-pill-launcher-color);
-    border-color: rgba(184, 212, 138, 0.18);
+    border-color: var(--ui-border-1);
 }
 
 .header-pill-segment--single .header-pill-segment__btn:hover,
@@ -1095,7 +1066,7 @@ textarea {
 .header-pill-group--annotations .header-pill-segment__btn:hover,
 .header-pill-segment__btn[aria-haspopup="dialog"]:hover,
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"]:hover {
-    color: #d9efad;
+    color: var(--ui-selected-text);
     border-color: var(--header-pill-launcher-border);
     background: var(--header-pill-launcher-bg);
 }
@@ -1114,10 +1085,10 @@ textarea {
 .header-pill-segment__btn[aria-haspopup="dialog"][aria-expanded="true"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"].is-open,
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"][aria-expanded="true"] {
-    color: #d9efad;
+    color: var(--ui-selected-text);
     border-color: var(--header-pill-launcher-border);
     background: var(--header-pill-launcher-bg);
-    text-shadow: 0 0 10px rgba(184, 212, 138, 0.24);
+    text-shadow: none;
 }
 
 .lunar-crater-controls-panel {
@@ -1128,14 +1099,14 @@ textarea {
     display: grid;
     width: min(360px, calc(100vw - 18px));
     box-sizing: border-box;
-    gap: 6px;
-    padding: 8px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 8px;
-    background: rgba(8, 12, 18, 0.96);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
-    color: #e7edf7;
-    font-size: 10px;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-4);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-overlay);
+    box-shadow: var(--ui-shadow-popover);
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-control);
     max-height: calc(100dvh - 16px);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1150,13 +1121,13 @@ textarea {
     width: min(360px, calc(100vw - 18px));
     box-sizing: border-box;
     gap: 7px;
-    padding: 8px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 8px;
-    background: rgba(8, 12, 18, 0.96);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
-    color: #e7edf7;
-    font-size: 10px;
+    padding: var(--ui-space-4);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-overlay);
+    box-shadow: var(--ui-shadow-popover);
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-control);
 }
 
 .surface-points-controls-panel {
@@ -1168,13 +1139,13 @@ textarea {
     width: min(300px, calc(100vw - 18px));
     box-sizing: border-box;
     gap: 7px;
-    padding: 8px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 8px;
-    background: rgba(8, 12, 18, 0.96);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
-    color: #e7edf7;
-    font-size: 10px;
+    padding: var(--ui-space-4);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-overlay);
+    box-shadow: var(--ui-shadow-popover);
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-control);
 }
 
 .surface-points-controls-panel--anchored {
@@ -1195,7 +1166,7 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .guides-controls-panel__title,
@@ -1203,7 +1174,7 @@ textarea {
 .surface-points-controls-panel__title,
 .surface-points-controls-panel__section-title {
     color: #dce8ff;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1213,7 +1184,7 @@ textarea {
 .surface-points-controls-panel__section-title {
     margin: 2px 0 0;
     color: #9fb9e4;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
 }
 
 .guides-controls-panel__close,
@@ -1223,7 +1194,7 @@ textarea {
     width: 22px;
     height: 22px;
     padding: 0;
-    border-radius: 5px;
+    border-radius: var(--ui-radius-xs);
     font-size: 0;
     line-height: 1;
 }
@@ -1259,10 +1230,10 @@ textarea {
     min-height: 21px;
     padding: 2px 4px;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: var(--ui-radius-xs);
     background: transparent;
     color: rgba(219, 230, 247, 0.9);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 500;
     line-height: 1.2;
     cursor: pointer;
@@ -1275,7 +1246,7 @@ textarea {
 
 .surface-points-controls-panel__option {
     grid-template-columns: 13px 10px minmax(0, 1fr);
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .guides-controls-panel__option--scene {
@@ -1322,12 +1293,12 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .lunar-crater-controls-panel__title {
     color: #dce8ff;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -1339,7 +1310,7 @@ textarea {
     width: 22px;
     height: 22px;
     padding: 0;
-    border-radius: 5px;
+    border-radius: var(--ui-radius-xs);
     font-size: 0;
     line-height: 1;
 }
@@ -1358,7 +1329,7 @@ textarea {
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 3px;
     padding: 0;
-    border-bottom: 1px solid rgba(121, 171, 255, 0.28);
+    border-bottom: 1px solid var(--ui-border-1);
     background: transparent;
 }
 
@@ -1366,7 +1337,7 @@ textarea {
     height: 27px;
     min-width: 0;
     padding: 0 5px;
-    border: 1px solid rgba(121, 171, 255, 0.28);
+    border: 1px solid var(--ui-border-1);
     border-bottom: 0;
     border-radius: 7px 7px 0 0;
     background: rgba(6, 13, 23, 0.64);
@@ -1411,14 +1382,14 @@ textarea {
     max-height: calc(100vh - 16px);
     box-sizing: border-box;
     overflow-y: auto;
-    gap: 8px;
-    padding: 8px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 8px;
-    background: rgba(8, 12, 18, 0.96);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
-    color: #e7edf7;
-    font-size: 10px;
+    gap: var(--ui-space-4);
+    padding: var(--ui-space-4);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-overlay);
+    box-shadow: var(--ui-shadow-panel);
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-control);
 }
 
 .moon-render-pipeline-panel[hidden] {
@@ -1434,23 +1405,23 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .moon-render-pipeline-panel__title {
     color: #dce8ff;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
 
 .moon-render-pipeline-panel__close {
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 999px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
     background: rgba(12, 24, 44, 0.9);
     color: #dce8ff;
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     text-transform: uppercase;
     padding: 2px 8px;
@@ -1464,7 +1435,7 @@ textarea {
 
 .moon-render-pipeline-panel__mode-label {
     color: #b9c5d8;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
@@ -1473,10 +1444,10 @@ textarea {
 .moon-render-pipeline-panel__presets {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2px;
-    padding: 2px;
+    gap: var(--ui-space-1);
+    padding: var(--ui-space-1);
     border: 1px solid rgba(100, 130, 180, 0.36);
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background: rgba(5, 10, 17, 0.8);
 }
 
@@ -1489,7 +1460,7 @@ textarea {
     min-width: 0;
     padding: 0 6px;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--ui-radius-sm);
     background: transparent;
     color: #b9c5d8;
     font-size: var(--ui-type-label);
@@ -1518,10 +1489,10 @@ textarea {
 .moon-render-pipeline-panel__toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     min-height: 22px;
     color: #d4deee;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
 }
 
@@ -1534,16 +1505,16 @@ textarea {
 
 .moon-render-pipeline-panel__physical-controls {
     display: grid;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .moon-render-pipeline-panel__range {
     display: grid;
     grid-template-columns: 82px minmax(0, 1fr) 30px;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     color: #d4deee;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
 }
 
@@ -1560,12 +1531,12 @@ textarea {
 
 .lunar-crater-controls-panel__search {
     display: grid;
-    gap: 4px;
+    gap: var(--ui-space-2);
 }
 
 .lunar-crater-controls-panel__search-label {
     color: #b9c5d8;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
@@ -1576,11 +1547,11 @@ textarea {
     height: 25px;
     min-width: 0;
     padding: 0 8px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 6px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
     background: rgba(5, 10, 17, 0.82);
     color: #e8f0ff;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 600;
 }
 
@@ -1603,11 +1574,11 @@ textarea {
 .lunar-crater-controls-panel__synced-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     width: max-content;
     max-width: 100%;
     color: rgba(224, 236, 252, 0.9);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1;
     cursor: pointer;
@@ -1623,7 +1594,7 @@ textarea {
 
 .lunar-crater-controls-panel__synced-label {
     color: #b9c5d8;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
@@ -1637,7 +1608,7 @@ textarea {
 
 .lunar-crater-controls-panel__synced-value {
     color: #e8f0ff;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 800;
     line-height: 1;
     text-align: right;
@@ -1650,10 +1621,10 @@ textarea {
     gap: 1px;
     width: 100%;
     padding: 1px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.82);
-    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: var(--ui-surface-2);
+    box-shadow: var(--ui-shadow-popover);
 }
 
 .lunar-crater-controls-panel__preset {
@@ -1661,9 +1632,9 @@ textarea {
     min-width: 0;
     padding: 0 7px;
     border: 1px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: transparent;
-    color: #aebbd2;
+    color: var(--ui-text-2);
     font-family: var(--ui-font-condensed);
     font-size: var(--ui-type-label);
     font-weight: 700;
@@ -1671,18 +1642,18 @@ textarea {
     line-height: 1;
     text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease;
 }
 
 .lunar-crater-controls-panel__preset:hover {
-    color: #dbe7ff;
-    background: rgba(45, 75, 125, 0.28);
+    color: var(--ui-text-1);
+    background: var(--ui-surface-hover);
 }
 
 .lunar-crater-controls-panel__preset[aria-pressed="true"],
 .lunar-crater-controls-panel__preset.is-active {
-    border-color: rgba(120, 170, 255, 0.72);
-    background: rgba(77, 141, 255, 0.22);
+    border-color: var(--ui-selected-border);
+    background: var(--ui-selected-bg);
     color: var(--header-pill-current-color);
     text-shadow: 0 0 10px rgba(127, 227, 255, 0.3);
 }
@@ -1700,7 +1671,7 @@ textarea {
 .lunar-crater-controls-panel__type-group-tabs {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
+    gap: var(--ui-space-2);
     padding: 0 1px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.18);
 }
@@ -1812,7 +1783,7 @@ textarea {
     top: 0;
     right: 0;
     color: rgba(185, 207, 244, 0.96);
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -1838,7 +1809,7 @@ textarea {
     top: 50%;
     height: 2px;
     transform: translateY(-50%);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(213, 224, 244, 0.5);
 }
 
@@ -1847,7 +1818,7 @@ textarea {
     top: 50%;
     height: 3px;
     transform: translateY(-50%);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: var(--ui-annotation-accent);
     left: 0;
     right: 0;
@@ -1859,9 +1830,9 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
     color: #b9c5d8;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
@@ -1877,7 +1848,7 @@ textarea {
 
 .lunar-crater-controls-panel__range-stack {
     display: grid;
-    gap: 2px;
+    gap: var(--ui-space-1);
 }
 
 .lunar-crater-controls-panel__range {
@@ -1912,7 +1883,7 @@ textarea {
 
 .lunar-crater-controls-panel__range::-webkit-slider-runnable-track {
     height: 2px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: transparent;
 }
 
@@ -1930,7 +1901,7 @@ textarea {
 
 .lunar-crater-controls-panel__range::-moz-range-track {
     height: 2px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: transparent;
 }
 
@@ -1958,7 +1929,7 @@ textarea {
 .lunar-crater-controls-panel__scale {
     margin-top: -4px;
     color: rgba(185, 197, 216, 0.76);
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
 }
 
 .lunar-crater-controls-panel__status-row {
@@ -1966,7 +1937,7 @@ textarea {
     align-items: center;
     justify-content: space-between;
     min-height: 13px;
-    gap: 8px;
+    gap: var(--ui-space-4);
     color: rgba(185, 197, 216, 0.82);
     font-size: var(--ui-type-label);
     font-weight: 700;
@@ -2016,12 +1987,12 @@ textarea {
 
 .lunar-crater-controls-panel__search-results {
     display: grid;
-    gap: 4px;
+    gap: var(--ui-space-2);
     max-height: 150px;
     overflow-y: auto;
     padding: 5px;
     border: 1px solid rgba(100, 130, 180, 0.28);
-    border-radius: 6px;
+    border-radius: var(--ui-radius-sm);
     background: rgba(5, 10, 17, 0.72);
 }
 
@@ -2035,9 +2006,9 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
     color: rgba(185, 197, 216, 0.82);
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     text-transform: uppercase;
 }
@@ -2102,15 +2073,15 @@ textarea {
     column-gap: 5px;
     min-height: 21px;
     padding: 0 8px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
-    background: rgba(10, 18, 32, 0.82);
-    color: #dbe7ff;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
 }
 
 .header-main-fov__label,
 .header-main-fov__value {
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -2129,8 +2100,8 @@ textarea {
     justify-content: flex-end;
     box-sizing: border-box;
     padding: 1px 5px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
     background: rgba(10, 18, 32, 0.6);
     text-align: right;
     color: #eef5ff;
@@ -2141,7 +2112,7 @@ textarea {
 
 .header-main-fov__value:focus,
 .header-main-fov__value:focus-visible {
-    outline: none;
+    outline: 2px solid var(--ui-focus);
 }
 
 .header-main-fov__value.is-disabled,
@@ -2153,26 +2124,26 @@ textarea {
 .header-main-fov__auto {
     min-height: 16px;
     padding: 0 7px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
     background: rgba(10, 18, 32, 0.55);
-    color: #aebbd2;
-    font-size: 8px;
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease;
 }
 
 .header-main-fov__auto:hover {
-    color: #dbe7ff;
-    background: rgba(45, 75, 125, 0.28);
+    color: var(--ui-text-1);
+    background: var(--ui-surface-hover);
 }
 
 .header-main-fov__auto[aria-pressed="true"] {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: #eef5ff;
 }
 
@@ -2185,13 +2156,13 @@ textarea {
     display: grid;
     grid-template-columns: auto minmax(72px, 1fr) auto;
     align-items: center;
-    column-gap: 4px;
+    column-gap: var(--ui-space-2);
     min-width: 0;
 }
 
 .header-main-fov__edge {
     color: rgba(157, 182, 216, 0.78);
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -2217,7 +2188,7 @@ textarea {
 }
 
 .settings-panel__title {
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2232,7 +2203,7 @@ textarea {
 .settings-panel__sections {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .settings-panel__filtered-hidden {
@@ -2255,11 +2226,11 @@ textarea {
     background: rgba(255, 255, 255, 0.02);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--ui-space-2);
 }
 
 .settings-section__title {
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -2278,7 +2249,7 @@ textarea {
 .settings-section--advanced-collapsible .settings-section__title::after,
 .settings-section--mobile-collapsible .settings-section__title::after {
     content: "\25BE";
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     color: rgba(181, 208, 255, 0.9);
 }
 
@@ -2319,8 +2290,8 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1px;
     padding: 1px;
-    border: 1px solid rgba(100, 130, 180, 0.44);
-    border-radius: 999px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
     background: rgba(10, 18, 32, 0.72);
 }
 
@@ -2339,15 +2310,15 @@ textarea {
     justify-content: center;
     min-height: 22px;
     padding: 2px 6px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     border: 1px solid transparent;
     background: transparent;
-    color: #aebbd2;
-    font-size: 9px;
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1.1;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition: background var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease;
 }
 
 .camera-pill span {
@@ -2371,12 +2342,12 @@ textarea {
 .camera-pill-group--plane .camera-pill {
     min-height: 20px;
     padding: 2px 4px;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
 }
 
 .camera-pill:has(input:checked) {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: var(--header-pill-current-color);
     text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
@@ -2414,7 +2385,7 @@ textarea {
 
     .settings-panel--advanced .settings-section--camera .camera-pill--target-icon {
         min-height: 24px;
-        padding: 2px;
+        padding: var(--ui-space-1);
     }
 
     .settings-panel--advanced .settings-section--camera .camera-pill__text {
@@ -2454,7 +2425,7 @@ textarea {
     .settings-section--view .settings-options {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        column-gap: 8px;
+        column-gap: var(--ui-space-4);
         row-gap: 3px;
         align-items: start;
     }
@@ -2489,8 +2460,8 @@ textarea {
         left: 4px;
         bottom: 4px;
         width: 20px;
-        font-size: 13px;
-        border-radius: 10px;
+        font-size: var(--ui-type-body-lg);
+        border-radius: var(--ui-radius-md);
     }
 
     #header-pill-strip-tertiary {
@@ -2500,7 +2471,7 @@ textarea {
     #header-pill-strip .header-pill-group {
         flex: 0 0 auto;
         align-items: center;
-        gap: 4px;
+        gap: var(--ui-space-2);
         scroll-snap-align: start;
     }
 
@@ -2508,7 +2479,7 @@ textarea {
         display: inline-block;
         flex: 0 0 auto;
         color: var(--header-pill-group-label-color);
-        font-size: 8px;
+        font-size: var(--ui-type-micro);
         line-height: 1;
         letter-spacing: 0.08em;
         opacity: 0.82;
@@ -2526,7 +2497,7 @@ textarea {
     #header-pill-strip-primary {
         justify-content: flex-start;
         flex-wrap: nowrap;
-        gap: 6px;
+        gap: var(--ui-space-3);
         overflow-x: auto;
         overflow-y: hidden;
         scrollbar-width: none;
@@ -2553,7 +2524,7 @@ textarea {
     #header-pill-strip-secondary {
         justify-content: flex-start;
         flex-wrap: nowrap;
-        gap: 6px;
+        gap: var(--ui-space-3);
         overflow-x: auto;
         overflow-y: hidden;
         scrollbar-width: none;
@@ -2580,7 +2551,7 @@ textarea {
     #header-pill-strip-tertiary {
         justify-content: flex-start;
         flex-wrap: nowrap;
-        gap: 6px;
+        gap: var(--ui-space-3);
         overflow-x: auto;
         overflow-y: hidden;
         scrollbar-width: none;
@@ -2616,13 +2587,13 @@ textarea {
         min-width: 34px;
         height: 23px;
         padding: 0 6px;
-        font-size: 9px;
+        font-size: var(--ui-type-label);
     }
 
     .header-toggle-pill {
         height: 23px;
         padding: 0 9px;
-        font-size: 9px;
+        font-size: var(--ui-type-label);
         scroll-snap-align: start;
         white-space: nowrap;
     }
@@ -2648,7 +2619,7 @@ textarea {
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     color: var(--ui-text-2);
     cursor: pointer;
 }
@@ -2672,7 +2643,7 @@ textarea {
 }
 
 .settings-subtitle {
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ui-text-2);
@@ -2680,7 +2651,7 @@ textarea {
 
 .settings-note {
     margin-top: 4px;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     color: var(--ui-text-2);
 }
 
@@ -2704,7 +2675,7 @@ textarea {
     border: 1px solid var(--ui-border-1);
     background: rgba(0, 0, 0, 0.36);
     color: var(--ui-text-1);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
 }
 
 .settings-panel input[type="checkbox"],
@@ -2722,7 +2693,7 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     color: var(--ui-text-2);
     line-height: 1.05;
 }

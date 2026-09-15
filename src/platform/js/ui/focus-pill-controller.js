@@ -45,6 +45,9 @@ export function createFocusPillController(deps = {}) {
 
     function closeMobileOnlyPanelsIfNeeded() {
         if (shouldAllowPanelShortcuts()) return;
+        // The progressive workspace temporarily hides these groups and owns
+        // restoration. Treating a resize as a user close destroys that layout.
+        if (windowRef?.__moonMissionDockviewSpike?.progressiveWorkspace) return;
         [
             "workflow:background-media",
             "workflow:media-browser",

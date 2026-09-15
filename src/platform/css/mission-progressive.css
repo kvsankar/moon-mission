@@ -1,0 +1,116 @@
+/* Space-based disclosure changes visibility, not mission or control state. */
+.workspace-tools[hidden], .workspace-scene-return[hidden],
+.composer-disclosure-launchers[hidden] { display: none !important; }
+.workspace-tools__summary { display: flex; align-items: center; cursor: pointer; list-style: none; pointer-events: auto; }
+.workspace-tools__summary::-webkit-details-marker { display: none; }
+.workspace-tools__summary::after { content: "⌄"; margin-left: var(--ui-space-3); }
+.workspace-tools:not([open]) .workspace-tools__body { display: none; }
+.workspace-tools__body {
+    position: fixed;
+    pointer-events: auto;
+    top: calc(var(--dockview-top-strip-height) + var(--ui-space-3));
+    right: var(--ui-space-4);
+    z-index: var(--ui-layer-config-popover);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ui-space-3);
+    width: min(320px, calc(100vw - 16px));
+    max-height: calc(100dvh - 70px);
+    overflow-y: auto;
+    padding: var(--ui-space-5);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-1);
+    box-shadow: var(--ui-shadow-popover);
+}
+.workspace-tools__body .dockview-panel-launch-strip__pill { min-height: var(--ui-touch-target); height: auto; margin: 0; }
+.dockview-panels-enabled .header:has(.workspace-tools[open]) { z-index: var(--ui-layer-config-popover); }
+body[data-workspace-space="minimal"] #mission-summary,
+body[data-workspace-space="focused"] #mission-summary { display: none; }
+body[data-workspace-space="focused"] .dockview-panels-enabled .blurb,
+.dockview-panels-enabled[data-workspace-space="focused"] .blurb { max-width: 55vw; }
+
+.composer-disclosure-launchers {
+    position: absolute;
+    top: var(--ui-space-4);
+    left: 38px;
+    z-index: var(--ui-layer-panel-chrome);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ui-space-3);
+}
+.composer-disclosure-launcher {
+    min-height: 26px;
+    padding: 0 var(--ui-space-4);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-xs);
+    background: var(--ui-surface-overlay);
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-control);
+    cursor: pointer;
+}
+.composer-disclosure-launcher[aria-expanded="true"] { background: var(--ui-selected-bg); border-color: var(--ui-selected-border); }
+.aux-camera-view__viewport > [data-disclosure-surface][popover] {
+    position: fixed;
+    inset: auto;
+    top: var(--disclosure-top, 8px);
+    left: var(--disclosure-left, 8px);
+    width: min(520px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    box-sizing: border-box;
+    margin: 0;
+    padding: var(--ui-space-5);
+    overflow: auto;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-md);
+    background: var(--ui-surface-1);
+    box-shadow: var(--ui-shadow-popover);
+}
+.aux-camera-view__viewport > [data-disclosure-surface][popover]:not(:popover-open) { display: none; }
+.aux-camera-view__viewport > [data-disclosure-surface][popover]:popover-open { display: grid; }
+.aux-camera-view__viewport [data-disclosure-surface] .lunar-crater-controls-panel__close {
+    color: var(--ui-text-1);
+    background: var(--ui-surface-2);
+    border: 1px solid var(--ui-border-1);
+}
+.aux-camera-view__viewport [data-disclosure-surface] .lunar-crater-controls-panel__close::before {
+    content: "×";
+    font-size: var(--ui-type-title-sm);
+}
+.aux-camera-view__viewport > [data-disclosure-surface][popover] :is(.lunar-crater-controls-panel, .surface-points-controls-panel) {
+    position: static;
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    margin-top: var(--ui-space-4);
+    box-shadow: none;
+}
+.aux-camera-view__viewport > [data-disclosure-surface][popover] .aux-camera-view__composer-crater-control:has(> :is(.lunar-crater-controls-panel, .surface-points-controls-panel):not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    flex: 1 0 100%;
+}
+.aux-camera-view--composer[data-space-level="minimal"] .aux-camera-view__composer-metrics-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.aux-camera-view--composer[data-space-level="minimal"] .aux-camera-view__composer-metrics-strip > :nth-child(n+3) { display: none; }
+
+@media (pointer: coarse) {
+    .composer-disclosure-launcher { min-height: var(--ui-touch-target); }
+}
+
+/* A desktop session can be resized into the existing mobile shell. */
+@media (max-width: 600px) {
+    .dockview-panels-enabled .header, .dockview-panels-enabled .navbar { height: 38px; min-height: 38px; }
+    .dockview-panels-enabled .experimental-dockview-host {
+        display: grid;
+        top: 38px;
+        bottom: calc(var(--timeline-dock-height) + 58px);
+        min-height: 80px;
+    }
+    .dockview-panels-enabled .dockview-panel-launch-strip { display: none; }
+    .dockview-panels-enabled .mission-main-view-pane .mission-main-view-annotation-bar { display: none; }
+    .dockview-panels-enabled .experimental-dockview-host__dock .dv-tabs-and-actions-container { display: none; }
+}

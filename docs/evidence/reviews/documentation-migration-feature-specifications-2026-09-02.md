@@ -134,6 +134,12 @@ Relevant working-tree content hashes:
 The findings were accepted for remediation and promoted to
 [Panel Runtime Regressions](../../plans/implementation/panel-runtime-regressions.md).
 
+September 15 follow-up: the assertions were reconciled as legacy-layout tests
+running against the default Dockview workspace. Explicit legacy grip/geometry
+checks and separate Dockview divider/maximize coverage now pass. See the
+[reconciliation evidence](visual-design-tokens-2026-09-15.md); independent
+review remains pending before roadmap closure.
+
 The full repository test suite, full Playwright suite, and visual baseline suite
 were not run. The reviewer-created Vite server on port 8111 was verified and
 stopped after review.

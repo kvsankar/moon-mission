@@ -34,6 +34,7 @@ import {
     resolveActiveTimelinePhaseIndex,
 } from "../core/domain/timeline-phases.js";
 import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
+import { createComposerDisclosure } from "../ui/composer-disclosure.js";
 import {
     selectSkyLabelCandidates,
 } from "../core/domain/sky-label-selection.js";
@@ -5928,6 +5929,9 @@ class AuxiliaryCameraViewsManager {
         }
 
         this.root.appendChild(panel);
+        if (panelState.mode === "composer") {
+            panelState.disclosure = createComposerDisclosure({ panel, viewport: panelState.viewport });
+        }
         this.panels.push(panelState);
         this.bindPanelDragging(panelState, header);
         this.bindPanelResizing(panelState, resizeGrip);
@@ -10908,6 +10912,8 @@ class AuxiliaryCameraViewsManager {
                     this.setPanelMissionEnabled(panelState, false);
                     continue;
                 }
+                const dockedPanel = getDockviewSpikeLayoutHost()?.api?.getPanel?.(panelState.panelRegistryId);
+                if (dockedPanel && !dockedPanel.api.isVisible) continue;
                 const context = { activeCraft, earth, moon, sun };
                 if (panelState.mode === "orbit-xy") {
                     if (panelState.deleted === true || panelState.closed === true) {
@@ -11225,6 +11231,7 @@ class AuxiliaryCameraViewsManager {
         this.pendingResizePanelStates.clear();
         this.dragState = null;
         for (const panelState of this.panels) {
+            panelState.disclosure?.dispose();
             if (panelState.visibleRefreshRaf != null) {
                 cancelAnimationFrame(panelState.visibleRefreshRaf);
                 panelState.visibleRefreshRaf = null;

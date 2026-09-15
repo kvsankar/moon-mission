@@ -164,6 +164,8 @@ function createPanelLayoutHost({
     }
 
     const disposables = [];
+    let persistenceFilter = null;
+    let applyingTransientLayout = false;
     const api = createDockviewImpl(container, {
         ...(dockviewOptions && typeof dockviewOptions === "object" ? dockviewOptions : {}),
         createComponent() {
@@ -182,7 +184,8 @@ function createPanelLayoutHost({
     }
 
     function saveLayout() {
-        const layout = api.toJSON();
+        const current = api.toJSON();
+        const layout = persistenceFilter ? persistenceFilter(current) : current;
         writePanelLayoutHostState(storageKey, layout);
         onPanelLayoutChange?.(layout);
         return layout;
@@ -222,7 +225,7 @@ function createPanelLayoutHost({
         }
     })));
     disposables.push(asDisposable(api.onDidRemovePanel?.((panel) => {
-        if (panel?.id) {
+        if (panel?.id && !applyingTransientLayout) {
             onPanelClose?.(panel.id);
         }
     })));
@@ -278,6 +281,19 @@ function createPanelLayoutHost({
             return api.toJSON();
         },
         saveLayout,
+        setPersistenceFilter(filter) {
+            persistenceFilter = typeof filter === "function" ? filter : null;
+        },
+        applyTransientLayout(layout) {
+            applyingTransientLayout = true;
+            try {
+                api.fromJSON(layout, { reuseExistingPanels: true });
+                layoutToContainer();
+            } finally {
+                applyingTransientLayout = false;
+            }
+            saveLayout();
+        },
         dispose() {
             for (const disposable of disposables.splice(0)) {
                 disposable.dispose();

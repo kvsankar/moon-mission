@@ -216,7 +216,11 @@ Functional consistency:
 
 - click brings panel to front
 - drag from title bar
-- resize from shell edge / corner
+- legacy floating panels resize from shell edges/corners, including exiting
+  maximized state through a resize grip
+- docked groups resize through workspace dividers; embedded legacy grips are
+  hidden because the workspace owns geometry. Dockview's own floating groups
+  retain their vendor edge/corner resizing.
 - shell actions use the same meaning everywhere
 - delete confirmation copy is consistent
 
@@ -287,11 +291,23 @@ Rules:
 
 ## Default Layout Behavior
 
-On a clean mission load with no saved panel layout:
+The workspace applies the space levels in
+[Panel Progressive Disclosure](panel-progressive-disclosure.md#workspace-space-budget).
+The expanded arrangement below is restored when space returns; temporary
+collapse does not change mission panel lifecycle state or overwrite that layout.
+
+On a clean mission load with no saved panel layout, desktop uses the Dockview
+workspace described above. Its outer bounds stay below the header and above
+the transport controls. Tabs and content occupy space within those bounds;
+the legacy content-to-header gap is not a Dockview invariant.
+
+For the legacy overlay path (`?legacyPanels=1` or `?dockPanels=0`):
 
 - built-in panel lifecycle state comes from mission config
 - auxiliary view panels are placed in a right-aligned, non-overlapping stack
 - on wide desktop layouts, 1600px and wider, the top visible auxiliary view panel starts just below the About/Hide button; on narrower laptop layouts, the stack stays below the header controls
+- the Frame and Shoot shell starts 6–10px below the header; the wide desktop
+  auxiliary stack starts within 10px below the About/Hide button
 - default auxiliary and Frame and Shoot panel geometry must stay above the main transport controls and timeline dock
 - if the viewport is too short for a single column, auxiliary defaults wrap into additional columns to the left
 - workflow panel geometry follows the mission config plus the panel's preset

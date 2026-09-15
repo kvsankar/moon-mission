@@ -1,6 +1,6 @@
 # Runtime Style Guide
 
-Last updated: 2026-05-18
+Last updated: 2026-09-15
 
 This specification defines the ground-level visual and interaction language for the mission runtime. It implements [Runtime UX](runtime-ux.md): new UI must choose from the component taxonomy here, use shared tokens, and document deliberate deviations.
 
@@ -31,6 +31,13 @@ Ground-level rules:
 ## Foundations
 
 ### Tokens
+
+`src/platform/css/design-tokens.css` owns the shared selector/runtime palette,
+type scale, spacing, radii, elevation, motion durations, focus and layer names.
+`mission.css` imports it before the component styles; the standalone selector
+loads the same file. Component layout dimensions and scientific colors remain
+with their existing owners. Dockview's nested theme shell maps its vendor
+variables to these tokens so vendor defaults cannot replace the app palette.
 
 Runtime CSS should expose and consume explicit tokens for recurring decisions:
 
@@ -109,7 +116,15 @@ The dominant palette is a dark neutral surface with blue interaction states:
 - Primary text: bright blue-white.
 - Secondary text: muted blue-gray.
 - Selection/focus: restrained cyan-blue.
-- Configuration launchers: muted green action family.
+- Configuration launchers: neutral text and surfaces, with the same blue open
+  state as other controls. Compact rectangular launchers remain distinct from
+  pill selectors; labels and expanded/pressed state communicate their roles.
+
+Use flat surfaces and a restrained border scale. Docked groups have no outer
+shadow; active tabs use an underline. Floating panels and popovers use the
+shared elevation tokens. Avoid text glows, decorative gradients and nested
+frames in ordinary control chrome. Gradients or glows that explain scientific
+data, media type, or text legibility over imagery remain local exceptions.
 
 Rules:
 

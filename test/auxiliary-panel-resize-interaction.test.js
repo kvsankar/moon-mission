@@ -1,6 +1,8 @@
 import { chromium } from "playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getEffectiveTestBaseUrl } from "./local-test-config.js";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 
 const TEST_TIMEOUT_MS = process.env.CI === "true" ? 120000 : 90000;
 
@@ -26,7 +28,66 @@ describe("Auxiliary panel resize interactions", () => {
         await browser?.close();
     });
 
-    it("top-aligns the default right auxiliary stack without covering header controls", async () => {
+    it("keeps docked panels below the header and resizes Frame and Shoot with the workspace divider", async () => {
+        for (const viewport of [{ width: 1920, height: 1080 }, { width: 1366, height: 768 }]) {
+            const page = await browser.newPage({ viewport });
+            try {
+                await page.addInitScript(() => localStorage.clear());
+                await page.goto(`${getEffectiveTestBaseUrl(process.cwd())}/artemis2/`, { waitUntil: "domcontentloaded" });
+                await page.waitForFunction(() => document.getElementById("mission-loading-overlay")?.dataset.blocking === "false");
+                await page.waitForSelector(".dockview-panels-enabled .aux-camera-view--composer");
+                const geometry = await page.evaluate(() => {
+                    const rect = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
+                    const composer = document.querySelector(".aux-camera-view--composer");
+                    const group = composer.closest(".dv-groupview");
+                    const groupRect = group.getBoundingClientRect();
+                    const divider = [...document.querySelectorAll(".dv-sash:not(.disabled)")]
+                        .map(e => ({ element: e, rect: e.getBoundingClientRect() }))
+                        .find(({ rect: r }) => r.height > 100 && r.width < 20 && Math.abs(r.x + r.width / 2 - groupRect.left) < 12
+                            && r.top <= groupRect.top + groupRect.height / 2 && r.bottom >= groupRect.top + groupRect.height / 2);
+                    const rootStyle = getComputedStyle(document.documentElement);
+                    return {
+                        header: rect(".header"), host: rect("#experimental-dockview-host"),
+                        transport: rect("#control-panel"), group: groupRect.toJSON(),
+                        gripDisplay: getComputedStyle(composer.querySelector(".aux-camera-view__resize-grip")).display,
+                        divider: divider ? { x: divider.rect.x + divider.rect.width / 2, y: groupRect.top + groupRect.height / 2 } : null,
+                        tabSurface: getComputedStyle(group.querySelector(".dv-tabs-and-actions-container")).backgroundColor,
+                        token: rootStyle.getPropertyValue("--ui-surface-1").trim(),
+                    };
+                });
+                expect(geometry.host.top).toBeGreaterThanOrEqual(geometry.header.bottom);
+                expect(geometry.host.bottom).toBeLessThanOrEqual(geometry.transport.top);
+                expect(geometry.group.top).toBeGreaterThanOrEqual(geometry.host.top);
+                expect(geometry.group.top - geometry.host.top).toBeLessThanOrEqual(12);
+                expect(geometry.gripDisplay).toBe("none");
+                // Catch a vendor theme overriding the shared tokens on a child shell.
+                const expectedSurface = geometry.token.match(/\w\w/g).map(part => parseInt(part, 16));
+                expect(geometry.tabSurface).toBe(`rgb(${expectedSurface.join(", ")})`);
+                expect(geometry.divider).not.toBeNull();
+                const screenshotDir = join(process.cwd(), "test/screenshots/current/design-review");
+                mkdirSync(screenshotDir, { recursive: true });
+                await page.screenshot({ path: join(screenshotDir, `artemis2-${viewport.width}.png`) });
+                await page.mouse.move(geometry.divider.x, geometry.divider.y);
+                await page.mouse.down();
+                await page.mouse.move(geometry.divider.x + 60, geometry.divider.y, { steps: 8 });
+                await page.mouse.up();
+                const resized = await page.locator(".aux-camera-view--composer").evaluate(e => e.closest(".dv-groupview").getBoundingClientRect().toJSON());
+                // Shrink the composer: at laptop width the neighboring main
+                // view is already at its minimum and cannot shrink further.
+                expect(resized.width, `divider drag at ${viewport.width}px: ${JSON.stringify({ before: geometry.group, after: resized })}`).toBeLessThan(geometry.group.width - 20);
+
+                const group = page.locator(".dv-groupview").filter({ has: page.locator(".aux-camera-view--composer") });
+                await group.getByRole("button", { name: "Maximize panel group", exact: true }).click();
+                await page.waitForFunction(width => document.querySelector(".aux-camera-view--composer").getBoundingClientRect().width > width * 1.5, geometry.group.width);
+                await group.getByRole("button", { name: "Maximize panel group", exact: true }).click();
+                await page.waitForFunction(width => document.querySelector(".aux-camera-view--composer").getBoundingClientRect().width < width * 1.5, geometry.group.width);
+            } finally {
+                await page.close();
+            }
+        }
+    }, TEST_TIMEOUT_MS * 2);
+
+    it("top-aligns the legacy right auxiliary stack without covering header controls", async () => {
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());
         const viewports = [
             { width: 1920, height: 1080, wideDesktop: true },
@@ -43,7 +104,7 @@ describe("Auxiliary panel resize interactions", () => {
 
             try {
                 await page.addInitScript(() => localStorage.clear());
-                await page.goto(`${baseUrl}/artemis2/`, {
+                await page.goto(`${baseUrl}/artemis2/?legacyPanels=1`, {
                     waitUntil: "domcontentloaded",
                     timeout: 60000,
                 });
@@ -201,21 +262,26 @@ describe("Auxiliary panel resize interactions", () => {
         }
     }, TEST_TIMEOUT_MS);
 
-    it("resizes the Frame and Shoot panel through the real bottom-right corner while textures are deferred", async () => {
+    it("resizes the legacy Frame and Shoot panel while texture requests are pending", async () => {
         const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+        let releaseTextures;
+        let pendingTextures = 0;
+        const texturesReady = new Promise((resolve) => { releaseTextures = resolve; });
 
         try {
             await page.addInitScript(() => localStorage.clear());
             await page.route(/\.(jpg|jpeg|png|webp)(\?|$)/i, async (route) => {
                 const url = route.request().url();
                 if (url.includes("/images/") || url.includes("/assets/")) {
-                    await new Promise((resolve) => setTimeout(resolve, 6000));
+                    pendingTextures += 1;
+                    await texturesReady;
+                    pendingTextures -= 1;
                 }
                 await route.continue();
             });
 
-            await page.goto(`${baseUrl}/artemis2/`, {
+            await page.goto(`${baseUrl}/artemis2/?legacyPanels=1`, {
                 waitUntil: "domcontentloaded",
                 timeout: 60000,
             });
@@ -265,7 +331,8 @@ describe("Auxiliary panel resize interactions", () => {
             });
 
             expect(before.topClass).toContain("aux-camera-view__resize-grip");
-            expect(before.textureState).toBe("deferred");
+            expect(pendingTextures).toBeGreaterThan(0);
+            expect(["deferred", "loading"]).toContain(before.textureState);
 
             await page.mouse.move(before.x, before.y);
             await page.mouse.down();
@@ -323,17 +390,18 @@ describe("Auxiliary panel resize interactions", () => {
             expect(afterTopLeft.width).toBeGreaterThan(beforeTopLeft.width + 50);
             expect(afterTopLeft.height).toBeGreaterThan(beforeTopLeft.height + 30);
         } finally {
+            releaseTextures();
             await page.close();
         }
     }, TEST_TIMEOUT_MS);
 
-    it("lets a maximized Frame and Shoot panel be resized from a corner", async () => {
+    it("lets a maximized legacy Frame and Shoot panel be resized from a corner", async () => {
         const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());
 
         try {
             await page.addInitScript(() => localStorage.clear());
-            await page.goto(`${baseUrl}/artemis2/`, {
+            await page.goto(`${baseUrl}/artemis2/?legacyPanels=1`, {
                 waitUntil: "domcontentloaded",
                 timeout: 60000,
             });
@@ -423,6 +491,10 @@ describe("Auxiliary panel resize interactions", () => {
                 () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
                 { timeout: 30000 },
             );
+
+            await page.locator(".workspace-tools__summary").click();
+            await page.locator('[data-workspace-panel="aux:earth"]').click();
+            await page.waitForFunction(() => window.__moonMissionDockviewSpike.api.getPanel("aux:earth")?.api.isVisible);
 
             await page.waitForFunction(
                 () => {

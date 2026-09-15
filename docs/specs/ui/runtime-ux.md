@@ -1,6 +1,6 @@
 # Runtime UX Doctrine
 
-Last updated: 2026-05-18
+Last updated: 2026-09-15
 
 Experience-model rationale:
 [Runtime Experience Model](../../designs/runtime-experience-model.md)
@@ -106,6 +106,13 @@ Every control also belongs to one interaction role: tab, one-of selector, binary
 Open state, selected state, enabled state, and applied state are different meanings. The UI should not collapse them into one color.
 
 ## Panel And Layout Doctrine
+
+The visible depth also follows available space, on desktop as well as mobile.
+Reduce secondary detail and simultaneous tools as width or height shrinks;
+protect the scene, clock and playback. Hidden tools keep a clear entry point,
+and growing the window restores the user's working context. Apply this at both
+workspace and individual-panel level. Concrete behavior is owned by
+[Panel Progressive Disclosure](panel-progressive-disclosure.md).
 
 Panels are task spaces, not drawers full of implementation details.
 

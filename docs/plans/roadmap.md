@@ -1,6 +1,6 @@
 # Moon Mission Roadmap
 
-Last reviewed: 2026-09-03
+Last reviewed: 2026-09-15
 
 ## Authority
 
@@ -19,10 +19,29 @@ The preserved May planning snapshot is
 
 ## Current Priority
 
-### 1. Resolve panel runtime regressions
+### 1. Complete technical verification of visual tokens and progressive workspace UX
 
-Reproduce and resolve the auxiliary-stack spacing and Frame and Shoot
-resize-grip failures captured during specification review.
+The spacing and resize-grip assertions have been reconciled with legacy and
+Dockview layout ownership. Focused coverage passes; no panel runtime fix was
+needed. The accompanying visual pass simplifies the existing structure through
+shared design tokens. Independent technical review remains before closure. The broader
+full-scene SSIM harness still uses legacy snapshots against the default docked
+layout; its sampled failures also reproduce with unmodified HEAD styles.
+
+Current evidence:
+[Visual Design And Panel Regression Review](../evidence/reviews/visual-design-tokens-2026-09-15.md)
+
+The accompanying [Progressive Workspace UX](implementation/progressive-workspace-ux.md)
+is implemented: width and height progressively reduce simultaneous tools,
+compact Frame and Shoot controls use bounded disclosures, and resizing restores
+the expanded layout without treating hidden panels as closed. See
+[progressive UX evidence](../evidence/reviews/progressive-workspace-ux-2026-09-15.md).
+
+The user reviewed the UI on 2026-09-15 and accepted it for now. A detailed
+human UX review is explicitly deferred until the other roadmap items are
+finished; see the deferred backlog below. That review does not block continuing
+the other work. Technical verification and the existing scene-baseline issue
+remain tracked here.
 
 Owner:
 [Panel Runtime Regressions](implementation/panel-runtime-regressions.md)
@@ -87,6 +106,21 @@ dispositions are approved.
 
 - Generate the nginx legacy-mission slug map from `assets/mission-catalog.json`
   during deployment so the production allowlist is not maintained separately.
+
+## Deferred Backlog
+
+### Detailed human UX review — after the other roadmap items
+
+Status: deferred by the user on 2026-09-15. Schedule after the other current
+roadmap items are finished, using the integrated app as it exists then.
+
+Owner: [Human UX Review Plan](breakdown/human-ux-review-plan.md).
+
+Review end-to-end workflows, progressive disclosure across window and panel
+sizes, discoverability, visual hierarchy, keyboard/touch accessibility,
+mission-time and scientific clarity, and perceived responsiveness. Produce a
+human-authored findings report and triage follow-up work into the roadmap.
+This is a later product review, not an active delivery prerequisite.
 
 ## Queue Rules
 

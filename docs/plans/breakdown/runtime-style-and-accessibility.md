@@ -57,11 +57,22 @@ reopening or closing them from status prose alone.
 
 ## Current Verified Gaps
 
-- The proposed `--ui-layer-*` scale is not the current token vocabulary;
-  `--ui-config-popover-z` and local numeric ladders remain.
-- Runtime CSS still uses viewport-based font scaling despite the specification
-  prohibiting it.
-- Mobile controls remain below the required `44px` hit area in several places.
+The subsequent [Progressive Workspace UX](../implementation/progressive-workspace-ux.md)
+adds space-dependent workspace visibility and compact composer disclosures,
+including resolution of the short-panel hover-control overlap. See its
+[verification evidence](../../evidence/reviews/progressive-workspace-ux-2026-09-15.md).
+
+- Shared design tokens now live in `design-tokens.css`, consumed by both
+  selectors, runtime controls and Dockview's nested theme shell. The September
+  15 pass simplified chrome while retaining the existing panel/navigation
+  structure. See [review evidence](../../evidence/reviews/visual-design-tokens-2026-09-15.md).
+- Named layer tokens now cover the migrated header, timeline, mobile and
+  auxiliary roots. Local component ladders and the compatibility
+  `--ui-config-popover-z` alias remain; this is not a full stacking rewrite.
+- The Frame and Shoot unavailable message now uses a fixed type token.
+- Mobile playback and bottom navigation now meet the `44px` hit area. Secondary
+  controls, such as unit selectors, view presets and collapse controls, still
+  need the broader mobile accessibility workstream.
 - Component state and keyboard semantics are not comprehensively tested.
 - The previous Surface Points review showed that component anatomy, spacing,
   grouping, and state rules need implementation by component family.

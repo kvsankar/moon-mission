@@ -23,6 +23,9 @@ previous.json
 # =========================
 # Assets and Archives
 # =========================
+# Shared runtime catalog staged from moon-mission-data.
+assets/lunar-features.json
+
 # Backup and intermediate files in any mission data folder
 assets/*/data/*.bak
 assets/*/data/*-jq.json

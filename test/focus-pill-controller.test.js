@@ -179,6 +179,8 @@ function createHarness(options = {}) {
             pathname: options.pathname || "/artemis2/",
             search: options.search || "",
         },
+        matchMedia: () => ({ matches: options.mobile !== true }),
+        __moonMissionDockviewSpike: options.progressiveWorkspace ? { progressiveWorkspace: {} } : undefined,
         requestAnimationFrame(callback) {
             rafQueue.push(callback);
         },
@@ -255,6 +257,15 @@ function createHarness(options = {}) {
 }
 
 describe("createFocusPillController", function () {
+    it("lets progressive mode hide mobile desktop groups without closing their mission state", () => {
+        const progressive = createHarness({ mobile: true, progressiveWorkspace: true });
+        progressive.controller.bind();
+        expect(progressive.invokeMissionPanelAction).not.toHaveBeenCalled();
+        expect(progressive.flybyPill.hidden).toBe(true);
+        const legacy = createHarness({ mobile: true });
+        legacy.controller.bind();
+        expect(legacy.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth-rise-composer", "close");
+    });
     it("preserves header scroll during unchanged animation updates", () => {
         const harness = createHarness({ composerVisible: true });
         harness.controller.bind();

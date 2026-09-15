@@ -71,6 +71,34 @@ Useful pages:
      - Use the specific pill controller for sync/state behavior changes.
   3. Verify both surfaces stay synchronized in runtime and UI tests.
 
+### Shared Visual Tokens
+
+Use `src/platform/css/design-tokens.css` for recurring visual decisions. The
+mission selector, runtime and detached views share this vocabulary. Keep
+component geometry and rendered mission/annotation colors in their owning
+modules. Dockview variables must be mapped on the nested theme shell as well
+as the host, since vendor theme declarations otherwise override inheritance.
+
+Run `npm run test:browser:design` against the local test server on `8111` for
+selector consistency, contrast, keyboard focus, popover stacking, mobile
+playback/navigation targets and stable chrome screenshots. To intentionally
+refresh its three reviewed baselines in PowerShell:
+
+```powershell
+$env:UPDATE_DESIGN_BASELINES = 'true'
+npm run test:browser:design
+Remove-Item Env:UPDATE_DESIGN_BASELINES
+```
+
+Review `test/screenshots/current/design-review/` before accepting baseline
+updates. Scene-rendering SSIM baselines remain owned by `test/ui.test.js`.
+
+Run `npm run test:browser:progressive` for workspace width/height transitions,
+Tools access, layout/time preservation, desktop-to-mobile canvas visibility and
+compact Frame and Shoot disclosures. Space policies live in
+`src/platform/js/core/domain/workspace-disclosure.js`; the workspace controller
+and composer disclosure controller own their respective lifecycle changes.
+
 ### Moon Render Asset Profiles
 
 - The Moon Render panel supports Low, Medium and High resource tiers (`low`, `fast`, `quality`). The legacy Moon Surface shortcuts still call Medium/High `Standard`/`Detailed`.

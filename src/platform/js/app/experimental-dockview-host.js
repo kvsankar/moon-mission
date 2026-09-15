@@ -1,4 +1,5 @@
 import "dockview-core/dist/styles/dockview.css";
+import { createProgressiveWorkspace } from "./progressive-workspace.js";
 
 import { createPanelLayoutHost } from "./panel-layout-host.js";
 import { readPanelLayoutHostState } from "./panel-layout-host.js";
@@ -339,25 +340,67 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     strip.setAttribute("aria-label", "Open mission panels");
 
     const sourceButtons = [
-        ["panel-pill-background", "Flyby"],
-        ["panel-pill-media", "Media"],
-        ["flyby-pill", "Frame & Shoot"],
-        ["focus-pill-splashdown", "Splashdown"],
-        ["panel-pill-craft-moon", "C -> M"],
-        ["panel-pill-craft-earth", "C -> E"],
-        ["panel-pill-earth-orbit-xy", "Orbit"],
+        ["panel-pill-background", "Flyby", "workflow:background-media"],
+        ["panel-pill-background", "Transcript", "workflow:background-transcript"],
+        ["panel-pill-media", "Media", "workflow:media-browser"],
+        ["flyby-pill", "Frame & Shoot", "aux:earth-rise-composer"],
+        ["focus-pill-splashdown", "Splashdown", "workflow:splashdown"],
+        ["panel-pill-craft-moon", "C -> M", "aux:moon"],
+        ["panel-pill-craft-earth", "C -> E", "aux:earth"],
+        ["panel-pill-earth-orbit-xy", "Orbit", "aux:earth-origin-orbit-xy"],
         ["compare-pill-button", "Compare"],
     ];
 
-    const proxyButtons = sourceButtons.map(([targetId, label]) => {
+    const tools = documentRef.createElement("details");
+    tools.className = "workspace-tools";
+    const toolsSummary = documentRef.createElement("summary");
+    toolsSummary.className = "dockview-panel-launch-strip__pill workspace-tools__summary";
+    toolsSummary.textContent = "Tools";
+    const toolsBody = documentRef.createElement("div");
+    toolsBody.className = "workspace-tools__body";
+    toolsBody.id = "workspace-tools-body";
+    toolsSummary.setAttribute("aria-controls", toolsBody.id);
+    tools.append(toolsSummary, toolsBody);
+    const closeToolsAfterSelection = () => {
+        if (tools.open) {
+            tools.open = false;
+            toolsSummary.focus();
+        }
+    };
+    const sceneButton = documentRef.createElement("button");
+    sceneButton.type = "button";
+    sceneButton.className = "dockview-panel-launch-strip__pill workspace-scene-return";
+    sceneButton.textContent = "Scene";
+    sceneButton.addEventListener("click", () => globalThis.__moonMissionDockviewSpike?.progressiveWorkspace?.revealPanel(MAIN_VIEW_PANEL_ID));
+    strip.appendChild(sceneButton);
+
+    const proxyButtons = sourceButtons.map(([targetId, label, panelId]) => {
         const button = documentRef.createElement("button");
         button.type = "button";
         button.className = "dockview-panel-launch-strip__pill";
         button.dataset.proxyTarget = targetId;
+        button.dataset.shortLabel = label;
+        if (panelId) button.dataset.workspacePanel = panelId;
         button.textContent = label;
         button.addEventListener("click", () => {
+            const progressive = globalThis.__moonMissionDockviewSpike?.progressiveWorkspace;
+            if (panelId === "workflow:background-transcript") {
+                const host = globalThis.__moonMissionDockviewSpike?.layoutHost;
+                if (!host?.api.getPanel(panelId)) host?.addPanel(DEFAULT_DOCKVIEW_SPIKE_PANELS[1]);
+                progressive?.revealPanel(panelId);
+                closeToolsAfterSelection();
+                return;
+            }
+            if (panelId && progressive?.isCollapsed(panelId)) {
+                progressive.revealPanel(panelId);
+                closeToolsAfterSelection();
+                return;
+            }
             const target = documentRef.getElementById(targetId);
+            const wasOpen = target?.getAttribute?.("aria-pressed") === "true";
             target?.dispatchEvent?.(new MouseEvent("click", { bubbles: true, cancelable: true }));
+            if (panelId && !wasOpen) queueMicrotask(() => progressive?.revealPanel(panelId));
+            closeToolsAfterSelection();
         });
         strip.appendChild(button);
         return button;
@@ -398,6 +441,16 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
 
     const fullscreenToggle = createFullscreenToggleButton(documentRef);
     strip.appendChild(fullscreenToggle.button);
+    strip.appendChild(tools);
+    const closeTools = event => {
+        if (event.key === "Escape" && tools.open) {
+            tools.open = false;
+            toolsSummary.focus();
+        }
+    };
+    const dismissTools = event => { if (tools.open && !tools.contains(event.target)) tools.open = false; };
+    documentRef.addEventListener("keydown", closeTools);
+    documentRef.addEventListener("pointerdown", dismissTools);
 
     const setAttributeIfChanged = (element, name, value) => {
         const nextValue = String(value);
@@ -412,18 +465,43 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     };
 
     const sync = () => {
+        const progressive = globalThis.__moonMissionDockviewSpike?.progressiveWorkspace;
+        const level = progressive?.level || "full";
         for (const button of proxyButtons) {
             const target = documentRef.getElementById(button.dataset.proxyTarget || "");
             const unavailable = !target || target.hidden || target.closest?.("[hidden]");
             setHiddenIfChanged(button, !!unavailable);
-            setAttributeIfChanged(button, "aria-pressed", target?.getAttribute?.("aria-pressed") || "false");
+            button.disabled = !!target?.disabled || target?.getAttribute?.("aria-disabled") === "true";
+            const collapsed = progressive?.isCollapsed(button.dataset.workspacePanel);
+            setAttributeIfChanged(button, "aria-pressed", collapsed ? "false" : target?.getAttribute?.("aria-pressed") || "false");
             button.title = target?.title || `Open ${button.textContent} panel`;
+            const transcript = button.dataset.workspacePanel === "workflow:background-transcript";
+            const keepInline = (level === "full" && !transcript) || (level === "compact" && ["panel-pill-media", "flyby-pill"].includes(button.dataset.proxyTarget));
+            if (transcript && level === "full") setHiddenIfChanged(button, true);
+            const expandedLabels = { "C -> M": "Craft → Moon", "C -> E": "Craft → Earth" };
+            const text = keepInline ? button.dataset.shortLabel : expandedLabels[button.dataset.shortLabel] || button.dataset.shortLabel;
+            if (button.textContent !== text) button.textContent = text;
+            const parent = keepInline ? strip : toolsBody;
+            if (button.parentElement !== parent) parent.insertBefore(button, keepInline ? tools : null);
         }
+        for (const button of [orbitDetailsButton, resetViewButton]) {
+            const parent = level === "full" ? strip : toolsBody;
+            if (button.parentElement !== parent) parent.insertBefore(button, level === "full" ? tools : null);
+        }
+        // Keep logical order as different controls move into the overflow.
+        const overflowButtons = [...proxyButtons, orbitDetailsButton, resetViewButton]
+            .filter(button => button.parentElement === toolsBody);
+        overflowButtons.forEach((button, index) => {
+            if (toolsBody.children[index] !== button) toolsBody.insertBefore(button, toolsBody.children[index] || null);
+        });
+        tools.hidden = level === "full";
+        sceneButton.hidden = !["minimal", "focused"].includes(level);
         setHiddenIfChanged(resetViewButton, false);
     };
 
     navbar.appendChild(strip);
     sync();
+    documentRef.addEventListener("moon-mission:workspace-disclosure-change", sync);
 
     const observer = typeof MutationObserver === "function"
         ? new MutationObserver(sync)
@@ -439,6 +517,9 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     }
     return {
         dispose() {
+            documentRef.removeEventListener("moon-mission:workspace-disclosure-change", sync);
+            documentRef.removeEventListener("keydown", closeTools);
+            documentRef.removeEventListener("pointerdown", dismissTools);
             observer?.disconnect?.();
             fullscreenToggle.dispose();
             strip.remove();
@@ -1411,6 +1492,7 @@ function initializeExperimentalDockviewHost() {
     const hadSavedLayout = !!readPanelLayoutHostState(storageKey);
     const { root, toolbar, dockRoot, resetButton, resizeGrip } = createHostRoot(documentRef, { shellStorageKey });
     let suppressPanelCloseSync = false;
+    let progressiveWorkspace = null;
     const layoutHost = createPanelLayoutHost({
         container: dockRoot,
         missionKey: resolveMissionKeyFromWindow(),
@@ -1491,6 +1573,7 @@ function initializeExperimentalDockviewHost() {
             }
             const applied = applyDefaultDockviewWorkspaceLayout(layoutHost);
             if (applied) {
+                progressiveWorkspace?.captureExpandedLayout();
                 layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
                 return;
             }
@@ -1546,6 +1629,7 @@ function initializeExperimentalDockviewHost() {
             }
             if (!defaultWorkspaceLayoutApplied) {
                 defaultWorkspaceLayoutApplied = applyDefaultDockviewWorkspaceLayout(layoutHost);
+                if (defaultWorkspaceLayoutApplied) progressiveWorkspace?.captureExpandedLayout();
             }
             layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
             if (pendingDefaultPanelIds.size === 0) {
@@ -1567,6 +1651,7 @@ function initializeExperimentalDockviewHost() {
     resetButton.addEventListener("click", resetDockviewWorkspaceLayout);
 
     const dispose = () => {
+        progressiveWorkspace?.dispose();
         unsubscribeDefaultPanelOpen?.();
         if (resetWorkspaceRetryHandle != null) {
             clearTimeout(resetWorkspaceRetryHandle);
@@ -1591,6 +1676,8 @@ function initializeExperimentalDockviewHost() {
         resetWorkspaceLayout: resetDockviewWorkspaceLayout,
         dispose,
     };
+    progressiveWorkspace = createProgressiveWorkspace({ layoutHost, root, documentRef });
+    globalThis.__moonMissionDockviewSpike.progressiveWorkspace = progressiveWorkspace;
 
     return globalThis.__moonMissionDockviewSpike;
 }

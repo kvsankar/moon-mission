@@ -18,7 +18,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .info-panel-toggle {
@@ -29,13 +29,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border: 1px solid var(--ui-border-1);
     background: var(--ui-surface-1);
     color: var(--ui-text-1);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: var(--ui-shadow-panel);
+    transition: background var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease, box-shadow var(--ui-duration-fast) ease;
 }
 
 .info-panel-toggle:hover {
@@ -61,8 +61,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border: 1px solid var(--ui-border-1);
     background: var(--ui-surface-2);
     color: var(--ui-text-1);
-    font-size: 11px;
-    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.46);
+    font-size: var(--ui-type-body-sm);
+    box-shadow: var(--ui-shadow-panel);
     backdrop-filter: blur(8px);
 }
 
@@ -80,7 +80,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .info-panel__title {
     margin: 0;
     color: var(--ui-text-1);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -93,7 +93,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border: 1px solid var(--ui-border-1);
     background: rgba(255, 255, 255, 0.06);
     color: var(--ui-text-1);
-    font-size: 14px;
+    font-size: var(--ui-type-subtitle);
     line-height: 1;
     cursor: pointer;
 }
@@ -120,7 +120,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .info-panel__section-title {
     margin-bottom: 5px;
     color: #a9c9ff;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -152,7 +152,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .info-panel__table th {
     color: #cbd8ec;
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -171,7 +171,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .info-panel__kv {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
     margin-bottom: 5px;
 }
 
@@ -192,8 +192,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: inline-block;
     margin-left: 0;
     padding: 1px 5px;
-    border-radius: 4px;
-    font-size: 9px;
+    border-radius: var(--ui-radius-xs);
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.04em;
     white-space: nowrap;
@@ -232,17 +232,17 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     .info-panel-toggle {
         min-width: 82px;
         height: 38px;
-        font-size: 11px;
+        font-size: var(--ui-type-body-sm);
     }
 
     .info-panel {
         width: min(420px, calc(100vw - 14px));
         max-height: 58vh;
-        font-size: 10px;
+        font-size: var(--ui-type-control);
     }
 
     .info-panel__table {
-        font-size: 10px;
+        font-size: var(--ui-type-control);
     }
 }
 
@@ -259,11 +259,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     grid-template-rows: auto minmax(0, 1fr);
     width: min(360px, calc(100vw - 20px));
     max-height: min(58vh, 420px);
-    border: 1px solid rgba(121, 171, 255, 0.32);
+    border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-sm);
     background: rgba(10, 17, 29, 0.9);
-    color: rgba(230, 239, 255, 0.92);
-    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.34);
+    color: var(--ui-text-1);
+    box-shadow: var(--ui-shadow-panel);
     pointer-events: auto;
     overflow: hidden;
     backdrop-filter: blur(6px);
@@ -280,12 +280,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     justify-content: space-between;
     gap: 10px;
     padding: 8px 10px;
-    border-bottom: 1px solid rgba(121, 171, 255, 0.2);
+    border-bottom: 1px solid var(--ui-border-1);
     background: rgba(12, 20, 35, 0.82);
 }
 
 .compare-panel__title {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -294,8 +294,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .compare-panel__close {
     min-width: 24px;
     height: 24px;
-    border-radius: 999px;
-    border: 1px solid rgba(121, 171, 255, 0.28);
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid var(--ui-border-1);
     background: rgba(255, 255, 255, 0.06);
     color: rgba(224, 235, 250, 0.94);
     cursor: pointer;
@@ -303,7 +303,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .compare-panel__close:hover {
     background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(121, 171, 255, 0.5);
+    border-color: var(--ui-border-2);
 }
 
 .compare-panel__close:focus-visible {
@@ -316,32 +316,32 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     overflow-y: auto;
     padding: 10px;
     display: grid;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .compare-panel__section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 8px;
+    gap: var(--ui-space-4);
+    padding: var(--ui-space-4);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: var(--ui-radius-sm);
     background: rgba(255, 255, 255, 0.025);
 }
 
 .compare-panel__toggle {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     color: rgba(231, 239, 252, 0.95);
 }
 
 .compare-panel__field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--ui-space-2);
 }
 
 .compare-panel__field-label {
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ui-text-2);
@@ -350,14 +350,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .compare-panel__alignment {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 8px;
+    gap: var(--ui-space-4);
     align-items: end;
 }
 
 .compare-panel__connector {
     padding-bottom: 7px;
     color: rgba(183, 205, 238, 0.8);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -366,7 +366,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .compare-panel__note {
     margin: 0;
     color: rgba(189, 208, 236, 0.82);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.35;
 }
 
@@ -377,7 +377,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border: 1px solid var(--ui-border-1);
     background: rgba(10, 18, 31, 0.92);
     color: rgba(235, 243, 255, 0.96);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     color-scheme: dark;
 }
 
@@ -421,28 +421,28 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .mission-panel-shell {
-    border: 1px solid rgba(121, 171, 255, 0.32);
+    border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-sm);
-    background: rgba(10, 17, 29, 0.74);
-    color: rgba(230, 239, 255, 0.92);
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+    background: var(--ui-surface-1);
+    color: var(--ui-text-1);
+    box-shadow: var(--ui-shadow-panel);
     overflow: hidden;
 }
 
 .mission-panel-shell.is-maximized {
     resize: none;
-    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.38);
+    box-shadow: var(--ui-shadow-panel);
 }
 
 .mission-panel-shell__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
     min-width: 0;
     padding: 4px 7px;
-    border-bottom: 1px solid rgba(121, 171, 255, 0.2);
-    background: rgba(12, 20, 35, 0.74);
+    border-bottom: 1px solid var(--ui-border-1);
+    background: var(--ui-surface-1);
     font-family: var(--ui-font-condensed);
     cursor: grab;
     touch-action: none;
@@ -463,13 +463,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
-    gap: 4px;
+    gap: var(--ui-space-2);
 }
 
 .mission-panel-shell__title {
     flex: 1 1 auto;
     min-width: 0;
-    color: rgba(230, 239, 255, 0.92);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-condensed);
     font-size: var(--ui-type-control);
     font-weight: 600;
@@ -480,20 +480,20 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .mission-panel-shell__button {
     position: relative;
-    border: 1px solid rgba(121, 171, 255, 0.24);
-    background: rgba(10, 18, 32, 0.52);
-    color: rgba(220, 232, 250, 0.88);
+    border: 1px solid var(--ui-border-1);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-condensed);
     cursor: pointer;
     text-transform: none;
-    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+    transition: background var(--ui-duration-fast) ease, border-color var(--ui-duration-fast) ease, color var(--ui-duration-fast) ease, box-shadow var(--ui-duration-fast) ease;
 }
 
 .mission-panel-shell__button:hover {
-    background: rgba(77, 141, 255, 0.14);
-    border-color: rgba(121, 171, 255, 0.5);
+    background: var(--ui-surface-hover);
+    border-color: var(--ui-border-2);
     box-shadow: 0 0 0 1px rgba(141, 184, 246, 0.1);
-    color: rgba(240, 247, 255, 0.96);
+    color: var(--ui-text-1);
 }
 
 .mission-panel-shell__button:focus-visible {
@@ -504,7 +504,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .mission-panel-shell__button--pill {
     min-height: 20px;
     padding: 0 8px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     font-size: var(--ui-type-control);
     font-weight: 600;
 }
@@ -517,8 +517,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     justify-content: center;
     flex: 0 0 auto;
     padding: 0;
-    border-radius: 999px;
-    font-size: 12px;
+    border-radius: var(--ui-radius-pill);
+    font-size: var(--ui-type-body);
     line-height: 1;
 }
 
@@ -655,11 +655,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: none;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--ui-space-5);
     min-width: 0;
     padding: 7px 9px;
-    border-bottom: 1px solid rgba(123, 170, 236, 0.22);
-    background: rgba(10, 18, 32, 0.92);
+    border-bottom: 1px solid var(--ui-border-1);
+    background: var(--ui-surface-1);
     cursor: default;
     touch-action: auto;
 }
@@ -671,10 +671,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .experimental-dockview-host__label {
     min-width: 0;
     overflow: hidden;
-    color: rgba(230, 240, 255, 0.92);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-condensed);
-    font-size: 12px;
-    font-weight: 700;
+    font-size: var(--ui-type-body);
+    font-weight: var(--ui-weight-strong);
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
@@ -682,13 +682,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .experimental-dockview-host__button {
     min-height: 24px;
-    border: 1px solid rgba(132, 183, 255, 0.36);
-    border-radius: 6px;
-    background: rgba(23, 36, 60, 0.86);
-    color: rgba(229, 240, 255, 0.92);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-condensed);
-    font-size: 11px;
-    font-weight: 700;
+    font-size: var(--ui-type-body-sm);
+    font-weight: var(--ui-weight-strong);
     line-height: 1;
     padding: 0 9px;
     cursor: pointer;
@@ -696,42 +696,43 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .experimental-dockview-host__button:hover,
 .experimental-dockview-host__button:focus-visible {
-    border-color: rgba(151, 200, 255, 0.68);
-    background: rgba(52, 84, 136, 0.72);
-    outline: none;
+    border-color: var(--ui-selected-border);
+    background: var(--ui-surface-hover);
+    outline: 2px solid var(--ui-focus);
 }
 
-.experimental-dockview-host__dock {
+.experimental-dockview-host .experimental-dockview-host__dock,
+.experimental-dockview-host__dock .dockview-theme-abyss {
     min-width: 0;
     min-height: 0;
-    --dv-color-abyss-dark: rgba(5, 8, 15, 0.9);
-    --dv-color-abyss: rgba(12, 17, 28, 0.96);
-    --dv-color-abyss-light: rgba(18, 25, 40, 0.96);
-    --dv-color-abyss-lighter: rgba(38, 50, 74, 0.98);
-    --dv-color-abyss-accent: rgb(91, 166, 255);
-    --dv-color-abyss-primary-text: rgba(235, 243, 255, 0.96);
-    --dv-color-abyss-secondary-text: rgba(147, 166, 194, 0.86);
+    --dv-color-abyss-dark: var(--ui-bg-0);
+    --dv-color-abyss: var(--ui-surface-1);
+    --dv-color-abyss-light: var(--ui-surface-1);
+    --dv-color-abyss-lighter: var(--ui-surface-hover);
+    --dv-color-abyss-accent: var(--ui-accent-1);
+    --dv-color-abyss-primary-text: var(--ui-text-1);
+    --dv-color-abyss-secondary-text: var(--ui-text-2);
     --dv-tabs-and-actions-container-height: 32px;
-    --dv-tab-font-size: 12px;
+    --dv-tab-font-size: var(--ui-type-body);
     --dv-tab-margin: 0.35rem 0.18rem;
-    --dv-tab-border-radius: 7px;
-    --dv-border-radius: 14px;
-    --dv-spacing-padding: 8px;
-    --dv-sash-border-radius: 4px;
-    --dv-sash-color: rgba(75, 111, 166, 0.18);
-    --dv-active-sash-color: rgba(91, 166, 255, 0.68);
+    --dv-tab-border-radius: var(--ui-radius-xs);
+    --dv-border-radius: var(--ui-radius-md);
+    --dv-spacing-padding: var(--ui-space-4);
+    --dv-sash-border-radius: var(--ui-radius-xs);
+    --dv-sash-color: var(--ui-border-1);
+    --dv-active-sash-color: var(--ui-accent-1);
     --dv-tab-close-icon-size: 8px;
     --dv-active-sash-transition-delay: 0s;
-    color: rgba(229, 239, 255, 0.95);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-sans);
 }
 
 .experimental-dockview-host__dock .dv-groupview {
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+    box-shadow: none;
 }
 
 .experimental-dockview-host__dock .dv-tabs-and-actions-container {
-    border-bottom: 1px solid rgba(111, 143, 189, 0.1);
+    border-bottom: 1px solid var(--ui-border-1);
 }
 
 .experimental-dockview-host__dock .dv-right-actions-container {
@@ -742,26 +743,20 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .experimental-dockview-host__dock .dv-tab {
     font-family: var(--ui-font-condensed);
-    font-weight: 650;
+    font-weight: var(--ui-weight-strong);
     letter-spacing: 0;
 }
 
 .experimental-dockview-host__dock .dv-tab.dv-active-tab .dv-default-tab {
-    color: rgba(241, 248, 255, 0.98);
+    color: var(--ui-text-1);
 }
 
-.experimental-dockview-host__dock .dv-tab.dv-active-tab .dv-default-tab::before {
-    content: "";
-    width: 5px;
-    height: 5px;
-    margin: 0 7px 0 1px;
-    border-radius: 999px;
-    background: rgba(109, 190, 255, 0.94);
-    box-shadow: 0 0 10px rgba(109, 190, 255, 0.48);
+.experimental-dockview-host__dock .dv-tab.dv-active-tab {
+    box-shadow: inset 0 -2px var(--ui-selected-border);
 }
 
 .experimental-dockview-host__dock .dv-tab.dv-inactive-tab .dv-default-tab {
-    color: rgba(151, 169, 196, 0.9);
+    color: var(--ui-text-2);
 }
 
 .experimental-dockview-host__dock .dv-tabs-and-actions-container svg,
@@ -782,13 +777,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .experimental-dockview-host__dock .dv-default-tab-action {
     width: 20px;
     height: 20px;
-    color: rgba(157, 177, 205, 0.9);
+    color: var(--ui-text-2);
 }
 
 .experimental-dockview-host__header-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--ui-space-2);
     height: 100%;
     padding: 0 7px 0 3px;
 }
@@ -799,19 +794,19 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     place-items: center;
     width: 22px;
     height: 22px;
-    border: 1px solid rgba(109, 152, 209, 0.24);
-    border-radius: 5px;
-    background: rgba(11, 19, 32, 0.42);
-    color: rgba(197, 215, 242, 0.9);
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius-xs);
+    background: transparent;
+    color: var(--ui-text-2);
     cursor: pointer;
 }
 
 .experimental-dockview-host__header-action:hover,
 .experimental-dockview-host__header-action:focus-visible {
-    border-color: rgba(116, 181, 255, 0.58);
-    background: rgba(36, 62, 99, 0.66);
+    border-color: var(--ui-selected-border);
+    background: var(--ui-surface-hover);
     color: rgba(240, 247, 255, 0.98);
-    outline: none;
+    outline: 2px solid var(--ui-focus);
 }
 
 .experimental-dockview-host__header-action-icon,
@@ -868,7 +863,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     height: 8px;
     border: 1px solid currentColor;
     border-radius: 2px;
-    background: rgba(11, 19, 32, 0.86);
+    background: var(--ui-surface-2);
 }
 
 .experimental-dockview-host__header-action--popout .experimental-dockview-host__header-action-icon {
@@ -910,7 +905,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     left: 2px;
     width: 8px;
     height: 1px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: currentColor;
 }
 
@@ -957,11 +952,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-height: 0;
     overflow: auto;
     padding: 14px;
-    background:
-        linear-gradient(180deg, rgba(19, 32, 54, 0.9), rgba(7, 13, 24, 0.96));
-    color: rgba(223, 235, 252, 0.9);
+    background: var(--ui-surface-1);
+    color: var(--ui-text-1);
     font-family: var(--ui-font-sans);
-    font-size: 13px;
+    font-size: var(--ui-type-body-lg);
     line-height: 1.45;
 }
 
@@ -982,7 +976,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .mission-main-view-pane {
     position: relative;
     overflow: hidden;
-    background: #020710;
+    background: var(--ui-bg-0);
 }
 
 .mission-main-view-surface {
@@ -1159,7 +1153,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     color: rgba(244, 249, 255, 0.96);
     font-family: var(--ui-font-condensed);
     font-size: 18px;
-    font-weight: 700;
+    font-weight: var(--ui-weight-strong);
     line-height: 1.2;
 }
 
@@ -1360,7 +1354,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__header-controls {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .media-browser-panel__icon-button {
@@ -1374,7 +1368,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     z-index: 5;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ui-space-4);
     box-sizing: border-box;
     max-width: min(420px, calc(100% - 72px));
     padding: 0;
@@ -1385,7 +1379,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     opacity: 0;
     pointer-events: none;
     transform: translateY(-4px);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity var(--ui-duration-fast) ease, transform var(--ui-duration-fast) ease;
 }
 
 .media-browser-panel__stage:hover .media-browser-panel__toolbar,
@@ -1400,14 +1394,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 76px;
     height: 24px;
     padding: 0 10px;
-    border-color: rgba(184, 212, 138, 0.24);
-    border-radius: 6px;
-    background: rgba(16, 24, 22, 0.76);
+    border-color: var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-surface-overlay);
     color: var(--header-pill-launcher-color);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     letter-spacing: 0;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+    box-shadow: var(--ui-shadow-panel);
     backdrop-filter: blur(8px);
 }
 
@@ -1415,8 +1409,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__filter-toggle.is-active {
     background: var(--header-pill-launcher-bg);
     border-color: var(--header-pill-launcher-border);
-    color: #d9efad;
-    text-shadow: 0 0 10px rgba(184, 212, 138, 0.24);
+    color: var(--ui-selected-text);
+    text-shadow: none;
 }
 
 .media-browser-panel__filter-drawer {
@@ -1430,7 +1424,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     max-height: min(260px, calc(100vh - 16px));
     overflow-y: auto;
     padding: 10px;
-    border: 1px solid rgba(121, 171, 255, 0.24);
+    border: 1px solid var(--ui-border-1);
     border-bottom-color: rgba(121, 171, 255, 0.16);
     border-radius: 8px 8px 0 0;
     background: rgba(7, 13, 23, 0.94);
@@ -1454,14 +1448,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__filter-stack {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--ui-space-3);
     min-width: 0;
 }
 
 .media-browser-panel__search {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     min-width: 0;
 }
 
@@ -1482,11 +1476,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     height: 24px;
     box-sizing: border-box;
     border: 1px solid rgba(120, 166, 231, 0.22);
-    border-radius: 4px;
+    border-radius: var(--ui-radius-xs);
     background: rgba(5, 10, 18, 0.62);
     color: rgba(230, 241, 255, 0.94);
     font: inherit;
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
     line-height: 1;
     padding: 0 8px;
@@ -1500,10 +1494,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 0;
     max-width: min(320px, calc(100vw - 180px));
     padding: 5px 8px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(5, 11, 21, 0.52);
     color: rgba(178, 198, 224, 0.66);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 600;
     line-height: 1.3;
     overflow: hidden;
@@ -1518,7 +1512,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     gap: 5px;
     min-width: 0;
     padding: 1px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(10, 18, 32, 0.28);
 }
 
@@ -1542,7 +1536,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__filter-button {
     border: 1px solid rgba(120, 166, 231, 0.22);
-    border-radius: 4px;
+    border-radius: var(--ui-radius-xs);
     background: rgba(18, 29, 45, 0.7);
     color: rgba(220, 233, 251, 0.86);
     min-height: 22px;
@@ -1561,8 +1555,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__filter-button.is-active {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: var(--header-pill-current-color);
     text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
@@ -1570,7 +1564,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__filter-button--kind-pill {
     min-height: 20px;
     padding: 0 8px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     border-color: rgba(148, 176, 213, 0.18);
     background: rgba(9, 16, 27, 0.42);
     color: rgba(219, 232, 249, 0.72);
@@ -1579,7 +1573,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__filter-button--kind-pill.is-active {
-    background: rgba(77, 141, 255, 0.22);
+    background: var(--ui-selected-bg);
     color: var(--header-pill-current-color);
     text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
@@ -1611,7 +1605,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__filter-separator {
     color: rgba(132, 151, 183, 0.42);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 22px;
     margin: 0 4px;
     user-select: none;
@@ -1644,7 +1638,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    padding: 12px;
+    padding: var(--ui-space-5);
     touch-action: none;
 }
 
@@ -1699,7 +1693,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     aspect-ratio: 16 / 9;
     min-height: 110px;
     border: 1px solid rgba(245, 190, 103, 0.2);
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background:
         radial-gradient(circle at 50% 42%, rgba(245, 190, 103, 0.13), transparent 62%),
         linear-gradient(180deg, rgba(16, 24, 38, 0.82), rgba(8, 13, 22, 0.9));
@@ -1746,17 +1740,17 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     z-index: 3;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     padding: 5px;
-    border: 1px solid rgba(121, 171, 255, 0.2);
-    border-radius: 999px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-pill);
     background: rgba(7, 12, 21, 0.68);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
+    box-shadow: var(--ui-shadow-panel);
     backdrop-filter: blur(8px);
     opacity: 0;
     pointer-events: none;
     transform: translateY(-4px);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity var(--ui-duration-fast) ease, transform var(--ui-duration-fast) ease;
 }
 
 .media-browser-panel__stage:hover .media-browser-panel__image-controls,
@@ -1785,7 +1779,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__image-zoom-label {
     min-width: 42px;
     color: rgba(220, 234, 254, 0.9);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     line-height: 1;
     text-align: center;
@@ -1794,7 +1788,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__stage-empty {
     max-width: 280px;
     color: rgba(196, 212, 236, 0.78);
-    font-size: 13px;
+    font-size: var(--ui-type-body-lg);
     line-height: 1.45;
     text-align: center;
 }
@@ -1817,9 +1811,9 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     height: 44px;
     padding: 0;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(4, 9, 17, 0.46);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--ui-shadow-panel);
     color: rgba(236, 245, 255, 0.94);
     font-size: 24px;
     font-weight: 500;
@@ -1832,7 +1826,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
         background-color 140ms ease,
         box-shadow 140ms ease,
         color 140ms ease,
-        opacity 180ms ease;
+        opacity var(--ui-duration-fast) ease;
 }
 
 .media-browser-panel__stage:hover .media-browser-panel__stage-nav-button,
@@ -1852,7 +1846,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__stage-nav-button:hover {
     background: rgba(18, 33, 53, 0.78);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+    box-shadow: var(--ui-shadow-panel);
     color: #ffffff;
 }
 
@@ -1879,10 +1873,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     left: 50%;
     max-width: min(220px, calc(100% - 168px));
     padding: 5px 10px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(3, 8, 16, 0.56);
     color: rgba(222, 236, 255, 0.9);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     line-height: 1;
     overflow: hidden;
@@ -1893,7 +1887,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     backdrop-filter: blur(8px);
     pointer-events: none;
     opacity: 0;
-    transition: opacity 180ms ease;
+    transition: opacity var(--ui-duration-fast) ease;
 }
 
 .media-browser-panel__stage:hover .media-browser-panel__stage-count,
@@ -1908,10 +1902,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     top: 48px;
     z-index: 4;
     max-width: min(360px, calc(100% - 28px));
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(9, 16, 26, 0.72);
     color: rgba(235, 243, 255, 0.94);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     letter-spacing: 0.03em;
     padding: 8px 12px;
@@ -1919,7 +1913,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     opacity: 0;
     pointer-events: none;
     transform: translateY(-4px);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity var(--ui-duration-fast) ease, transform var(--ui-duration-fast) ease;
 }
 
 .media-browser-panel__stage:hover .media-browser-panel__stage-badge,
@@ -1942,7 +1936,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     pointer-events: none;
     opacity: 0;
     transform: translateY(8px);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity var(--ui-duration-fast) ease, transform var(--ui-duration-fast) ease;
 }
 
 .media-browser-panel__stage:hover .media-browser-panel__summary-card,
@@ -1959,10 +1953,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     max-width: min(46%, 360px);
     padding: 5px 8px;
     border: 1px solid rgba(154, 190, 238, 0.2);
-    border-radius: 4px;
+    border-radius: var(--ui-radius-xs);
     background: rgba(3, 8, 16, 0.62);
     color: rgba(222, 235, 253, 0.86);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 600;
     line-height: 1.25;
     overflow: hidden;
@@ -1986,7 +1980,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__time {
     color: rgba(190, 213, 245, 0.84);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 600;
     line-height: 1.2;
     text-transform: uppercase;
@@ -1998,7 +1992,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__caption-camera {
     min-width: 0;
     color: rgba(226, 237, 252, 0.9);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 600;
     line-height: 1.2;
     overflow: hidden;
@@ -2015,7 +2009,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__item-title {
     margin: 0;
     color: rgba(239, 245, 255, 0.98);
-    font-size: 16px;
+    font-size: var(--ui-type-title-sm);
     font-weight: 700;
     line-height: 1.18;
     white-space: nowrap;
@@ -2043,7 +2037,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__meta-key {
     color: rgba(158, 182, 216, 0.72);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2052,7 +2046,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__meta-value {
     color: rgba(229, 237, 250, 0.95);
-    font-size: 13px;
+    font-size: var(--ui-type-body-lg);
     line-height: 1.35;
     overflow-wrap: anywhere;
 }
@@ -2060,7 +2054,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__description {
     margin: 0;
     color: rgba(214, 225, 242, 0.9);
-    font-size: 13px;
+    font-size: var(--ui-type-body-lg);
     line-height: 1.5;
 }
 
@@ -2068,7 +2062,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     grid-area: controls;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ui-space-4);
     min-width: 0;
     min-height: 36px;
     box-sizing: border-box;
@@ -2088,7 +2082,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__media-button--start {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
     line-height: 1;
     color: rgba(223, 238, 255, 0.94);
@@ -2117,7 +2111,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: auto;
     min-width: 62px;
     padding: 0 10px;
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
     line-height: 1;
 }
@@ -2131,7 +2125,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__media-elapsed {
     flex: 0 0 auto;
     color: rgba(198, 218, 247, 0.86);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
     line-height: 1.2;
     white-space: nowrap;
@@ -2151,7 +2145,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__media-status {
     min-width: 0;
     color: rgba(190, 210, 239, 0.78);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
     line-height: 1.2;
     overflow: hidden;
@@ -2168,17 +2162,17 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: 30px;
     height: 30px;
     border: 1px solid rgba(121, 171, 255, 0.18);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(7, 13, 23, 0.54);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+    box-shadow: var(--ui-shadow-panel);
     backdrop-filter: blur(8px);
     overflow: hidden;
     opacity: 0;
     pointer-events: none;
     transform: translateY(-4px);
     transition:
-        opacity 180ms ease,
-        transform 180ms ease,
+        opacity var(--ui-duration-fast) ease,
+        transform var(--ui-duration-fast) ease,
         background-color 140ms ease,
         border-color 140ms ease;
 }
@@ -2227,9 +2221,9 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: 16px;
     height: 16px;
     border: 1px solid currentColor;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     font-family: var(--ui-font-condensed);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 800;
     line-height: 16px;
     text-align: center;
@@ -2259,7 +2253,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border-left-color: rgba(121, 171, 255, 0.12);
     border-radius: 0 8px 8px 0;
     background: rgba(7, 13, 23, 0.94);
-    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+    box-shadow: var(--ui-shadow-panel);
     backdrop-filter: blur(12px);
     padding: 11px 12px 12px;
     pointer-events: all;
@@ -2272,10 +2266,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__timing-note,
 .media-browser-panel__seed-note {
     border: 1px solid rgba(153, 188, 236, 0.18);
-    border-radius: 10px;
+    border-radius: var(--ui-radius-md);
     background: rgba(15, 24, 38, 0.64);
     color: rgba(200, 216, 239, 0.86);
-    font-size: 12px;
+    font-size: var(--ui-type-body);
     line-height: 1.45;
     padding: 10px 12px;
 }
@@ -2307,7 +2301,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     top: 50%;
     width: 34px;
     height: 1px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(156, 184, 224, 0.32);
     transform: translate(-50%, -50%);
     transition: background-color 120ms ease, width 120ms ease;
@@ -2320,7 +2314,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     top: 50%;
     width: 66px;
     color: rgba(156, 184, 224, 0.44);
-    font-size: 12px;
+    font-size: var(--ui-type-body);
     font-weight: 700;
     line-height: 1;
     text-align: center;
@@ -2378,7 +2372,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     background: transparent;
     color: rgba(225, 238, 255, 0.9);
     font-family: var(--ui-font-condensed);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 800;
     line-height: 1;
     transform: translate(-50%, -50%);
@@ -2408,7 +2402,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__thumbnail-strip-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .media-browser-panel__thumbnail-placement-grab {
@@ -2539,7 +2533,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__thumbnail-strip.is-vertical {
-    padding: 8px;
+    padding: var(--ui-space-4);
 }
 
 .media-browser-panel--thumbnails-collapsed .media-browser-panel__thumbnail-strip {
@@ -2577,7 +2571,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: 16px;
     min-height: 0;
     padding: 0;
-    border-radius: 4px;
+    border-radius: var(--ui-radius-xs);
     border: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -2602,7 +2596,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__thumbnail-strip-title {
     color: rgba(173, 194, 225, 0.74);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.12em;
     line-height: 1.1;
@@ -2611,7 +2605,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__thumbnail-list {
     display: flex;
-    gap: 8px;
+    gap: var(--ui-space-4);
     min-width: 0;
     min-height: 0;
     overflow-x: auto;
@@ -2651,10 +2645,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     align-self: stretch;
     min-width: 0;
     border: 1px solid rgba(122, 166, 232, 0.2);
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background: rgba(16, 25, 39, 0.82);
     color: rgba(230, 238, 251, 0.92);
-    padding: 6px;
+    padding: var(--ui-space-3);
     text-align: left;
     cursor: grab;
     overflow: hidden;
@@ -2667,8 +2661,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__thumbnail-card.is-active {
-    border-color: rgba(255, 199, 108, 0.62);
-    background: linear-gradient(180deg, rgba(74, 46, 16, 0.46), rgba(16, 25, 39, 0.92));
+    border-color: var(--ui-selected-border);
+    background: var(--ui-selected-bg);
 }
 
 .media-browser-panel__thumbnail-media {
@@ -2677,10 +2671,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     place-items: center;
     width: 100%;
     aspect-ratio: 16 / 9;
-    border-radius: 6px;
-    background:
-        radial-gradient(circle at 50% 40%, rgba(121, 171, 255, 0.16), transparent 64%),
-        linear-gradient(180deg, rgba(9, 16, 28, 0.96), rgba(3, 7, 14, 0.98));
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-bg-0);
     overflow: hidden;
     user-select: none;
 }
@@ -2697,7 +2689,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__thumbnail-fallback {
     color: rgba(203, 219, 242, 0.64);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -2758,7 +2750,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     margin-top: 6px;
     height: 30px;
     color: rgba(232, 240, 253, 0.94);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     line-height: 1.25;
     overflow: hidden;
@@ -2770,7 +2762,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: block;
     margin-top: 4px;
     color: rgba(173, 193, 220, 0.78);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.25;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2800,7 +2792,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: block;
     margin-top: 3px;
     color: rgba(255, 214, 144, 0.86);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2815,9 +2807,9 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     overflow: auto;
     padding: 10px 12px;
     border: 1px solid rgba(139, 180, 232, 0.36);
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background: rgba(8, 14, 24, 0.96);
-    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.38);
+    box-shadow: var(--ui-shadow-popover);
     color: rgba(232, 240, 253, 0.94);
     pointer-events: none;
 }
@@ -2827,7 +2819,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__thumbnail-popover-title {
-    font-size: 12px;
+    font-size: var(--ui-type-body);
     font-weight: 700;
     line-height: 1.25;
 }
@@ -2835,7 +2827,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__thumbnail-popover-subtitle {
     margin-top: 3px;
     color: rgba(173, 193, 220, 0.78);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.2;
 }
 
@@ -2844,7 +2836,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     grid-template-columns: max-content minmax(0, 1fr);
     gap: 5px 10px;
     margin: 9px 0 0;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.25;
 }
 
@@ -2884,7 +2876,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__thumbnail-strip--level-compact .media-browser-panel__thumbnail-title {
     height: 15px;
     margin-top: 4px;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.2;
     -webkit-line-clamp: 1;
 }
@@ -2921,7 +2913,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-card,
 .media-browser-panel__thumbnail-strip--level-minimal .media-browser-panel__thumbnail-card,
 .media-browser-panel__thumbnail-strip--level-media-only .media-browser-panel__thumbnail-card {
-    padding: 4px;
+    padding: var(--ui-space-2);
 }
 
 .media-browser-panel__thumbnail-strip--level-media-only {
@@ -2994,7 +2986,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     grid-area: status;
     padding: 9px 12px 12px;
     color: rgba(183, 201, 225, 0.78);
-    font-size: 12px;
+    font-size: var(--ui-type-body);
     line-height: 1.4;
 }
 
@@ -3111,12 +3103,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .background-media-panel__header-controls {
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .background-media-panel__button,
 .background-media-panel__icon-button {
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 600;
 }
 
@@ -3179,33 +3171,33 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     inset: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: flex-start;
     gap: 7px;
     padding: 20px;
-    color: rgba(196, 212, 236, 0.78);
-    font-size: 12px;
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-body);
     line-height: 1.45;
     text-align: left;
     background:
-        radial-gradient(circle at 50% 30%, rgba(82, 122, 184, 0.12), transparent 60%),
-        rgba(4, 8, 18, 0.84);
+        var(--ui-surface-1);
+    overflow-y: auto;
 }
 
 .background-media-panel__empty strong {
-    color: rgba(238, 246, 255, 0.96);
+    color: var(--ui-text-1);
     font-size: 15px;
     font-weight: 700;
     line-height: 1.25;
 }
 
 .background-media-panel__empty span {
-    color: rgba(190, 210, 239, 0.82);
+    color: var(--ui-text-2);
 }
 
 .background-media-panel__empty-kicker {
     color: rgba(141, 185, 255, 0.92);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -3213,13 +3205,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .background-media-panel__empty-copy {
     max-width: 30rem;
-    color: rgba(208, 224, 247, 0.9);
-    font-size: 12px;
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-body);
 }
 
 .background-media-panel__empty-note {
     max-width: 32rem;
-    color: rgba(167, 188, 218, 0.78);
+    color: var(--ui-text-2);
     font-size: var(--ui-type-body-sm);
     line-height: 1.35;
 }
@@ -3228,21 +3220,22 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-height: 28px;
     margin: 3px 0 2px;
     padding: 0 12px;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 6px;
-    background: rgba(10, 18, 32, 0.62);
-    color: rgba(232, 242, 255, 0.92);
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
+    background: var(--ui-selected-bg);
+    color: var(--ui-selected-text);
     font: inherit;
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     cursor: pointer;
+    border-color: var(--ui-selected-border);
 }
 
 .background-media-panel__jump-button:hover,
 .background-media-panel__jump-button:focus-visible {
     border-color: rgba(166, 203, 255, 0.7);
     background: rgba(77, 141, 255, 0.16);
-    outline: none;
+    outline: 2px solid var(--ui-focus);
 }
 
 .background-media-panel__empty[hidden] {
@@ -3256,14 +3249,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     z-index: 2;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     min-height: 20px;
     padding: 0 8px;
     border: 1px solid rgba(255, 107, 107, 0.42);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(100, 18, 28, 0.62);
     color: rgba(255, 238, 238, 0.96);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1;
@@ -3294,7 +3287,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border-radius: 0;
     background: transparent;
     color: rgba(218, 233, 255, 0.72);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     line-height: 1.2;
     text-align: left;
@@ -3315,10 +3308,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     max-width: min(360px, calc(100% - 20px));
     padding: 5px 8px;
     border: 1px solid rgba(161, 193, 236, 0.16);
-    border-radius: 6px;
+    border-radius: var(--ui-radius-sm);
     background: rgba(4, 9, 17, 0.5);
     color: rgba(217, 231, 250, 0.78);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.25;
     text-align: right;
     backdrop-filter: blur(6px);
@@ -3337,7 +3330,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: min(92%, 720px);
     transform: translateX(-50%);
     padding: 5px 8px;
-    border-radius: 6px;
+    border-radius: var(--ui-radius-sm);
     background: rgba(0, 0, 0, 0.72);
     color: rgba(255, 255, 255, 0.98);
     font-size: clamp(10px, 2.7cqi, 15px);
@@ -3386,7 +3379,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 0;
     overflow: hidden;
     color: rgba(229, 240, 255, 0.94);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 800;
     letter-spacing: 0.08em;
     line-height: 1.1;
@@ -3397,7 +3390,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .background-media-panel__transcript-status {
     color: rgba(172, 195, 225, 0.74);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-variant-numeric: tabular-nums;
     line-height: 1.1;
     white-space: nowrap;
@@ -3408,7 +3401,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border-bottom: 1px solid rgba(152, 186, 236, 0.08);
     background: rgba(9, 16, 28, 0.7);
     color: rgba(184, 201, 226, 0.74);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.3;
 }
 
@@ -3429,14 +3422,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: grid;
     grid-template-columns: 52px 94px minmax(0, 1fr);
     align-items: start;
-    gap: 8px;
+    gap: var(--ui-space-4);
     padding: 7px 10px;
     border: 0;
     border-bottom: 1px solid rgba(132, 164, 209, 0.08);
     background: transparent;
     color: rgba(216, 230, 250, 0.88);
     font: inherit;
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     line-height: 1.35;
     text-align: left;
     cursor: pointer;
@@ -3445,7 +3438,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .background-media-panel__transcript-row:hover,
 .background-media-panel__transcript-row:focus-visible {
     background: rgba(70, 116, 184, 0.16);
-    outline: none;
+    outline: 2px solid var(--ui-focus);
 }
 
 .background-media-panel__transcript-row--active {
@@ -3456,7 +3449,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .background-media-panel__transcript-time {
     color: rgba(139, 174, 220, 0.82);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     line-height: 1.35;
@@ -3466,7 +3459,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 0;
     overflow: hidden;
     color: rgba(149, 210, 255, 0.94);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 800;
     letter-spacing: 0.04em;
     line-height: 1.35;
@@ -3490,10 +3483,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: grid;
     grid-template-columns: 30px minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
+    gap: var(--ui-space-4);
     padding: 6px 8px;
     border: 1px solid rgba(152, 186, 236, 0.18);
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background: rgba(7, 13, 23, 0.72);
     opacity: 0;
     pointer-events: none;
@@ -3520,7 +3513,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     padding: 0;
     color: rgba(232, 242, 255, 0.92);
     font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
-    font-size: 16px;
+    font-size: var(--ui-type-title-sm);
     font-weight: 700;
     line-height: 1;
 }
@@ -3538,13 +3531,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     z-index: 6;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .background-media-panel__stage-controls .background-media-panel__icon-button {
     width: 26px;
     height: 24px;
-    border-radius: 8px;
+    border-radius: var(--ui-radius-md);
     background-color: rgba(6, 12, 22, 0.66);
     backdrop-filter: blur(7px);
 }
@@ -3565,9 +3558,9 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 0;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     color: rgba(202, 220, 246, 0.82);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.2;
     cursor: pointer;
 }
@@ -3658,7 +3651,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .ground-track-panel__header-controls {
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .ground-track-panel__title {
@@ -3673,24 +3666,24 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .ground-track-panel__mode-button {
     min-height: 21px;
     padding: 0 8px;
-    border-radius: 999px;
-    border-color: rgba(100, 130, 180, 0.44);
-    background: rgba(10, 18, 32, 0.58);
-    color: #aebbd2;
-    font-size: 10px;
+    border-radius: var(--ui-radius-pill);
+    border-color: var(--ui-border-1);
+    background: var(--ui-surface-2);
+    color: var(--ui-text-2);
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0;
 }
 
 .ground-track-panel__mode-button.is-active {
-    border-color: rgba(120, 170, 255, 0.72);
-    background: rgba(77, 141, 255, 0.22);
+    border-color: var(--ui-selected-border);
+    background: var(--ui-selected-bg);
     color: var(--header-pill-current-color);
     text-shadow: 0 0 10px rgba(127, 227, 255, 0.22);
 }
 
 .ground-track-panel__icon-button {
-    font-size: 12px;
+    font-size: var(--ui-type-body);
 }
 
 .ground-track-panel__body {
@@ -3704,8 +3697,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-height: 0;
     display: grid;
     grid-template-rows: auto auto auto auto minmax(0, 1fr);
-    gap: 6px;
-    padding: 8px;
+    gap: var(--ui-space-3);
+    padding: var(--ui-space-4);
     border-right: 1px solid rgba(121, 171, 255, 0.16);
     background: rgba(8, 15, 27, 0.72);
     backdrop-filter: blur(3px);
@@ -3727,7 +3720,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__timeline-title {
     color: rgba(191, 214, 244, 0.84);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.1em;
     line-height: 1;
@@ -3738,23 +3731,23 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--ui-space-4);
     flex-wrap: wrap;
 }
 
 .ground-track-panel__timeline-transport .controls-cluster {
-    padding: 2px;
-    gap: 4px;
+    padding: var(--ui-space-1);
+    gap: var(--ui-space-2);
 }
 
 .ground-track-panel__timeline-transport .controls-subgroup {
-    gap: 4px;
+    gap: var(--ui-space-2);
     flex-wrap: wrap;
 }
 
 .ground-track-panel__timeline-transport .button {
     min-height: 22px;
-    font-size: 10px;
+    font-size: var(--ui-type-control);
 }
 
 .ground-track-panel__timeline-transport .button--primary {
@@ -3762,7 +3755,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     min-width: 28px;
     padding: 0;
     font-family: "Segoe UI Symbol", "Noto Sans Symbols", var(--ui-font-condensed);
-    font-size: 14px;
+    font-size: var(--ui-type-subtitle);
     line-height: 1;
 }
 
@@ -3774,12 +3767,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: grid;
     grid-template-columns: 42px minmax(0, 1fr);
     align-items: center;
-    column-gap: 8px;
+    column-gap: var(--ui-space-4);
 }
 
 .ground-track-panel__timeline-label {
-    color: rgba(230, 239, 255, 0.92);
-    font-size: 10px;
+    color: var(--ui-text-1);
+    font-size: var(--ui-type-control);
     font-weight: 600;
 }
 
@@ -3796,7 +3789,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__timeline-slider::-webkit-slider-runnable-track {
     height: 4px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: linear-gradient(90deg, rgba(82, 142, 229, 0.86), rgba(165, 201, 250, 0.62));
 }
 
@@ -3806,7 +3799,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: 12px;
     height: 12px;
     margin-top: -4px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     border: 1px solid rgba(211, 232, 255, 0.86);
     background: #f3f8ff;
     box-shadow: 0 0 0 2px rgba(77, 141, 255, 0.24);
@@ -3815,7 +3808,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .ground-track-panel__timeline-slider::-moz-range-track {
     height: 4px;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: linear-gradient(90deg, rgba(82, 142, 229, 0.86), rgba(165, 201, 250, 0.62));
 }
 
@@ -3823,7 +3816,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: 12px;
     height: 12px;
     border: 1px solid rgba(211, 232, 255, 0.86);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: #f3f8ff;
     box-shadow: 0 0 0 2px rgba(77, 141, 255, 0.24);
 }
@@ -3835,7 +3828,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__timeline-local {
     color: rgba(184, 206, 238, 0.76);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1.2;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -3847,7 +3840,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    gap: var(--ui-space-3);
     min-height: 0;
     overflow-y: auto;
     padding-right: 2px;
@@ -3864,10 +3857,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     align-items: center;
     column-gap: 10px;
     border: 1px solid rgba(122, 174, 255, 0.38);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(18, 33, 58, 0.72);
     color: rgba(222, 236, 255, 0.92);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     line-height: 1;
     padding: 4px 10px;
     width: min(100%, 336px);
@@ -3888,18 +3881,18 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .ground-track-panel__event-pill-title-wrap {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
     min-width: 0;
 }
 
 .ground-track-panel__event-pill-badge {
     flex: 0 0 auto;
     border: 1px solid rgba(255, 205, 122, 0.44);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     padding: 2px 6px;
     background: rgba(255, 168, 49, 0.16);
     color: rgba(255, 217, 163, 0.98);
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1;
@@ -3934,7 +3927,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     margin: 0 8px 8px;
     border: 1px solid rgba(160, 196, 244, 0.34);
-    border-radius: 6px;
+    border-radius: var(--ui-radius-sm);
     background: rgba(188, 212, 242, 0.12);
     backdrop-filter: blur(2px);
     overflow: hidden;
@@ -3956,7 +3949,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__metric-key {
     color: rgba(191, 214, 244, 0.84);
-    font-size: 8px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1;
@@ -3968,7 +3961,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__metric-value {
     color: rgba(229, 239, 252, 0.97);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 600;
     line-height: 1.15;
     font-variant-numeric: tabular-nums;
@@ -3979,7 +3972,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__metric-subvalue {
     color: rgba(192, 214, 242, 0.88);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 500;
     line-height: 1.15;
     font-variant-numeric: tabular-nums;
@@ -3995,7 +3988,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     gap: 10px;
     padding: 6px 9px 7px;
     border-top: 1px solid rgba(121, 171, 255, 0.14);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
 }
 
 .ground-track-panel__status {
@@ -4006,7 +3999,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--ui-space-4);
     color: rgba(214, 226, 243, 0.92);
 }
 
@@ -4021,10 +4014,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     align-items: center;
     padding: 3px 8px;
     border: 1px solid rgba(255, 199, 112, 0.46);
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(255, 169, 43, 0.14);
     color: rgba(255, 221, 172, 0.95);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.08em;
     line-height: 1;
@@ -4074,16 +4067,16 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .panel-manager-launcher {
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+    box-shadow: var(--ui-shadow-panel);
 }
 
 .panel-manager-launcher:hover {
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    box-shadow: var(--ui-shadow-panel);
 }
 
 .panel-manager-launcher[aria-expanded="true"] {
-    background: rgba(77, 141, 255, 0.22);
-    border-color: rgba(120, 170, 255, 0.72);
+    background: var(--ui-selected-bg);
+    border-color: var(--ui-selected-border);
     color: #eef5ff;
 }
 
@@ -4093,11 +4086,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: min(320px, calc(100vw - 24px));
     max-height: min(54vh, 400px);
     grid-template-rows: auto minmax(0, 1fr);
-    border: 1px solid rgba(121, 171, 255, 0.32);
+    border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-sm);
     background: rgba(10, 17, 29, 0.86);
-    color: rgba(230, 239, 255, 0.92);
-    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.34);
+    color: var(--ui-text-1);
+    box-shadow: var(--ui-shadow-panel);
     pointer-events: auto;
     overflow: hidden;
     backdrop-filter: blur(6px);
@@ -4113,12 +4106,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     justify-content: space-between;
     gap: 10px;
     padding: 8px 10px;
-    border-bottom: 1px solid rgba(121, 171, 255, 0.2);
+    border-bottom: 1px solid var(--ui-border-1);
     background: rgba(12, 20, 35, 0.82);
 }
 
 .panel-manager-menu__title {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -4126,7 +4119,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .panel-manager-menu__close,
 .panel-manager-menu__action {
-    border: 1px solid rgba(121, 171, 255, 0.28);
+    border: 1px solid var(--ui-border-1);
     background: rgba(255, 255, 255, 0.06);
     color: rgba(224, 235, 250, 0.94);
     cursor: pointer;
@@ -4135,8 +4128,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-manager-menu__close {
     min-width: 24px;
     height: 24px;
-    border-radius: 999px;
-    font-size: 12px;
+    border-radius: var(--ui-radius-pill);
+    font-size: var(--ui-type-body);
     line-height: 1;
 }
 
@@ -4145,7 +4138,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     overflow-y: auto;
     padding: 10px;
     display: grid;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .settings-section--panel-manager .panel-manager-menu__body {
@@ -4157,7 +4150,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-manager-menu__empty {
     padding: 8px 0;
     color: rgba(196, 210, 232, 0.8);
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     line-height: 1.4;
 }
 
@@ -4168,7 +4161,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-manager-menu__section-title {
     margin-bottom: 6px;
     color: rgba(185, 209, 245, 0.9);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -4182,7 +4175,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-manager-menu__row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px;
+    gap: var(--ui-space-4);
     align-items: center;
     padding: 8px 0;
     border-top: 1px solid rgba(121, 171, 255, 0.12);
@@ -4194,7 +4187,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .panel-manager-menu__row-title {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 600;
 }
 
@@ -4205,7 +4198,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-manager-menu__badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--ui-space-2);
     margin-top: 4px;
 }
 
@@ -4213,10 +4206,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: inline-flex;
     align-items: center;
     padding: 2px 6px;
-    border-radius: 999px;
+    border-radius: var(--ui-radius-pill);
     background: rgba(72, 112, 180, 0.24);
     color: rgba(232, 242, 255, 0.94);
-    font-size: 9px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -4230,21 +4223,21 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-manager-menu__actions {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--ui-space-3);
 }
 
 .panel-manager-menu__action {
     min-height: 24px;
     padding: 0 8px;
-    border-radius: 999px;
-    font-size: 10px;
+    border-radius: var(--ui-radius-pill);
+    font-size: var(--ui-type-control);
     font-weight: 600;
 }
 
 .panel-manager-menu__close:hover,
 .panel-manager-menu__action:hover {
     background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(121, 171, 255, 0.5);
+    border-color: var(--ui-border-2);
 }
 
 .panel-manager-menu__close:focus-visible,
@@ -4272,7 +4265,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     border-radius: var(--ui-radius-sm);
     background: rgba(10, 17, 29, 0.94);
     color: rgba(232, 240, 255, 0.95);
-    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.38);
+    box-shadow: var(--ui-shadow-popover);
     overflow: hidden;
 }
 
@@ -4287,7 +4280,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .panel-info-popover__title {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -4296,8 +4289,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-info-popover__close {
     min-width: 24px;
     height: 24px;
-    border-radius: 999px;
-    border: 1px solid rgba(121, 171, 255, 0.28);
+    border-radius: var(--ui-radius-pill);
+    border: 1px solid var(--ui-border-1);
     background: rgba(255, 255, 255, 0.06);
     color: rgba(224, 235, 250, 0.94);
     cursor: pointer;
@@ -4306,26 +4299,26 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .panel-info-popover__body {
     padding: 10px;
     display: grid;
-    gap: 8px;
+    gap: var(--ui-space-4);
 }
 
 .panel-info-popover__row {
     display: grid;
     grid-template-columns: 96px minmax(0, 1fr);
-    gap: 8px;
+    gap: var(--ui-space-4);
     align-items: start;
 }
 
 .panel-info-popover__label {
     color: rgba(181, 202, 236, 0.84);
-    font-size: 10px;
+    font-size: var(--ui-type-control);
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
 .panel-info-popover__value {
-    font-size: 11px;
+    font-size: var(--ui-type-body-sm);
     line-height: 1.35;
     word-break: break-word;
 }

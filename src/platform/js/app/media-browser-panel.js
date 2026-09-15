@@ -266,6 +266,9 @@ function getWindowRef() {
 }
 
 function shouldAllowMediaBrowserPanel() {
+    // A desktop workspace resized into mobile owns temporary group hiding.
+    // Keep media selection/playback and open state for its later restoration.
+    if (getWindowRef()?.__moonMissionDockviewSpike?.progressiveWorkspace) return true;
     const mediaQuery = getWindowRef()?.matchMedia?.("(min-width: 601px)");
     return mediaQuery ? mediaQuery.matches === true : true;
 }

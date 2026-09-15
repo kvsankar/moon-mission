@@ -85,6 +85,7 @@ function createHarness({
     desktopTimeline = false,
     dockviewPanelsEnabled = false,
     mediaPanelOpen = false,
+    progressiveWorkspace = false,
     timelineValue = "2600",
     timelineDataset = {},
 } = {}) {
@@ -171,6 +172,7 @@ function createHarness({
     };
 
     const windowRef = {
+        __moonMissionDockviewSpike: progressiveWorkspace ? { progressiveWorkspace: {} } : undefined,
         addEventListener(type, handler) {
             const handlers = windowListeners.get(type) || [];
             handlers.push(handler);
@@ -256,6 +258,13 @@ function createHarness({
 }
 
 describe("createControlPanelTimelineController", () => {
+    it("hides mobile media markers without closing a progressively managed media panel", () => {
+        const harness = createHarness({ progressiveWorkspace: true, mediaPanelOpen: true });
+        harness.controller.bind();
+        expect(harness.mediaRail.hidden).toBe(true);
+        expect(harness.mediaToggleButton.disabled).toBe(true);
+        expect(harness.panelActions).toEqual([]);
+    });
     it("binds the toggle and syncs initial layout state", () => {
         const harness = createHarness();
 
