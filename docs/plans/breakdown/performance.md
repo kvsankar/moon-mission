@@ -1,6 +1,6 @@
 # Performance Workstream
 
-Last reviewed: 2026-09-11
+Last reviewed: 2026-09-15
 
 This is the active workstream for animation responsiveness, panel interaction
 latency, and runtime optimization follow-ups.
@@ -41,15 +41,16 @@ latency, and runtime optimization follow-ups.
 
 ## Moon Rendering Consolidation
 
-Implemented on `codex/moon-loading-audit`: one Physical renderer, prepared Low/Medium terrain,
-Current retirement and settings migration, independent preview delivery,
-bounded loading waits and cancellation recovery, prepared Sun-corona textures,
-and reduced repeated view/header layout work. See
-[architecture](../../designs/rendering/moon-rendering.md) and
-[validation](../../evidence/audits/moon-physical-consolidation-2026-09-11.md).
+Complete on app `master` and data `main`: one Physical renderer, V2 Low/Medium
+terrain normals, Current retirement, settings migration, independent previews,
+bounded loading waits, cancellation recovery and prepared Sun-corona textures.
+The terminator and eclipse-speckle fixes are accepted. High was preserved through
+the compact-tier improvements. See [architecture](../../designs/rendering/moon-rendering.md),
+[consolidation validation](../../evidence/audits/moon-physical-consolidation-2026-09-11.md),
+and [final quality review](../../evidence/audits/moon-low-medium-quality-2026-09-15.md).
 
-Remaining: release the matching app/data assets, measure real Android/iOS
-devices, and reduce full-application frame time. Moon-only GPU timing is fast;
+Separate follow-ups: deploy the matching app/data assets, measure real Android/iOS
+devices and V2 cold-network startup, and reduce full-application frame time. Moon-only GPU timing is fast;
 the four-view animation still incurs orbit/UI/other-renderer work. High's
 transfer and per-context allocation costs remain candidates for compression
 or tiling. Do not reintroduce a second Moon lighting model as a shortcut.

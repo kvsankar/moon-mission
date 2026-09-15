@@ -36,8 +36,8 @@ npm run dev
 Default local URL: `http://localhost:7274/`
 
 Vite serves staged local render assets. Stage data before checking texture loading;
-production still uses its configured asset base/CDN. For this Moon consolidation,
-use data branch `codex/moon-physical-assets` until it is merged into `main`.
+production still uses its configured asset base/CDN. Use data `main`, including
+commit `f8aba77` or later, for the complete Moon quality tiers and V2 compact assets.
 
 Unit tests that validate mission ephemeris require the external data repository
 to be staged. CI checks out `MISSION_DATA_REPO` at `MISSION_DATA_REF` (default:

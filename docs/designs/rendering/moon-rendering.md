@@ -1,6 +1,6 @@
 # Moon rendering architecture
 
-**One Physical renderer, three quality budgets.** All 3D Moon views use the same lighting equations, terrain units and normal-generation algorithm. Current has been removed. Implemented on `codex/moon-loading-audit`; deployment is pending.
+**One Physical renderer, three quality budgets.** All 3D Moon views use the same lighting equations, terrain units and normal-generation algorithm. Current has been removed. The implementation is complete and integrated into app `master` with matching assets on data `main`. Production deployment remains a separate manual step.
 
 ## Code organization
 
