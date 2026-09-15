@@ -876,6 +876,10 @@ export function createCameraActions({
                 // body-centered pivot/up vector that forced-look mode installed.
                 resetManualCameraControls(scene, {
                     resetCameraParameters: !preserveManualRelease,
+                    // A normal reset already restores the canonical plane up.
+                    // Only pose-preserving follow release needs the legacy Z-up
+                    // reset without applying new camera parameters.
+                    resetUp: preserveManualRelease,
                 });
                 // Lift any visibility overrides when returning to free camera.
                 updateMountedBodyVisibility(scene, positionMode);

@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Vector3 } from "three";
+import { PerspectiveCamera, Vector3 } from "three";
 
 import { createCameraActions } from "../src/platform/js/app/camera-actions.js";
 import { fovDegreesToZoomSliderValue } from "../src/platform/js/app/fov-slider-scale.js";
+import { computeSceneCameraParameters } from "../src/platform/js/app/camera-parameters-core.js";
+import { PLANE_CAMERA_CONFIG } from "../src/platform/js/app/plane-camera-config.js";
 
 function createVectorTarget(x, y, z) {
     return {
@@ -400,6 +402,64 @@ describe("createCameraActions", () => {
         expect(controls.target.toArray()).toEqual([0, 0, 0]);
         expect(camera.lookAt).toHaveBeenCalledWith(controls.target);
         expect(render).toHaveBeenCalled();
+    });
+
+    it.each(["geo", "lunar"].flatMap(config =>
+        Object.keys(PLANE_CAMERA_CONFIG).map(plane => [config, plane]),
+    ))("keeps canonical %s/%s orientation in either plane/Free action order", (config, plane) => {
+        globalThis.document = createDocumentStub();
+        const canonical = computeSceneCameraParameters({
+            planeSelection: plane, missionConfig: config, globalConfig: null,
+            isInitialization: false, controllerDistance: 10, defaultCameraDistance: 10,
+        });
+        const snapshots = [];
+        for (const order of [["togglePlane", "changeCameraFromTo"], ["changeCameraFromTo", "togglePlane"]]) {
+            const camera = new PerspectiveCamera(50, 16 / 9, 0.1, 1000);
+            camera.position.set(25, -10, 4);
+            camera.up.set(0.1, 0.4, 0.9);
+            const controls = {
+                target: new Vector3(4, 5, 6), update: vi.fn(),
+                addEventListener: vi.fn(), dispatchEvent: vi.fn(),
+                noRotate: true, noPan: true, noZoom: true,
+            };
+            // Apply the real production pose plan through a small renderer port;
+            // the fixture does not duplicate plane/origin orientation policy.
+            const applyCanonicalPose = vi.fn(() => {
+                camera.position.copy(canonical.position);
+                camera.up.copy(canonical.up);
+            });
+            const scene = {
+                initialized3D: true, camera,
+                defaultLookTarget: canonical.lookTarget,
+                setCameraParameters: applyCanonicalPose,
+                cameraController: {
+                    camera, controls, setFromToModes: vi.fn(), updateFromTo: vi.fn(),
+                    _setFreeFlyEnabled: vi.fn(),
+                },
+            };
+            const actions = createCameraActions({
+                animationScenes: { [config]: scene }, getConfig: () => config,
+                readCameraPositionMode: () => "manual", readCameraLookMode: () => "manual",
+                applyCameraFromTo: vi.fn(), readPlaneSelection: () => plane,
+                setPlaneSelection: vi.fn(), handlePlaneChange: applyCanonicalPose,
+                render: vi.fn(), getViewSky: () => false, getViewConstellationLines: () => false,
+            });
+            for (const action of order) {
+                actions[action]();
+                expect(camera.up.toArray()).toEqual([canonical.up.x, canonical.up.y, canonical.up.z]);
+                expect(camera.position.toArray()).toEqual([
+                    canonical.position.x, canonical.position.y, canonical.position.z,
+                ]);
+                expect(controls.noRotate).toBe(false);
+                expect(controls.noPan).toBe(false);
+                expect(controls.noZoom).toBe(false);
+            }
+            snapshots.push({
+                position: camera.position.toArray(), up: camera.up.toArray(),
+                quaternion: camera.quaternion.toArray(), target: controls.target.toArray(),
+            });
+        }
+        expect(snapshots[0]).toEqual(snapshots[1]);
     });
 
     it("ignores desktop FoV input outside semantic source-to-target views", () => {
