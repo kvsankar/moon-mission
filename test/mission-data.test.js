@@ -43,6 +43,7 @@ describe("mission-data", () => {
         const profilePatch = {
             ui: {
                 headerTitle: "Profile Header",
+                dockviewEnabled: false,
             },
         };
         const manifestData = {
@@ -72,6 +73,7 @@ describe("mission-data", () => {
         ]);
         expect(firstConfig).toBe(secondConfig);
         expect(firstConfig.ui.headerTitle).toBe("Profile Header");
+        expect(firstConfig.ui.dockviewEnabled).toBe(false);
         expect(firstConfig.ephemeris_manifest).toEqual(manifestData);
         expect(consoleWarn).not.toHaveBeenCalled();
         expect(consoleDebug).toHaveBeenCalledWith("Config loaded successfully:", firstConfig);

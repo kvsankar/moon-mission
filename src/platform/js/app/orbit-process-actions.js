@@ -25,7 +25,8 @@ export function createOrbitProcessActions({
     getConfig,
     orbitDataProcessed,
 }) {
-    async function processOrbitData() {
+    async function processOrbitData({ config = getConfig(), isCurrent = () => getConfig() === config } = {}) {
+        if (!isCurrent()) return false;
         // console.log("processOrbitData() called");
 
         // Update configuration from metadata if available
@@ -33,9 +34,11 @@ export function createOrbitProcessActions({
 
         // Only process SVG orbit vectors in 2D mode
         if (getCurrentDimension() === "2D") {
-            await processOrbitVectorsData();
+            const completed = await processOrbitVectorsData({ config, isCurrent });
+            if (completed === false || !isCurrent()) return false;
         }
         await sleep();
+        if (!isCurrent()) return false;
 
         // TODO d3v7 handling
         // var zoom = d3.zoom().on("zoom", handleZoom).on("end", zoomEnd);
@@ -134,7 +137,8 @@ export function createOrbitProcessActions({
 
         zoomChangeTransform(0);
 
-        orbitDataProcessed[getConfig()] = true;
+        orbitDataProcessed[config] = true;
+        return true;
 
         // console.log("processOrbitData() returning");
     }

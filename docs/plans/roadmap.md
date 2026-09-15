@@ -19,17 +19,101 @@ The preserved May planning snapshot is
 
 ## Current Priority
 
-### 1. Complete technical verification of visual tokens and progressive workspace UX
+### 1. Recover from load failures and support retry (RTA-04)
+
+Status: next implementation, approved by the user on 2026-09-15.
+Before starting, checkpoint the reviewed UI/harness and RTA-01/02 work.
+
+Replace success-only startup polling with explicit ready, failed and
+superseded outcomes. A failed request must leave the user with an understandable
+error and a usable Retry action, not a permanently blocking spinner. Verify
+failure -> retry -> success, repeated retry, and switching origins during retry
+without duplicate initialization or stale errors.
+
+Implementation detail: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
+Finding: [RTA-04](../evidence/reviews/runtime-transition-audit-2026-09-15.md#rta-04--failure-has-no-terminal-readiness-state).
+
+#### Parallel: dependency-advisory triage
+
+`npm install` reported 18 advisories, including three critical. Determine
+affected packages, production versus development exposure, reachability and
+available safe upgrades. Promote urgent reachable issues ahead of the queue
+when evidence warrants it. Do not apply blind or breaking audit-fix upgrades.
+
+### 2. Make landing geometry independent of load order (RTA-05)
+
+Represent landing-data/geometry readiness explicitly. Test orbit-first and
+landing-first completion, failure and superseded loads. A cold visit must not
+silently omit descent geometry that appears only on a warm visit.
+
+Owner: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
+
+### 3. Correct Free-camera orientation reset (RTA-03)
+
+Preserve the selected plane's canonical orientation during ordinary Free reset,
+while retaining the separately specified follow-release behavior. Promote the
+existing failing reproduction into regression coverage for both action orders
+across plane presets.
+
+Owner: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
+
+### 4. Reduce camera-state ownership ambiguity (RTA-06)
+
+After the concrete defects above are covered, move semantic camera state toward
+a narrow authoritative state port, with DOM controls as projections. Define a
+bounded design slice; do not launch another broad refactor.
+
+Owner: [Runtime Architecture Follow-Ups](implementation/runtime-architecture-followups.md).
+
+### 5. Complete transition coverage and disposition the legacy SSIM gate
+
+Preserve integration protection while mapping old tests to semantic transition,
+controlled loading-order and selected rendering checks. Keep a small reviewed
+CY3 scene set; retire redundant screenshots and the historical score-decrease
+gate only after the coverage disposition. This migration does not block the
+reliability fixes above. Detailed human UX review remains deferred.
+
+Owner: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
+
+### Completed foundation and retained evidence
+
+The user requested these workstreams in parallel on 2026-09-15. The original
+SSIM suite protected interactions between origin, dimension, view and lazy
+initialization during the monolith refactor; that protection must survive
+harness modernization.
+
+Owner: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
+Current audit: [Transition And Lifecycle Findings](../evidence/reviews/runtime-transition-audit-2026-09-15.md).
+
+The first audit confirms stale origin/readiness publication, stale dimension
+effects and order-sensitive camera reset, with executable reproductions.
+RTA-01/02 stale-completion protection is now implemented and independently
+reviewed: [supersession fix evidence](../evidence/reviews/runtime-transition-supersession-2026-09-15.md).
+Camera orientation, failure/retry and late landing geometry still need scoped
+remediation; camera state ownership remains a design gap. Continue adding
+sequence/loading-order regressions before fixing these narrow owners; do not begin a broad refactor or remove
+legacy coverage merely to make a test gate green.
+
+The semantic browser harness and fast unit group are the first migration slice,
+not full replacement coverage. Complete the old-to-new coverage map and
+disposition of rendering differences before retiring the historical SSIM gate.
+
+UI verification precursor:
 
 The spacing and resize-grip assertions have been reconciled with legacy and
 Dockview layout ownership. Focused coverage passes; no panel runtime fix was
-needed. The accompanying visual pass simplifies the existing structure through
-shared design tokens. Independent technical review remains before closure. The broader
-full-scene SSIM harness still uses legacy snapshots against the default docked
-layout; its sampled failures also reproduce with unmodified HEAD styles.
+needed for those original assertions. The accompanying visual pass simplifies
+the existing structure through shared design tokens. Independent review found
+and cleared compact-control keyboard access, constrained-reload persistence,
+and corrupt-layout recovery issues. CY3's SSIM profile now explicitly disables
+Dockview; Artemis mobile coverage is functional and separate. The full CY3
+scene suite is still not green: remaining rendering/baseline differences need
+disposition before closure. Baselines have not been overwritten.
 
 Current evidence:
 [Visual Design And Panel Regression Review](../evidence/reviews/visual-design-tokens-2026-09-15.md)
+
+Follow-up: [CY3 SSIM And Technical Verification](../evidence/reviews/cy3-ssim-technical-verification-2026-09-15.md).
 
 The accompanying [Progressive Workspace UX](implementation/progressive-workspace-ux.md)
 is implemented: width and height progressively reduce simultaneous tools,
@@ -41,15 +125,15 @@ The user reviewed the UI on 2026-09-15 and accepted it for now. A detailed
 human UX review is explicitly deferred until the other roadmap items are
 finished; see the deferred backlog below. That review does not block continuing
 the other work. Technical verification and the existing scene-baseline issue
-remain tracked here.
+feed the paired audit/harness plan above.
 
-Owner:
+UI precursor owner:
 [Panel Runtime Regressions](implementation/panel-runtime-regressions.md)
 
 Source evidence:
 [Feature Specification Migration Review](../evidence/reviews/documentation-migration-feature-specifications-2026-09-02.md)
 
-### 2. Review the recovery baseline
+### 6. Review the recovery baseline
 
 Review the frozen recovery roadmap by workstream. For every proposed action,
 record one disposition:

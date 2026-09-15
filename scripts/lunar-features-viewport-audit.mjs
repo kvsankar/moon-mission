@@ -4,7 +4,7 @@ import { chromium } from "playwright";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 
-const BASE_URL = process.env.LUNAR_FEATURES_AUDIT_URL || "http://127.0.0.1:7274/artemis2/?testMode=true&testProfile=ssim";
+const BASE_URL = process.env.LUNAR_FEATURES_AUDIT_URL || "http://127.0.0.1:7274/artemis2/?testMode=true";
 const OUTPUT_ROOT = path.resolve(
     process.cwd(),
     "test-artifacts",

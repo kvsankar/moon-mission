@@ -17,7 +17,9 @@ Requirement owner:
 
 Implementation and focused verification are complete. See
 [review evidence](../../evidence/reviews/progressive-workspace-ux-2026-09-15.md).
-Independent technical review remains part of roadmap closure. The user accepted
+Independent technical review has cleared the keyboard and persistence fixes;
+see [follow-up evidence](../../evidence/reviews/cy3-ssim-technical-verification-2026-09-15.md).
+The user accepted
 the current UI for now on 2026-09-15; the
 [detailed human UX review](../breakdown/human-ux-review-plan.md) is deferred until
 the other roadmap items are finished.
@@ -34,6 +36,7 @@ the other roadmap items are finished.
 6. Review screenshots at representative sizes; update only intentional chrome
    baselines, and document remaining issues accurately.
 
-The existing visual-token changes remain part of the working tree. The older
-full-scene SSIM baseline reconciliation and independent review remain separate
-closure checks; do not overwrite scene baselines to hide a failure.
+The visual-token/progressive implementation was committed and pushed as
+`de34d71`; the technical follow-up is separate. CY3 scene SSIM baseline
+reconciliation remains a closure check; do not overwrite scene baselines to
+hide a failure.

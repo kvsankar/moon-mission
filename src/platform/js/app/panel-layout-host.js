@@ -213,7 +213,9 @@ function createPanelLayoutHost({
         }
     }
 
-    restoreLayout();
+    // Restoring into Dockview's initial 100px grid distorts saved proportions.
+    layoutToContainer();
+    const didRestoreInitialLayout = restoreLayout();
     saveLayout();
 
     disposables.push(asDisposable(api.onDidLayoutChange?.(() => {
@@ -244,6 +246,7 @@ function createPanelLayoutHost({
     return {
         api,
         storageKey,
+        didRestoreInitialLayout,
         addPanel(panel) {
             const added = addPanelDescriptor(api, panel);
             saveLayout();

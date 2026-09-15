@@ -50,8 +50,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
         return getMissionRuntimeWireup().runtimeBootstrapActions.initOrchestrationActions.initAnimation(mergedFlags);
     }
 
-    async function processOrbitData() {
-        return getMissionRuntimeWireup().runtimeBootstrapActions.processOrbitData();
+    async function processOrbitData(context) {
+        return getMissionRuntimeWireup().runtimeBootstrapActions.processOrbitData(context);
     }
 
     function animateLoop() {

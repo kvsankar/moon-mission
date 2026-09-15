@@ -285,8 +285,10 @@ function createInitOrchestrationActions(deps) {
         try {
             setMissionLoadingMessage("Loading mission configuration...");
             await initConfig();
+            if (runId !== latestInitRunId) return;
             setMissionLoadingMessage("Preparing orbit data...");
-            await init(() => {});
+            await init(() => {}, { isCurrent: () => runId === latestInitRunId });
+            if (runId !== latestInitRunId) return;
 
             await waitUntilOrbitDataProcessed({
                 runId,
@@ -332,6 +334,7 @@ function createInitOrchestrationActions(deps) {
                 },
             });
         } catch (error) {
+            if (runId !== latestInitRunId) return;
             d3.select("#eventinfo").text("Failed to load the animation. Please restart the browser and try again.");
             failMissionLoadingOverlay("Mission failed to load. Please refresh and try again.");
             console.error("Error: exception in initAnimation(): " + error);
@@ -339,6 +342,7 @@ function createInitOrchestrationActions(deps) {
             return;
         }
 
+        if (runId !== latestInitRunId) return;
         render();
         if (!animationLoopStarted) {
             requestAnimationFrame(animateLoop);

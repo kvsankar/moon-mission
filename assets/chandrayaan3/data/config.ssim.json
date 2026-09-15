@@ -1,5 +1,6 @@
 {
   "ui": {
+    "dockviewEnabled": false,
     "headerBlurbAutoCollapseEnabled": false,
     "desktopChromeAutoHideEnabled": false,
     "cameraDefaults": {

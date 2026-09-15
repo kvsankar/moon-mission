@@ -353,6 +353,7 @@ function createRuntimeViewState({
 } = {}) {
     let config = initialConfig;
     let currentDimension = initialCurrentDimension;
+    let transitionRevision = 0;
     let previousDimension = initialPreviousDimension;
     let dimensionChanged = Boolean(initialDimensionChanged);
     const viewFlags = buildDefaultViewFlags();
@@ -387,10 +388,13 @@ function createRuntimeViewState({
     return {
         getConfig: () => config,
         setConfig: (value) => {
+            if (value !== config) transitionRevision += 1;
             config = value;
         },
+        getTransitionRevision: () => transitionRevision,
         getCurrentDimension: () => currentDimension,
         setCurrentDimension: (value) => {
+            if (value !== currentDimension) transitionRevision += 1;
             currentDimension = value;
         },
         getPreviousDimension: () => previousDimension,

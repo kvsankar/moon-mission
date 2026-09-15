@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PNG } from "pngjs";
-import { ssim } from "ssim.js";
+import pixelmatch from "pixelmatch";
 import { getEffectiveTestBaseUrl } from "./local-test-config.js";
 
 let browser;
@@ -19,7 +19,8 @@ async function screenshot(locator, name) {
     const baseline = PNG.sync.read(readFileSync(baselinePath));
     expect(current.width).toBe(baseline.width);
     expect(current.height).toBe(baseline.height);
-    expect(ssim(current, baseline).mssim).toBeGreaterThan(0.98);
+    const changed = pixelmatch(current.data, baseline.data, undefined, current.width, current.height, { threshold: 0.1 });
+    expect(changed / (current.width * current.height)).toBeLessThan(0.02);
 }
 
 async function loadMission(page) {

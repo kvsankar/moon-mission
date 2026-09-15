@@ -21,6 +21,8 @@ import {
     resolveFrameModeForRuntimeMode,
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
+import { loadMissionConfig } from "./data/mission-data.js";
+import { resolveDockviewEnabled } from "./core/domain/dockview-policy.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import {
     applyViewSettings,
@@ -962,29 +964,24 @@ function registerMissionRuntimeCleanup() {
 
 registerMissionRuntimeCleanup();
 
-function shouldLoadDockviewWorkspace() {
-    const legacyPanels = String(startupParams.get("legacyPanels") || "").trim().toLowerCase();
-    if (legacyPanels === "1" || legacyPanels === "true" || legacyPanels === "yes") {
-        return false;
+// Resolve the cached mission/profile config before importing or mounting the
+// workspace. In particular, CY3's SSIM profile selects the legacy scene layout.
+loadMissionConfig().then(async (missionConfig) => {
+    const enabled = resolveDockviewEnabled({
+        urlSearch: window.location.search,
+        viewportWidth: window.innerWidth,
+        missionConfig,
+    });
+    if (!enabled) {
+        document.documentElement.dataset.panelLayout = "legacy";
+        return;
     }
-    const dockPanels = String(startupParams.get("dockPanels") || "").trim().toLowerCase();
-    if (dockPanels === "1" || dockPanels === "true" || dockPanels === "yes") {
-        return true;
-    }
-    if (dockPanels === "0" || dockPanels === "false" || dockPanels === "no") {
-        return false;
-    }
-    return window.innerWidth > 600;
-}
-
-if (shouldLoadDockviewWorkspace()) {
-    import("./app/experimental-dockview-host.js")
-        .then(({ initializeExperimentalDockviewHost }) => {
-            initializeExperimentalDockviewHost();
-        })
-        .catch((error) => {
-            console.warn("Dockview panel workspace failed to initialize", error);
-        });
-}
+    const { initializeExperimentalDockviewHost } = await import("./app/experimental-dockview-host.js");
+    const workspace = initializeExperimentalDockviewHost({ missionConfig });
+    document.documentElement.dataset.panelLayout = workspace ? "dockview" : "legacy";
+}).catch((error) => {
+    document.documentElement.dataset.panelLayout = "error";
+    console.warn("Dockview panel workspace failed to initialize", error);
+});
 
 // end of file

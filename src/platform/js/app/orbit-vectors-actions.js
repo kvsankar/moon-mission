@@ -291,19 +291,22 @@ export function createOrbitVectorsActions({
         return vectors;
     }
 
-    async function processOrbitVectorsData() {
+    async function processOrbitVectorsData(context = {}) {
         // Add spacecraft orbits (2D SVG mode)
-
-        // Only process if svgContainer exists (2D mode)
-        if (!getSvgContainer()) {
-            console.debug(
-                "SVG container not initialized, skipping processOrbitVectorsData",
-            );
-            return;
-        }
-
-        const config = getConfig();
+        const config = context.config ?? getConfig();
         const scene = animationScenes[config];
+        const initialSvgContainer = getSvgContainer();
+        const dimension = getCurrentDimension();
+        // An origin can be revisited, or its SVG recreated, while this job yields.
+        // Matching the current mode alone does not identify the work's owner.
+        const isCurrent = () =>
+            !!scene && !!initialSvgContainer && dimension === "2D" &&
+            getConfig() === config && getCurrentDimension() === dimension &&
+            animationScenes[config] === scene && scene.stopCreationFlag !== true &&
+            getSvgContainer() === initialSvgContainer &&
+            (typeof context.isCurrent !== "function" || context.isCurrent());
+        if (!isCurrent()) return false;
+
         invalidateSceneOrbitOverlap(scene);
         scene.orbitSvgPointsByBodyId = {};
         scene.orbitSvgBackgroundChunksByBodyId = {};
@@ -324,8 +327,8 @@ export function createOrbitVectorsActions({
             }
 
             if (shouldDrawOrbit(planetKey)) {
-                if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-                    return;
+                if (!isCurrent()) {
+                    return false;
                 }
 
                 const stepMs = animationScenes[config].stepDurationInMilliSeconds;
@@ -572,8 +575,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         // Add center planet - Sun/Earth/Mars/Moon
@@ -597,8 +600,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         if (config == "geo" || config == "helio") {
@@ -621,8 +624,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         if (config == "martian") {
@@ -641,8 +644,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         // Add planetary positions
@@ -685,8 +688,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         // Add fire
@@ -705,8 +708,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         // Add labels
@@ -742,8 +745,8 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
-        if (!getSvgContainer() || getCurrentDimension() !== "2D") {
-            return;
+        if (!isCurrent()) {
+            return false;
         }
 
         if (config == "geo") {
@@ -768,8 +771,10 @@ export function createOrbitVectorsActions({
         }
 
         await sleep();
+        if (!isCurrent()) return false;
 
         setEpochDisplay({ epochJD: getEpochJD(), epochDate: getEpochDate() });
+        return true;
     }
 
     return { processOrbitVectorsData };

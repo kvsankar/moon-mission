@@ -94,6 +94,23 @@ inputs are explicit and the behavior is independently testable.
 
 ## Change Safety
 
+### Asynchronous Transition Ownership
+
+- Origin/dimension changes advance a monotonic runtime revision. Returning to
+  an earlier origin or dimension does not restore the authority of old work.
+- Deferred initialization, orbit processing and presentation effects carry
+  their initiating origin, scene identity and transition revision. A newer
+  request or replaced scene invalidates the older effect's authority.
+- Valid inactive-origin data may fill its own cache. It must not publish
+  active-view readiness, metadata controls, progress, camera or renderer changes.
+- Staleness is checked after asynchronous boundaries, including inside SVG
+  construction. Cancellation propagates to the caller; a cancelled render
+  build is not successful readiness.
+- Warm activation can reuse cached data and must restore its provenance and
+  authored style state without allowing old callbacks to select the view.
+
+### Refactor Verification
+
 - Structural refactors preserve behavior unless an owning feature
   specification changes it.
 - Refactors require focused behavior tests proportional to their blast radius.

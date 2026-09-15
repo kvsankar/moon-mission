@@ -44,6 +44,7 @@ const LOCAL_WRITABLE_KEYS = [
 ];
 
 const EXPECTED_STATE_KEYS = [
+    "transitionRevision",
     "PIXELS_PER_AU",
     "animDate",
     "animTime",
@@ -229,6 +230,7 @@ function createRuntimeViewState(overrides = {}) {
     return {
         state,
         runtimeViewState: {
+            getTransitionRevision: () => 0,
             getConfig: () => state.config,
             setConfig: (value) => { state.config = value; },
             getCurrentDimension: () => state.currentDimension,
@@ -493,6 +495,7 @@ describe("mission state access", () => {
         expect(localState.globalConfig).toEqual({ mission: "apollo11" });
 
         expect(cells.config.get()).toBe("geo");
+        expect(cells.transitionRevision.get()).toBe(0);
         cells.config.set("lunar");
         expect(viewState.config).toBe("lunar");
 

@@ -11,6 +11,8 @@ export function createOrbitLoadActions({
     d3,
     sleep,
     getConfig,
+    getCurrentDimension = () => undefined,
+    getTransitionRevision = () => 0,
     animationScenes,
     orbitDataLoaded,
     chebyshevData,
@@ -41,6 +43,8 @@ export function createOrbitLoadActions({
 }) {
     const orbitStyleMetaByConfig = new Map();
     const orbitStyleMetaPromiseByConfig = new Map();
+    const latestRequestByConfig = new Map();
+    const orbitRecordsByConfig = new Map();
 
     function getChebyshevBodySeries(chebData, bodyId, primaryCraftId = null) {
         if (!chebData || !bodyId) return null;
@@ -227,7 +231,7 @@ export function createOrbitLoadActions({
         }
     }
 
-    function loadOrbitStyleMetaInBackground(config) {
+    function loadOrbitStyleMetaInBackground(config, isCurrent) {
         const scene = animationScenes?.[config];
         const metaUrl = scene?.orbitsMeta;
         if (!metaUrl || typeof loadJson !== "function") {
@@ -242,6 +246,9 @@ export function createOrbitLoadActions({
 
         if (orbitStyleMetaPromiseByConfig.has(config)) {
             setOrbitStyleMetaIndicator("queued", "Style data queued", { sticky: true });
+            orbitStyleMetaPromiseByConfig.get(config).then(phaseMeta => {
+                if (phaseMeta && isCurrent()) applyOrbitStyleMetaForConfig(config, phaseMeta);
+            });
             return;
         }
 
@@ -250,13 +257,13 @@ export function createOrbitLoadActions({
             .then((phaseMeta) => {
                 orbitStyleMetaPromiseByConfig.delete(config);
                 orbitStyleMetaByConfig.set(config, phaseMeta);
-                applyOrbitStyleMetaForConfig(config, phaseMeta);
+                if (isCurrent()) applyOrbitStyleMetaForConfig(config, phaseMeta);
                 return phaseMeta;
             })
             .catch((error) => {
                 orbitStyleMetaPromiseByConfig.delete(config);
                 console.debug(`Orbit style metadata unavailable for ${config} at ${metaUrl}`, error);
-                setOrbitStyleMetaIndicator("error", "Style data failed", { sticky: true });
+                if (isCurrent()) setOrbitStyleMetaIndicator("error", "Style data failed", { sticky: true });
                 return null;
             });
 
@@ -289,6 +296,39 @@ export function createOrbitLoadActions({
 
     async function loadOrbitDataIfNeededAndProcess(callback) {
         const config = getConfig();
+        const scene = animationScenes[config];
+        if (!scene) return;
+        const dimension = getCurrentDimension();
+        const revision = getTransitionRevision();
+        const request = {};
+        latestRequestByConfig.set(config, request);
+        const ownsCache = () => latestRequestByConfig.get(config) === request
+            && animationScenes[config] === scene;
+        const isCurrent = () => ownsCache() && getConfig() === config
+            && getCurrentDimension() === dimension && getTransitionRevision() === revision;
+        const context = { config, isCurrent };
+        // Resolve source policy and URLs before yielding; callbacks must never
+        // borrow metadata or scene paths from a later active origin.
+        const configuredBodies = typeof getBodiesForConfig === "function"
+            ? getBodiesForConfig(config) : scene.planetsForLocations || [];
+        const requiredBodies = new Set([...(Array.isArray(configuredBodies) ? configuredBodies : []), "SUN"]);
+        const sourcesByBody = new Map([...requiredBodies].map(bodyId => [bodyId,
+            typeof getBodySource === "function" ? getBodySource(bodyId)
+                : typeof getEphemerisSource === "function" ? getEphemerisSource() : "chebyshev",
+        ]));
+        const globalConfig = typeof getGlobalConfig === "function" ? getGlobalConfig() : null;
+        const urls = {
+            npz: scene.orbitsNpz, cheb: scene.orbitsCheb, sun: scene.orbitsSunCheb,
+            relative: scene.relativeSupportOrbitsCheb,
+            support: { ...(scene.supportOrbitsChebByBodyId || {}) },
+        };
+        const primaryCraftId = scene.primaryCraftId || "SC";
+        const reportStatus = (...args) => { if (isCurrent()) setStatus(...args); };
+        const records = [];
+        const reportEphemeris = value => {
+            records.push(value);
+            if (isCurrent()) recordEphemeris(value);
+        };
 
         if (!orbitDataLoaded[config]) {
             const msg = getDataLoaded() ? "" : "Loading orbit data ... ";
@@ -304,25 +344,12 @@ export function createOrbitLoadActions({
                 updateProgressLabel(msg);
             }
             await sleep();
+            if (!ownsCache()) return;
             const requiredSources = new Set();
 
             try {
-                const configuredBodies =
-                    typeof getBodiesForConfig === "function"
-                        ? getBodiesForConfig(config)
-                        : animationScenes[config].planetsForLocations || [];
-                const requiredBodies = new Set([
-                    ...(Array.isArray(configuredBodies) ? configuredBodies : []),
-                    "SUN",
-                ]);
-
                 for (const bodyId of requiredBodies) {
-                    const source =
-                        typeof getBodySource === "function"
-                            ? getBodySource(bodyId)
-                            : typeof getEphemerisSource === "function"
-                              ? getEphemerisSource()
-                              : "chebyshev";
+                    const source = sourcesByBody.get(bodyId);
                     if (source === "npz" || source === "chebyshev") {
                         requiredSources.add(source);
                     }
@@ -332,7 +359,7 @@ export function createOrbitLoadActions({
                 let completedSources = 0;
                 const updateOrbitSourceProgress = () => {
                     completedSources += 1;
-                    if (progress) {
+                    if (progress && isCurrent()) {
                         progress.setStage(
                             "orbit",
                             completedSources / totalSources,
@@ -342,40 +369,40 @@ export function createOrbitLoadActions({
                 };
 
                 if (requiredSources.has("npz")) {
-                    setStatus(config, "npz", "loading");
-                    const npzUrl = animationScenes[config].orbitsNpz;
+                    reportStatus(config, "npz", "loading");
+                    const npzUrl = urls.npz;
                     if (!npzUrl) {
                         throw new Error(`NPZ ephemeris path not configured for ${config}`);
                     }
                     console.log(`Loading NPZ ephemeris from ${npzUrl}`);
-                    npzData[config] = await loadNpz(npzUrl);
+                    const loadedNpz = await loadNpz(npzUrl);
+                    if (!ownsCache()) return;
+                    npzData[config] = loadedNpz;
                     npzDataLoaded[config] = true;
                     console.log(
                         `NPZ ephemeris loaded for ${config}: bodies=${Object.keys(npzData[config]).join(",")}`,
                     );
-                    recordEphemeris({
+                    reportEphemeris({
                         config,
                         source: "npz",
                         url: npzUrl,
                         bodies: Object.keys(npzData[config] || {}),
                     });
-                    setStatus(config, "npz", "ok");
+                    reportStatus(config, "npz", "ok");
                     updateOrbitSourceProgress();
                 }
 
                 if (requiredSources.has("chebyshev")) {
-                    setStatus(config, "chebyshev", "loading");
-                    const chebUrl = animationScenes[config].orbitsCheb;
-                    const primaryCraftId = animationScenes[config].primaryCraftId || "SC";
-                    const globalConfig = typeof getGlobalConfig === "function"
-                        ? getGlobalConfig()
-                        : null;
+                    reportStatus(config, "chebyshev", "loading");
+                    const chebUrl = urls.cheb;
                     if (!chebUrl) {
                         throw new Error(`Chebyshev ephemeris path not configured for ${config}`);
                     }
                     console.log(`Loading Chebyshev data from ${chebUrl}`);
 
-                    chebyshevData[config] = await loadChebyshev(chebUrl);
+                    const loadedChebyshev = await loadChebyshev(chebUrl);
+                    if (!ownsCache()) return;
+                    chebyshevData[config] = loadedChebyshev;
                     chebyshevDataLoaded[config] = true;
                     console.log(
                         `Chebyshev data loaded for ${config}: ${getChebyshevSegmentCount(chebyshevData[config])} segments`,
@@ -388,12 +415,7 @@ export function createOrbitLoadActions({
                         primaryHasRelativeSun ? "relative" : "inertial",
                     );
 
-                    const sunSource =
-                        typeof getBodySource === "function"
-                            ? getBodySource("SUN")
-                            : typeof getEphemerisSource === "function"
-                              ? getEphemerisSource()
-                              : "chebyshev";
+                    const sunSource = sourcesByBody.get("SUN");
                     if (sunSource === "chebyshev") {
                         const hasSunInPrimaryFile = !!getChebyshevBodySeries(
                             chebyshevData[config],
@@ -401,24 +423,25 @@ export function createOrbitLoadActions({
                             primaryCraftId,
                         );
                         if (!hasSunInPrimaryFile) {
-                            const sunChebUrl = animationScenes[config].orbitsSunCheb;
+                            const sunChebUrl = urls.sun;
                             if (!sunChebUrl) {
                                 throw new Error(`Sun Chebyshev ephemeris path not configured for ${config}`);
                             }
                             console.log(`Loading Sun Chebyshev data from ${sunChebUrl}`);
                             const sunChebData = await loadChebyshev(sunChebUrl);
+                            if (!ownsCache()) return;
                             chebyshevData[config].SUN = sunChebData;
                         }
                     }
 
                     const supportChebByBodyId = {
-                        ...(animationScenes[config].supportOrbitsChebByBodyId || {}),
+                        ...urls.support,
                     };
                     if (
-                        animationScenes[config].relativeSupportOrbitsCheb &&
+                        urls.relative &&
                         !supportChebByBodyId.MOON
                     ) {
-                        supportChebByBodyId.MOON = animationScenes[config].relativeSupportOrbitsCheb;
+                        supportChebByBodyId.MOON = urls.relative;
                     }
                     const supportChebDataCache = new Map();
 
@@ -441,6 +464,7 @@ export function createOrbitLoadActions({
                                 supportChebUrl,
                                 await loadChebyshev(supportChebUrl),
                             );
+                            if (!ownsCache()) return;
                         }
 
                         const merged = mergeMissingChebyshevBodySeries(
@@ -469,21 +493,23 @@ export function createOrbitLoadActions({
                         }
                     }
 
-                    recordEphemeris({
+                    reportEphemeris({
                         config,
                         source: "chebyshev",
                         url: chebUrl,
                     });
-                    setStatus(config, "chebyshev", "ok");
+                    reportStatus(config, "chebyshev", "ok");
                     updateOrbitSourceProgress();
                 }
 
-                if (requiredSources.size === 0 && progress) {
+                if (requiredSources.size === 0 && progress && isCurrent()) {
                     progress.completeStage("orbit", "Loading orbit data ...");
                 }
 
-                setDataLoaded(true);
                 orbitDataLoaded[config] = true;
+                orbitRecordsByConfig.set(config, records);
+                if (!isCurrent()) return;
+                setDataLoaded(true);
 
                 if (progress) {
                     progress.completeStage("orbit", "Loading orbit data ...");
@@ -491,15 +517,18 @@ export function createOrbitLoadActions({
                 } else {
                     hideElementById("progressbar");
                 }
-                await processOrbitData();
+                const completed = await processOrbitData(context);
+                if (completed === false || !isCurrent()) return;
                 if (progress) {
                     progress.completeStage("process", "Processing orbit data ...");
                 }
                 ensure3DCurvesReady(config);
-                loadOrbitStyleMetaInBackground(config);
+                loadOrbitStyleMetaInBackground(config, isCurrent);
                 await sleep();
+                if (!isCurrent()) return;
                 callback();
             } catch (error) {
+                if (!isCurrent()) return;
                 console.error("Error loading orbit ephemeris data:", error);
                 if (progress) {
                     progress.abortSession();
@@ -508,7 +537,7 @@ export function createOrbitLoadActions({
                 }
                 setEventInfoText("Error: failed to load orbit data.");
                 for (const source of requiredSources) {
-                    setStatus(config, source, "error", error?.message || String(error));
+                    reportStatus(config, source, "error", error?.message || String(error));
                 }
             }
             return;
@@ -517,12 +546,21 @@ export function createOrbitLoadActions({
         if (progress && progress.isActive()) {
             progress.setStage("process", 0, "Processing orbit data ...");
         }
-        await processOrbitData();
+        // Inactive requests may fill their own cache, but their shared UI
+        // publications were suppressed. Replay provenance when activated.
+        for (const record of orbitRecordsByConfig.get(config) || []) {
+            recordEphemeris(record);
+            setStatus(config, record.source, "ok");
+        }
+        const completed = await processOrbitData(context);
+        if (completed === false || !isCurrent()) return;
         if (progress && progress.isActive()) {
             progress.completeStage("process", "Processing orbit data ...");
         }
         ensure3DCurvesReady(config);
+        loadOrbitStyleMetaInBackground(config, isCurrent);
         await sleep();
+        if (!isCurrent()) return;
         callback();
     }
 

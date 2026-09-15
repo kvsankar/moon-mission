@@ -11,6 +11,9 @@ async function ready(page) {
     await page.waitForFunction(()=>document.querySelector("#mission-loading-overlay")?.dataset.blocking==="false");
     await page.waitForFunction(()=>window.__moonMissionDockviewSpike?.api?.panels.length >= 8);
     await page.evaluate(()=>document.fonts.ready);
+    await page.waitForFunction(() => window.__moonMissionDockviewSpike.api
+        .getPanel("aux:earth-rise-composer")?.group.id === "right-frame-shoot");
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 async function state(page) {
     return page.evaluate(()=>{
@@ -90,9 +93,12 @@ describe("progressive workspace UX",()=>{
             const composer=page.locator(".aux-camera-view--composer");
             const viewButton=composer.getByRole("button",{name:"View options",exact:true});
             await viewButton.waitFor({state:"visible"});
-            await viewButton.click();
+            await viewButton.focus();
+            await viewButton.press("Enter");
             const view=page.locator(`#${await viewButton.getAttribute("aria-controls")}`);
             expect(await view.evaluate(e=>e.matches(":popover-open"))).toBe(true);
+            await page.keyboard.press("Tab");
+            expect(await view.evaluate(e=>e.contains(document.activeElement)), "Tab should enter the opened popover").toBe(true);
             const lunar=composer.getByRole("button",{name:"Open Frame and Shoot lunar feature controls",exact:true});
             await lunar.click({timeout:5000});
             expect(await lunar.getAttribute("aria-expanded")).toBe("true");
@@ -104,6 +110,7 @@ describe("progressive workspace UX",()=>{
             await page.screenshot({path:join(captureDir,"compact-composer-options.png")});
             await page.keyboard.press("Escape");
             await page.keyboard.press("Escape");
+            expect(await viewButton.evaluate(e=>e===document.activeElement), "Escape should restore the invoker").toBe(true);
             await composer.getByRole("button",{name:"Time controls",exact:true}).click();
             const time=page.locator('.aux-camera-view__composer-sky-timeline:popover-open');
             await time.waitFor({state:"visible"});
@@ -121,4 +128,30 @@ describe("progressive workspace UX",()=>{
             await page.keyboard.press("Escape");
         } finally {await page.close();}
     },120000);
+    it("preserves expanded geometry when a constrained window is reloaded", async () => {
+        const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+        try {
+            await ready(page);
+            const reference = await state(page);
+            const widths = reference.saved.grid.root.data.map(node => node.size);
+            await page.setViewportSize({ width: 800, height: 700 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "focused");
+            await page.reload({ waitUntil: "domcontentloaded" });
+            await page.waitForFunction(() => document.querySelector("#mission-loading-overlay")?.dataset.blocking === "false"
+                && document.body.dataset.workspaceSpace === "focused");
+            const reloaded = await state(page);
+            expect(reloaded.saved.grid.width).toBe(reference.saved.grid.width);
+            expect(reloaded.saved.grid.root.data.map(node => node.size)).toEqual(widths);
+            await page.setViewportSize({ width: 1920, height: 1080 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "full"
+                && window.__moonMissionDockviewSpike.api.groups.filter(g => g.api.isVisible).length === 8);
+            const restored = await state(page);
+            expect(restored.panels).toEqual(reference.panels);
+            // A transient page scrollbar can change the actual host width by
+            // 16px despite identical window sizes. Compare restored proportions;
+            // the raw saved widths above must still survive reload exactly.
+            const scale = restored.saved.grid.width / reference.saved.grid.width;
+            restored.saved.grid.root.data.forEach((node, i) => expect(Math.abs(node.size - widths[i] * scale), JSON.stringify({ widths, restored: restored.saved.grid })).toBeLessThanOrEqual(2));
+        } finally { await page.close(); }
+    }, 120000);
 });

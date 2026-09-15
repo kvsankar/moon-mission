@@ -23,6 +23,7 @@ function createComposerDisclosure({ panel, viewport, windowRef = window, documen
         button.textContent = label;
         content.id ||= `${panel.id || "composer"}-disclosure-${index}`;
         button.setAttribute("aria-controls", content.id);
+        button.setAttribute("popovertarget", content.id);
         button.setAttribute("aria-expanded", "false");
         button.setAttribute("aria-haspopup", "dialog");
         content.dataset.disclosureSurface = "true";
@@ -37,8 +38,6 @@ function createComposerDisclosure({ panel, viewport, windowRef = window, documen
         };
         const onClick = event => {
             event.stopPropagation();
-            if (content.matches(":popover-open")) content.hidePopover();
-            else { content.showPopover(); position(); }
         };
         const onToggle = event => {
             const open = event.newState === "open";

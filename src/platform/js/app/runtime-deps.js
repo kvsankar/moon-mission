@@ -1,6 +1,7 @@
 function createRuntimeInitDeps(deps) {
     const {
         getConfig,
+        getTransitionRevision,
         getScene,
         getSceneStateInitDone,
         setSceneState,
@@ -28,6 +29,7 @@ function createRuntimeInitDeps(deps) {
 
     return {
         getConfig,
+        getTransitionRevision,
         getScene,
         getSceneStateInitDone,
         setSceneState,

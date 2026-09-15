@@ -127,6 +127,12 @@ Deferred targets are not part of the V1 contract. They are tracked in
   - `?legacyPanels=1`
   - `?dockPanels=0`
   - `?dockPanels=1` to force the Dockview workspace on narrow viewports during testing.
+- Mission configuration (including a test-profile overlay) may set
+  `ui.dockviewEnabled: false` to disable Dockview before its module is imported
+  or mounted. Explicit URL flags take precedence; `legacyPanels=1` wins over
+  `dockPanels=1`. With no override, the desktop/mobile defaults are unchanged.
+- Scene SSIM coverage is CY3-only. Its `config.ssim.json` disables Dockview;
+  normal Dockview behavior is verified by separate functional browser suites.
 
 ## Mission Configuration
 

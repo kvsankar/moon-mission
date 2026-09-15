@@ -85,6 +85,11 @@ baselines are under `test/screenshots/baseline/design/`.
 
 ## Remaining Work
 
+Follow-up disposition: [CY3 SSIM And Technical Verification](cy3-ssim-technical-verification-2026-09-15.md)
+records independent review, keyboard/persistence fixes and the CY3-only SSIM
+configuration. The original implementation was committed as `de34d71`; the
+remaining-work paragraph below describes the initial checkpoint.
+
 The compact Frame and Shoot overlap is resolved by disclosure. The pre-existing
 full-scene SSIM harness/baseline mismatch, broader secondary-mobile accessibility
 work, and independent review remain as recorded in the roadmap. This work does

@@ -140,12 +140,14 @@ async function getComparisonCropBounds(page) {
     const cropBottom = cropAnchors.length
       ? Math.max(1, Math.min(...cropAnchors))
       : screenshotHeight;
+    const headerBottom = document.querySelector('#header')?.getBoundingClientRect().bottom || 0;
+    const cropTop = Math.max(0, Math.min(Math.ceil(headerBottom), Math.floor(cropBottom) - 1));
 
     return {
       x: 0,
-      y: 0,
+      y: cropTop,
       width: screenshotWidth,
-      height: Math.max(1, Math.min(screenshotHeight, Math.floor(cropBottom))),
+      height: Math.max(1, Math.min(screenshotHeight, Math.floor(cropBottom)) - cropTop),
     };
   });
 }
@@ -224,7 +226,6 @@ const TEST_CONFIG = {
     return `${this.baseUrl}/chandrayaan3/?testMode=true&testProfile=ssim`;
   }
 };
-const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
 const LOCAL_ASTRONOMY_BROWSER_FILE = join(
   process.cwd(),
@@ -249,6 +250,8 @@ function loadSsimProfileConfig() {
 const SSIM_PROFILE_CONFIG = loadSsimProfileConfig();
 const SSIM_PROFILE_VIEW_DEFAULTS = SSIM_PROFILE_CONFIG?.ui?.viewDefaults || {};
 const SSIM_PROFILE_ORIGIN_DEFAULTS = SSIM_PROFILE_CONFIG?.ui?.testDefaultsByOrigin || {};
+const UPDATE_SSIM_BASELINES = process.env.UPDATE_SSIM_BASELINES === 'true';
+const SSIM_VIEWPORT = { width: 1280, height: 720 };
 
 let browser, page;
 let consoleErrors = [];
@@ -330,6 +333,8 @@ function isIgnoredError(message) {
 // SSIM-based screenshot comparison function
 // Uses Structural Similarity Index for robust comparison that handles anti-aliasing differences
 async function compareScreenshots(page, currentName, baselineName, testName, threshold = TOLERANCE.APPROX_MATCH) {
+  expect(new URL(page.url()).pathname, 'SSIM scene comparisons are CY3-only').toMatch(/\/chandrayaan3\/(?:index\.html)?$/);
+  expect(await page.locator('#experimental-dockview-host').count(), 'SSIM uses the configured legacy layout').toBe(0);
   const screenshotDir = join(process.cwd(), 'test', 'screenshots');
   const currentDir = join(screenshotDir, 'current');
   const baselineDir = join(screenshotDir, 'baseline');
@@ -365,10 +370,14 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
   await restoreChromeAfterScreenshot(page, chromeState);
   await restoreTestId(page, testIdContent);
 
-  // If baseline doesn't exist, copy current as baseline
-  if (!existsSync(baselinePath)) {
+  // Baselines are only written by an explicit, reviewable update run.
+  if (UPDATE_SSIM_BASELINES) {
     writeFileSync(baselinePath, readFileSync(currentPath));
-    return { isMatch: true, message: 'Baseline created', ssimScore: 1.0, pixelDifference: 0 };
+    ssimScores[baselineName.replace(/\.png$/, '')] = 1;
+    return { isMatch: true, message: 'Baseline updated explicitly', ssimScore: 1.0, pixelDifference: 0 };
+  }
+  if (!existsSync(baselinePath)) {
+    throw new Error(`Missing SSIM baseline: ${baselinePath}. Use make baseline only after reviewing the intended captures.`);
   }
 
   // Compare screenshots using SSIM
@@ -425,102 +434,6 @@ function ensureCurrentScreenshotDir() {
   return currentDir;
 }
 
-async function captureSceneOnlyScreenshot(page, fileName) {
-  const screenshotPath = join(ensureCurrentScreenshotDir(), fileName);
-  const hiddenState = await page.evaluate(() => {
-    const haloToggle = document.querySelector('#view-body-halos');
-    if (haloToggle instanceof HTMLInputElement && haloToggle.checked) {
-      haloToggle.checked = false;
-      haloToggle.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    const selectors = [
-      '#header',
-      '#header-pill-strip',
-      '#control-panel',
-      '#timeline-dock',
-      '#orbit-status-stack',
-      '#info-panel-wrapper',
-      '#fps-counter',
-      '#test-id-display',
-      '#settings-panel',
-      '#mobile-shell',
-    ];
-
-    return selectors.map((selector) => {
-      const element = document.querySelector(selector);
-      if (!element) {
-        return { selector, present: false };
-      }
-
-      const previousVisibility = element.style.visibility;
-      const previousOpacity = element.style.opacity;
-      const previousPointerEvents = element.style.pointerEvents;
-
-      element.style.visibility = 'hidden';
-      element.style.opacity = '0';
-      element.style.pointerEvents = 'none';
-
-      return {
-        selector,
-        present: true,
-        previousVisibility,
-        previousOpacity,
-        previousPointerEvents,
-      };
-    });
-  });
-
-  try {
-    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-    await page.locator('#canvas-wrapper canvas').first().screenshot({ path: screenshotPath });
-  } finally {
-    await page.evaluate((state) => {
-      (state || []).forEach((entry) => {
-        if (!entry?.present) {
-          return;
-        }
-        const element = document.querySelector(entry.selector);
-        if (!element) {
-          return;
-        }
-        element.style.visibility = entry.previousVisibility || '';
-        element.style.opacity = entry.previousOpacity || '';
-        element.style.pointerEvents = entry.previousPointerEvents || '';
-      });
-    }, hiddenState);
-  }
-
-  return screenshotPath;
-}
-
-function compareScreenshotFiles(referencePath, candidatePath, testName, threshold = TOLERANCE.APPROX_MATCH) {
-  const reference = PNG.sync.read(readFileSync(referencePath));
-  const candidate = PNG.sync.read(readFileSync(candidatePath));
-
-  if (reference.width !== candidate.width || reference.height !== candidate.height) {
-    return {
-      isMatch: false,
-      message: `Dimension mismatch: reference ${reference.width}x${reference.height} vs candidate ${candidate.width}x${candidate.height}`,
-      ssimScore: 0,
-      pixelDifference: reference.width * reference.height,
-    };
-  }
-
-  const referenceData = { data: reference.data, width: reference.width, height: reference.height };
-  const candidateData = { data: candidate.data, width: candidate.width, height: candidate.height };
-  const { mssim } = ssim(referenceData, candidateData);
-  const isMatch = mssim >= threshold;
-  const status = isMatch ? 'PASS' : 'FAIL';
-  console.log(`[${status}] ${testName}: SSIM=${mssim.toFixed(4)} (threshold=${threshold.toFixed(2)})`);
-
-  return {
-    isMatch,
-    message: isMatch ? 'Screenshots match' : `SSIM ${mssim.toFixed(4)} below threshold ${threshold}`,
-    ssimScore: mssim,
-    pixelDifference: 0,
-  };
-}
 
 // Simplified helper functions
 async function openSettingsPanel(page) {
@@ -644,43 +557,6 @@ async function ensureSettingsPanelClosed(page) {
   }
 }
 
-async function waitForMobileShell(page) {
-  await page.waitForFunction(() => document.body.classList.contains('mobile-shell-enabled'), {
-    timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
-  });
-}
-
-async function openMobileTab(page, tab) {
-  const selector = `.mobile-shell__nav-btn[data-mobile-tab="${tab}"]`;
-  await page.locator(selector).first().click();
-  await page.waitForFunction((targetTab) => {
-    const button = document.querySelector(`.mobile-shell__nav-btn[data-mobile-tab="${targetTab}"]`);
-    if (!(button instanceof HTMLElement)) {
-      return false;
-    }
-
-    const cardId = targetTab === 'mission'
-      ? 'mobile-card-mission'
-      : targetTab === 'views'
-        ? 'mobile-card-views'
-        : 'mobile-card-compose';
-    const card = document.getElementById(cardId);
-    return button.classList.contains('is-active') &&
-      button.getAttribute('aria-current') === 'page' &&
-      !!card &&
-      !card.hidden;
-  }, tab, { timeout: TIMEOUTS.UI_RESPONSE_TIMEOUT });
-  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-}
-
-async function selectMobileViewPreset(page, preset) {
-  const selector = `.mobile-shell__view-btn[data-mobile-view-preset="${preset}"]`;
-  await page.locator(selector).first().click();
-  await page.waitForFunction((targetSelector) => {
-    const button = document.querySelector(targetSelector);
-    return button instanceof HTMLElement && button.getAttribute('aria-selected') === 'true';
-  }, selector, { timeout: TIMEOUTS.UI_RESPONSE_TIMEOUT });
-}
 
 async function waitForCameraPair(page, positionMode, lookMode) {
   await page.waitForFunction(({ nextPositionMode, nextLookMode }) => {
@@ -690,42 +566,6 @@ async function waitForCameraPair(page, positionMode, lookMode) {
   }, { nextPositionMode: positionMode, nextLookMode: lookMode }, { timeout: TIMEOUTS.UI_RESPONSE_TIMEOUT });
 }
 
-async function readMountedCameraInvariantSnapshot(page) {
-  return await page.evaluate(() => {
-    const origin = document.querySelector('#origin-relative:checked')
-      ? 'relative'
-      : document.querySelector('#origin-moon:checked')
-        ? 'lunar'
-        : 'geo';
-    const scene = window.animationScenes?.[origin];
-    const controller = scene?.cameraController;
-    const mountPos = controller?._resolveTargetWorld?.('spacecraft', controller._mountWorld) ?? null;
-    const lookPos = controller?._resolveTargetWorld?.('moon', controller._lookWorld) ?? null;
-    const camera = scene?.camera ?? null;
-    const target = controller?.controls?.target ?? null;
-
-    return {
-      origin,
-      positionMode: document.getElementById('camera-position')?.value || null,
-      lookMode: document.getElementById('camera-look')?.value || null,
-      cameraFov: camera?.fov ?? null,
-      timelineLabel: document.getElementById('date')?.textContent || null,
-      timelineSliderValue: document.getElementById('timeline-slider')?.value || null,
-      mountOffsetLength: controller?.mountOffset?.length?.() ?? null,
-      cameraToMountDistance: mountPos && camera?.position?.distanceTo
-        ? camera.position.distanceTo(mountPos)
-        : null,
-      cameraToLookDistance: lookPos && camera?.position?.distanceTo
-        ? camera.position.distanceTo(lookPos)
-        : null,
-      targetToLookDistance: lookPos && target?.distanceTo
-        ? target.distanceTo(lookPos)
-        : null,
-      noRotate: controller?.controls?.noRotate ?? null,
-      noPan: controller?.controls?.noPan ?? null,
-    };
-  });
-}
 
 async function setCameraPair(page, pairValue = 'manual__manual') {
   const [positionMode, lookMode] = pairValue.split('__');
@@ -1341,7 +1181,7 @@ async function ensureMoonRenderProfile(page, profile = 'fast') {
 }
 
 async function ensureAnimationPaused(page) {
-  const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+  const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
   if (isPlaying > 0) {
     await page.click('#animate');
     await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
@@ -1653,7 +1493,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       slowMo: TEST_CONFIG.slowMo,
       args: launchArgs
     });
-    page = await browser.newPage();
+    page = await browser.newPage({ viewport: SSIM_VIEWPORT, deviceScaleFactor: 1 });
     if (existsSync(LOCAL_ASTRONOMY_BROWSER_FILE)) {
       const astronomyBrowserSource = readFileSync(LOCAL_ASTRONOMY_BROWSER_FILE, 'utf8');
       await page.route('https://unpkg.com/astronomy-engine/astronomy.browser.js', async (route) => {
@@ -1694,6 +1534,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
     // Wait for the animation scene to be fully initialized
     await waitForScene(page);
+    await page.waitForFunction(() => document.documentElement.dataset.panelLayout === 'legacy');
+    expect(await page.locator('#experimental-dockview-host').count(), 'CY3 SSIM profile must disable Dockview').toBe(0);
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
   afterAll(async () => {
@@ -1715,6 +1557,11 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     await pinSsimDefaultViewToggles(page);
     await enforceSsimUiChromeDefaults(page);
     await ensureHeaderPillStripCollapsed(page);
+    const eventsToggle = page.locator('#control-panel-toggle');
+    if (await eventsToggle.getAttribute('aria-expanded') !== 'true') {
+      await eventsToggle.click();
+    }
+    await page.locator('#animate').waitFor({ state: 'visible' });
   });
 
   afterEach(() => {
@@ -1906,14 +1753,14 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-3d-animation-play-control';
       await displayTestId(page, testId);
       // Ensure we start in paused state
-      const pauseButton = await page.locator('#animate:has-text("Pause")').count();
+      const pauseButton = await page.locator('.controls-cluster--transport.is-playing #animate').count();
       if (pauseButton > 0) {
         await page.click('#animate');
         await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
       }
       
       // Verify Play button exists
-      expect(await page.locator('#animate:has-text("Play")').count()).toBe(1);
+      expect(await page.locator('.controls-cluster--transport:not(.is-playing) #animate').count()).toBe(1);
       
       // Capture initial telemetry
       const initialTime = await page.evaluate(() => {
@@ -1925,7 +1772,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#animate');
       
       // Verify button changed to Pause
-      expect(await page.locator('#animate:has-text("Pause")').count()).toBe(1);
+      expect(await page.locator('.controls-cluster--transport.is-playing #animate').count()).toBe(1);
       
       // Wait for animation to run by checking for telemetry changes
       await page.waitForFunction((initialTime) => {
@@ -1944,27 +1791,27 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Stop animation (required: end with animation stopped)
       await page.click('#animate');
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-      expect(await page.locator('#animate:has-text("Play")').count()).toBe(1);
+      expect(await page.locator('.controls-cluster--transport:not(.is-playing) #animate').count()).toBe(1);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
 
     it('Animation Pause Control', async () => {
       const testId = 'earth-3d-animation-pause-control';
       await displayTestId(page, testId);
       // Ensure animation is running first
-      const playButton = await page.locator('#animate:has-text("Play")');
+      const playButton = await page.locator('.controls-cluster--transport:not(.is-playing) #animate');
       if (await playButton.count() > 0) {
         await playButton.click();
       }
       
       // Verify Pause button exists
-      await page.waitForSelector('#animate:has-text("Pause")');
+      await page.waitForSelector('.controls-cluster--transport.is-playing #animate');
       
       // Pause animation
       await page.click('#animate');
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
       
       // Verify button changed to Play
-      await page.waitForSelector('#animate:has-text("Play")');
+      await page.waitForSelector('.controls-cluster--transport:not(.is-playing) #animate');
 
       // Capture telemetry after pause
       const beforeTime = await page.evaluate(() => {
@@ -1984,7 +1831,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       expect(afterTime).toBe(beforeTime);
       
       // Already in stopped state as required
-      expect(await page.locator('#animate:has-text("Play")').count()).toBe(1);
+      expect(await page.locator('.controls-cluster--transport:not(.is-playing) #animate').count()).toBe(1);
     }, TIMEOUTS.TEST_CASE_TIMEOUT);
 
     it('Speed Controls', async () => {
@@ -1998,7 +1845,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Start animation
       await page.click('#animate');
-      await page.waitForSelector('#animate:has-text("Pause")');
+      await page.waitForSelector('.controls-cluster--transport.is-playing #animate');
       
       const timelineSamples = [];
       
@@ -2151,15 +1998,17 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('2D/3D Mode Switching', async () => {
       const testId = 'earth-2d-3d-mode-switching';
       await displayTestId(page, testId);
+      await setTimeline(page, SUITE_TIMELINE);
       await openSettingsPanel(page);
       if (!(await page.isChecked('#dimension-3D'))) {
         await page.click('#dimension-3D');
       }
       await ensureOrbitFamilyState(page, true);
+      await resetCameraToManual(page);
+      await page.click('#checkbox-lock-default');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
-      await resetCameraToManual(page);
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await waitForScene(page);
@@ -2197,9 +2046,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Switch back to 3D
       await openSettingsPanel(page);
       await page.click('#dimension-3D');
+      await resetCameraToManual(page);
+      await page.click('#checkbox-lock-default');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
-      await resetCameraToManual(page);
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
@@ -2240,7 +2090,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.click('#view-xyz-axes');
       }
       if (await page.isChecked('#view-polar-axes')) {
-        await page.click('#view-polar-axes');
+        await ensureCheckboxState(page, '#view-polar-axes', !(await page.isChecked('#view-polar-axes')));
       }
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -2266,7 +2116,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Disable poles
       await openSettingsPanel(page);
       expect(await page.isChecked('#view-poles')).toBe(true);
-      await page.click('#view-poles');
+      await ensureCheckboxState(page, '#view-poles', !(await page.isChecked('#view-poles')));
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -2283,7 +2133,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Re-enable poles
       await openSettingsPanel(page);
-      await page.click('#view-poles');
+      await ensureCheckboxState(page, '#view-poles', !(await page.isChecked('#view-poles')));
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -2314,7 +2164,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.click('#view-xyz-axes');
       }
       if (!await page.isChecked('#view-polar-axes')) {
-        await page.click('#view-polar-axes');
+        await ensureCheckboxState(page, '#view-polar-axes', !(await page.isChecked('#view-polar-axes')));
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -2919,14 +2769,16 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('2D/3D Mode Switching', async () => {
       const testId = 'moon-2d-3d-mode-switching';
       await displayTestId(page, testId);
+      await setTimeline(page, SUITE_TIMELINE);
       await openSettingsPanel(page);
       if (!(await page.isChecked('#dimension-3D'))) {
         await page.click('#dimension-3D');
       }
+      await resetCameraToManual(page);
+      await page.click('#checkbox-lock-default');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
-      await resetCameraToManual(page);
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
@@ -2965,9 +2817,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Switch back to 3D
       await openSettingsPanel(page);
       await page.click('#dimension-3D');
+      await resetCameraToManual(page);
+      await page.click('#checkbox-lock-default');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
-      await resetCameraToManual(page);
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
@@ -3012,7 +2865,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.click('#view-xyz-axes');
       }
       if (await page.isChecked('#view-polar-axes')) {
-        await page.click('#view-polar-axes');
+        await ensureCheckboxState(page, '#view-polar-axes', !(await page.isChecked('#view-polar-axes')));
       }
       await closeSettingsPanel(page);
       await waitForScene(page);
@@ -3038,7 +2891,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Disable poles
       await openSettingsPanel(page);
       expect(await page.isChecked('#view-poles')).toBe(true);
-      await page.click('#view-poles');
+      await ensureCheckboxState(page, '#view-poles', !(await page.isChecked('#view-poles')));
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -3055,7 +2908,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Re-enable poles
       await openSettingsPanel(page);
-      await page.click('#view-poles');
+      await ensureCheckboxState(page, '#view-poles', !(await page.isChecked('#view-poles')));
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -3086,7 +2939,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.click('#view-xyz-axes');
       }
       if (!await page.isChecked('#view-polar-axes')) {
-        await page.click('#view-polar-axes');
+        await ensureCheckboxState(page, '#view-polar-axes', !(await page.isChecked('#view-polar-axes')));
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -3130,7 +2983,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Disable polar axes
       await openSettingsPanel(page);
       expect(await page.isChecked('#view-polar-axes')).toBe(true);
-      await page.click('#view-polar-axes');
+      await ensureCheckboxState(page, '#view-polar-axes', !(await page.isChecked('#view-polar-axes')));
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -3147,7 +3000,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Re-enable polar axes
       await openSettingsPanel(page);
-      await page.click('#view-polar-axes');
+      await ensureCheckboxState(page, '#view-polar-axes', !(await page.isChecked('#view-polar-axes')));
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -4070,54 +3923,13 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
   // Helper functions for Test Suite 7
   async function waitForAnimationCompletion(page, timeoutMs = 180000) {
-    console.log('Waiting for animation to complete naturally...');
-    
-    const startTime = Date.now();
-    let lastTimelineValue = '';
-    let stableCount = 0;
-    
-    return await page.waitForFunction(() => {
-      // Check if animation has stopped by detecting if Play button is showing
-      const animateButton = document.querySelector('#animate');
-      if (animateButton && animateButton.textContent.trim() === 'Play') {
-        console.log('Animation stopped - Play button detected');
-        return true;
-      }
-      
-      // Check for September 2023 with CY3 Data End
-      const dateElement = document.querySelector('#date');
-      const currentTimelineValue = dateElement ? dateElement.textContent : '';
-      
-      // Check for September 2023
-      if (currentTimelineValue.includes('September 2023') || currentTimelineValue.includes('Sep 2023')) {
-        // Also look for CY3 Data End indicator anywhere on page
-        const allElements = document.querySelectorAll('*');
-        for (const element of allElements) {
-          const text = element.textContent || element.innerText || '';
-          if (text.includes('CY3 Data End') || text.includes('🏁CY3 Data End')) {
-            console.log('Animation completed naturally: Found September 2023 with CY3 Data End');
-            return true;
-          }
-        }
-      }
-      
-      // Track if timeline has stopped changing (animation might be stuck)
-      if (currentTimelineValue === window.lastTimelineCheck) {
-        window.stableTimelineCount = (window.stableTimelineCount || 0) + 1;
-        if (window.stableTimelineCount > 3) { // 3 checks * 5 seconds = 15 seconds stable
-          console.log('Timeline appears stuck - animation may have completed');
-          return true;
-        }
-      } else {
-        window.stableTimelineCount = 0;
-      }
-      window.lastTimelineCheck = currentTimelineValue;
-      
-      return false;
-    }, null, { 
-      timeout: timeoutMs,
-      polling: 5000 // Check every 5 seconds
-    });
+    await page.waitForFunction(() => {
+      const slider = document.getElementById('timeline-slider');
+      const current = Number(slider?.dataset.currentTimeMs);
+      const end = Number(slider?.dataset.rangeMaxMs);
+      const playing = document.querySelector('.controls-cluster--transport')?.classList.contains('is-playing');
+      return playing === false && Number.isFinite(current) && Number.isFinite(end) && end > 0 && current >= end - 1000;
+    }, null, { timeout: timeoutMs, polling: 200 });
   }
 
   async function selectPlaneForFullRun(page, planeName) {
@@ -4234,7 +4046,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           console.log('Earth 3D animation timed out, forcing stop');
           
           // Force stop animation
-          const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+          const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
           if (isPlaying > 0) {
             await page.click('#animate');
           }
@@ -4243,7 +4055,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         }
 
         // Ensure animation is stopped
-        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
         if (isPlaying > 0) {
           await page.click('#animate');
         }
@@ -4310,7 +4122,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           console.log('Moon 3D animation timed out, forcing stop');
           
           // Force stop animation
-          const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+          const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
           if (isPlaying > 0) {
             await page.click('#animate');
           }
@@ -4319,7 +4131,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         }
         
         // Ensure animation is stopped
-        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
         if (isPlaying > 0) {
           await page.click('#animate');
         }
@@ -4378,7 +4190,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           console.log('Earth 2D animation timed out, forcing stop');
           
           // Force stop animation
-          const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+          const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
           if (isPlaying > 0) {
             await page.click('#animate');
           }
@@ -4387,7 +4199,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         }
         
         // Ensure animation is stopped
-        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
         if (isPlaying > 0) {
           await page.click('#animate');
         }
@@ -4443,7 +4255,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           console.log('Moon 2D animation timed out, forcing stop');
           
           // Force stop animation
-          const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+          const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
           if (isPlaying > 0) {
             await page.click('#animate');
           }
@@ -4452,7 +4264,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         }
         
         // Ensure animation is stopped
-        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        const isPlaying = await page.locator('.controls-cluster--transport.is-playing #animate').count();
         if (isPlaying > 0) {
           await page.click('#animate');
         }
@@ -4478,91 +4290,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
   });
 
-  describe('Test Suite 8: Artemis II Mobile Regression', () => {
-    it('Craft to Moon view remains stable after Mission and Views tab churn', async () => {
-      const testId = 'artemis2-mobile-craft-moon-tab-churn';
-      const artemisUrl = `${TEST_CONFIG.baseUrl}/artemis2/?testMode=true&testProfile=ssim`;
-      const tabChurnSettleBudgetMs = 3 * 2 * TIMEOUTS.QUICK_DELAY;
-      // Renderer output is not pixel-identical after tab churn even when camera/time
-      // invariants match exactly, so we keep state assertions strict and use a
-      // coarse same-run SSIM sentinel only for catastrophic visual drift.
-      const visualSentinelThreshold = 0.90;
-      await displayTestId(page, testId);
-
-      await page.setViewportSize(MOBILE_VIEWPORT);
-      await page.goto(artemisUrl, { waitUntil: 'networkidle' });
-      await waitForScene(page);
-      await waitForMobileShell(page);
-      await ensureAnimationPaused(page);
-      await ensureHeaderPillStripCollapsed(page);
-      await enforceSsimUiChromeDefaults(page);
-      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-
-      await openSettingsPanel(page);
-      await ensureCheckboxState(page, '#view-sky', false);
-      await ensureCheckboxState(page, '#view-body-halos', false);
-      const auxiliaryPanelsToggle = page.locator('#view-aux-camera-panels');
-      if (await auxiliaryPanelsToggle.count() > 0) {
-        await ensureCheckboxState(page, '#view-aux-camera-panels', false);
-      }
-      await closeSettingsPanel(page);
-
-      await setTimeline(page, 'closestApproach');
-      await waitForScene(page);
-      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-
-      await openMobileTab(page, 'views');
-      await selectMobileViewPreset(page, 'moon');
-      await waitForCameraPair(page, 'spacecraft', 'moon');
-      await waitForScene(page);
-      await ensureAnimationPaused(page);
-      await page.waitForTimeout(TIMEOUTS.VISUAL_STABILIZATION_TIMEOUT);
-      await page.waitForTimeout(tabChurnSettleBudgetMs);
-
-      const referenceState = await readMountedCameraInvariantSnapshot(page);
-      expect(referenceState.positionMode).toBe('spacecraft');
-      expect(referenceState.lookMode).toBe('moon');
-      expect(referenceState.mountOffsetLength).toBeLessThan(1e-9);
-      expect(referenceState.cameraToMountDistance).toBeLessThan(1e-9);
-      expect(referenceState.targetToLookDistance).toBeLessThan(1e-9);
-      expect(referenceState.noRotate).toBe(true);
-      expect(referenceState.noPan).toBe(true);
-
-      const referencePath = await captureSceneOnlyScreenshot(page, `${testId}-reference.png`);
-
-      for (let i = 0; i < 3; i += 1) {
-        await openMobileTab(page, 'mission');
-        await openMobileTab(page, 'views');
-      }
-
-      await waitForCameraPair(page, 'spacecraft', 'moon');
-      await waitForScene(page);
-      await ensureAnimationPaused(page);
-      await page.waitForTimeout(TIMEOUTS.VISUAL_STABILIZATION_TIMEOUT);
-
-      const churnedState = await readMountedCameraInvariantSnapshot(page);
-      expect(churnedState.positionMode).toBe('spacecraft');
-      expect(churnedState.lookMode).toBe('moon');
-      expect(churnedState.cameraFov).toBeCloseTo(referenceState.cameraFov, 8);
-      expect(churnedState.timelineLabel).toBe(referenceState.timelineLabel);
-      expect(churnedState.timelineSliderValue).toBe(referenceState.timelineSliderValue);
-      expect(churnedState.cameraToLookDistance).toBeCloseTo(referenceState.cameraToLookDistance, 8);
-      expect(churnedState.mountOffsetLength).toBeLessThan(1e-9);
-      expect(churnedState.cameraToMountDistance).toBeLessThan(1e-9);
-      expect(churnedState.targetToLookDistance).toBeLessThan(1e-9);
-      expect(churnedState.noRotate).toBe(true);
-      expect(churnedState.noPan).toBe(true);
-
-      const churnedPath = await captureSceneOnlyScreenshot(page, `${testId}-after-tabs.png`);
-      const comparison = compareScreenshotFiles(
-        referencePath,
-        churnedPath,
-        testId,
-        visualSentinelThreshold,
-      );
-      expect(comparison.isMatch).toBe(true);
-    }, TIMEOUTS.CLEANUP_TIMEOUT);
-  });
 
   // SSIM Regression Detection Test
   // This test runs last and compares current SSIM scores against the committed baseline

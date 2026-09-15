@@ -36,6 +36,8 @@ describe("Auxiliary panel resize interactions", () => {
                 await page.goto(`${getEffectiveTestBaseUrl(process.cwd())}/artemis2/`, { waitUntil: "domcontentloaded" });
                 await page.waitForFunction(() => document.getElementById("mission-loading-overlay")?.dataset.blocking === "false");
                 await page.waitForSelector(".dockview-panels-enabled .aux-camera-view--composer");
+                await page.waitForFunction(() => window.__moonMissionDockviewSpike?.api
+                    .getPanel("aux:earth-rise-composer")?.group.id === "right-frame-shoot");
                 const geometry = await page.evaluate(() => {
                     const rect = selector => document.querySelector(selector).getBoundingClientRect().toJSON();
                     const composer = document.querySelector(".aux-camera-view--composer");
@@ -67,14 +69,16 @@ describe("Auxiliary panel resize interactions", () => {
                 const screenshotDir = join(process.cwd(), "test/screenshots/current/design-review");
                 mkdirSync(screenshotDir, { recursive: true });
                 await page.screenshot({ path: join(screenshotDir, `artemis2-${viewport.width}.png`) });
+                // The composer may start at its 280px minimum after bootstrap.
+                // Grow it in that case; otherwise shrink it to leave room for
+                // the main view at laptop widths.
+                const dragDelta = geometry.group.width <= 300 ? -60 : 60;
                 await page.mouse.move(geometry.divider.x, geometry.divider.y);
                 await page.mouse.down();
-                await page.mouse.move(geometry.divider.x + 60, geometry.divider.y, { steps: 8 });
+                await page.mouse.move(geometry.divider.x + dragDelta, geometry.divider.y, { steps: 8 });
                 await page.mouse.up();
                 const resized = await page.locator(".aux-camera-view--composer").evaluate(e => e.closest(".dv-groupview").getBoundingClientRect().toJSON());
-                // Shrink the composer: at laptop width the neighboring main
-                // view is already at its minimum and cannot shrink further.
-                expect(resized.width, `divider drag at ${viewport.width}px: ${JSON.stringify({ before: geometry.group, after: resized })}`).toBeLessThan(geometry.group.width - 20);
+                expect((geometry.group.width - resized.width) * Math.sign(dragDelta), `divider drag at ${viewport.width}px: ${JSON.stringify({ before: geometry.group, after: resized })}`).toBeGreaterThan(20);
 
                 const group = page.locator(".dv-groupview").filter({ has: page.locator(".aux-camera-view--composer") });
                 await group.getByRole("button", { name: "Maximize panel group", exact: true }).click();

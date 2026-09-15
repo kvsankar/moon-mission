@@ -97,6 +97,10 @@ check passed. Full-scene baselines were not overwritten by this chrome pass.
 
 ## Remaining Review Scope
 
+Follow-up disposition: [CY3 SSIM And Technical Verification](cy3-ssim-technical-verification-2026-09-15.md)
+supersedes the pending technical-review/layout-contract items below. Scene
+baseline reconciliation remains open; the original observations are retained.
+
 - Independent review of this delivery unit is pending.
 - Reconcile the legacy/default layout contract of the broader SSIM harness
   before claiming that full suite is green.

@@ -63,8 +63,6 @@ test-headed:
 
 # Regenerate baseline screenshots
 baseline:
-	@echo "Clearing existing baselines..."
-	-rm -f test/screenshots/baseline/*.png
 	@echo "Running tests to generate new baselines (headless)..."
 	$(NODE) test/run-ui-tests.js baseline
 	@echo "Baselines generated in test/screenshots/baseline/"

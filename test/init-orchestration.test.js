@@ -344,4 +344,74 @@ describe("createInitOrchestrationActions", () => {
         expect(scheduleTimeout).toHaveBeenCalledTimes(1);
         expect(setView).toHaveBeenCalledTimes(2);
     });
+
+    for (const stage of ["initConfig", "init"]) {
+        for (const outcome of ["resolve", "reject"]) {
+            it(`ignores an obsolete ${stage} ${outcome} after a newer initialization starts`, async () => {
+                function deferred() {
+                    let resolve;
+                    let reject;
+                    const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+                    return { promise, resolve, reject };
+                }
+                const first = deferred();
+                const second = deferred();
+                const firstEntered = deferred();
+                const secondEntered = deferred();
+                const initConfig = vi.fn().mockResolvedValue(undefined);
+                const init = vi.fn().mockResolvedValue(undefined);
+                const gatedStage = stage === "initConfig" ? initConfig : init;
+                gatedStage.mockImplementationOnce(() => {
+                    firstEntered.resolve();
+                    return first.promise;
+                }).mockImplementationOnce(() => {
+                    secondEntered.resolve();
+                    return second.promise;
+                });
+                const failureText = vi.fn();
+                const buttonAttr = vi.fn();
+                const render = vi.fn();
+                const requestAnimationFrame = vi.fn();
+                const scheduleTimeout = vi.fn();
+                const actions = createInitOrchestrationActions({
+                    initConfig,
+                    init,
+                    getConfig: () => "geo",
+                    isOrbitDataProcessed: () => false,
+                    d3: { select: () => ({ text: failureText }) },
+                    d3SelectAll: () => ({ attr: buttonAttr }),
+                    render,
+                    requestAnimationFrame,
+                    animateLoop: vi.fn(),
+                    scheduleTimeout,
+                });
+                const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+                try {
+                    const older = actions.initAnimation({ reset: false });
+                    await firstEntered.promise;
+                    const newer = actions.initAnimation({ reset: false });
+                    await secondEntered.promise;
+                    const initialInitCalls = init.mock.calls.length;
+                    if (outcome === "reject") first.reject(new Error("obsolete failure"));
+                    else first.resolve();
+                    await older;
+                    expect(init).toHaveBeenCalledTimes(initialInitCalls);
+                    expect(failureText).not.toHaveBeenCalled();
+                    expect(buttonAttr).not.toHaveBeenCalled();
+                    expect(errorSpy).not.toHaveBeenCalled();
+                    expect(render).not.toHaveBeenCalled();
+                    expect(requestAnimationFrame).not.toHaveBeenCalled();
+                    expect(scheduleTimeout).not.toHaveBeenCalled();
+                    second.resolve();
+                    await newer;
+                    expect(render).toHaveBeenCalledTimes(1);
+                    expect(scheduleTimeout).toHaveBeenCalledTimes(1);
+                } finally {
+                    first.resolve();
+                    second.resolve();
+                    errorSpy.mockRestore();
+                }
+            });
+        }
+    }
 });

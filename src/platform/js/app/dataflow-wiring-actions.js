@@ -27,6 +27,7 @@ function createDataflowWiringActions(deps) {
         resolveLandingChebyshevUrl,
         getConfig,
         getCurrentDimension,
+        getTransitionRevision,
         setSvgContainer,
         setDataLoaded,
         setSvgX,
@@ -145,6 +146,8 @@ function createDataflowWiringActions(deps) {
         d3,
         sleep,
         getConfig,
+        getCurrentDimension,
+        getTransitionRevision,
         animationScenes,
         orbitDataLoaded,
         chebyshevData,
@@ -347,6 +350,7 @@ function createDataflowWiringActions(deps) {
     });
 
     const planeActions = createPlaneActions({
+        getTransitionRevision,
         getPlaneSelection,
         setPlaneVariables,
         getCurrentDimension,

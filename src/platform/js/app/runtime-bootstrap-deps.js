@@ -239,6 +239,7 @@ function createRuntimeInitDepsFromPorts(
 
     return createRuntimeInitDeps({
         getConfig: app.getConfig,
+        getTransitionRevision: app.getTransitionRevision,
         getScene: (cfg) => app.getAnimationScenes()[cfg],
         getSceneStateInitDone: sceneRuntime.getSceneStateInitDone,
         setSceneState: sceneRuntime.setSceneState,

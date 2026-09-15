@@ -93,12 +93,14 @@ export function createPlaneActions({
     getConfig,
     getGlobalConfig = () => null,
     getFrameMode = () => "inertial",
+    getTransitionRevision = () => 0,
     initSVG,
     loadOrbitDataIfNeededAndProcess,
     handleDimensionSwitch,
     setLocation,
 }) {
     const planeChangeStateByConfig = new Map();
+    let latestRequestId = 0;
 
     function getPlaneChangeState(config) {
         if (!planeChangeStateByConfig.has(config)) {
@@ -136,27 +138,41 @@ export function createPlaneActions({
             return;
         }
 
+        // Only an actual request supersedes pending work. Repeating an unchanged
+        // selection must not invalidate its still-valid loading completion.
+        const requestId = ++latestRequestId;
+        const currentDimension = getCurrentDimension();
+        const scene = animationScenes[config];
+        const transitionRevision = getTransitionRevision();
+        const applyWhenCurrent = () => {
+            if (
+                requestId !== latestRequestId ||
+                getTransitionRevision() !== transitionRevision ||
+                getConfig() !== config ||
+                getCurrentDimension() !== currentDimension ||
+                getPlaneSelection() !== selection ||
+                animationScenes[config] !== scene
+            ) {
+                return;
+            }
+            handleDimensionSwitch(currentDimension);
+            setLocation();
+        };
+
         const planeConfig = planeVariableConfig[effectiveSelection];
         if (planeConfig) {
             setPlaneVariables(planeConfig);
         }
 
-        const currentDimension = getCurrentDimension();
         if (currentDimension === "3D") {
-            animationScenes[config].setCameraParameters(init_flag);
+            scene.setCameraParameters(init_flag);
         }
 
         if (currentDimension === "2D") {
             initSVG();
-            loadOrbitDataIfNeededAndProcess(function () {
-                handleDimensionSwitch(currentDimension);
-                setLocation();
-            });
+            loadOrbitDataIfNeededAndProcess(applyWhenCurrent);
         } else if (currentDimension === "3D") {
-            loadOrbitDataIfNeededAndProcess(function () {
-                handleDimensionSwitch(currentDimension);
-                setLocation();
-            });
+            loadOrbitDataIfNeededAndProcess(applyWhenCurrent);
         }
 
         if (planeChangeState.planeChangesPending && dimension_changed) {

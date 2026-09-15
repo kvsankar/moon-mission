@@ -1,5 +1,6 @@
 import "dockview-core/dist/styles/dockview.css";
 import { createProgressiveWorkspace } from "./progressive-workspace.js";
+import { resolveDockviewEnabled } from "../core/domain/dockview-policy.js";
 
 import { createPanelLayoutHost } from "./panel-layout-host.js";
 import { readPanelLayoutHostState } from "./panel-layout-host.js";
@@ -45,34 +46,12 @@ const DEFAULT_WORKSPACE_PANEL_IDS = [
 const DOCKVIEW_FLOATING_GROUP_WIDTH = 640;
 const DOCKVIEW_FLOATING_GROUP_HEIGHT = 420;
 
-function isTruthyParamValue(value) {
-    const normalized = String(value || "").trim().toLowerCase();
-    return normalized === "1" || normalized === "true" || normalized === "yes";
-}
-
-function isFalseyParamValue(value) {
-    const normalized = String(value || "").trim().toLowerCase();
-    return normalized === "0" || normalized === "false" || normalized === "no";
-}
-
 function isDesktopDockviewViewport(windowRef = globalThis?.window) {
     return (Number(windowRef?.innerWidth) || 0) > 600;
 }
 
-function isDockviewSpikeEnabled(urlSearch = globalThis?.location?.search || "", windowRef = globalThis?.window) {
-    const params = new URLSearchParams(urlSearch);
-    const legacyValue = params.get(LEGACY_PANELS_PARAM);
-    if (isTruthyParamValue(legacyValue)) {
-        return false;
-    }
-    const dockviewValue = params.get(DOCKVIEW_SPIKE_PARAM);
-    if (isTruthyParamValue(dockviewValue)) {
-        return true;
-    }
-    if (isFalseyParamValue(dockviewValue)) {
-        return false;
-    }
-    return isDesktopDockviewViewport(windowRef);
+function isDockviewSpikeEnabled(urlSearch = globalThis?.location?.search || "", windowRef = globalThis?.window, missionConfig = null) {
+    return resolveDockviewEnabled({ urlSearch, viewportWidth: Number(windowRef?.innerWidth) || 0, missionConfig });
 }
 
 function getDockviewSpikeStorageKey() {
@@ -1472,8 +1451,8 @@ function bindShellInteractions({
     };
 }
 
-function initializeExperimentalDockviewHost() {
-    if (!isDockviewSpikeEnabled()) {
+function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
+    if (!isDockviewSpikeEnabled(undefined, undefined, missionConfig)) {
         return null;
     }
 
@@ -1489,7 +1468,7 @@ function initializeExperimentalDockviewHost() {
 
     const storageKey = getDockviewSpikeStorageKey();
     const shellStorageKey = getDockviewSpikeShellStorageKey(storageKey);
-    const hadSavedLayout = !!readPanelLayoutHostState(storageKey);
+    const savedExpandedLayout = readPanelLayoutHostState(storageKey);
     const { root, toolbar, dockRoot, resetButton, resizeGrip } = createHostRoot(documentRef, { shellStorageKey });
     let suppressPanelCloseSync = false;
     let progressiveWorkspace = null;
@@ -1529,6 +1508,7 @@ function initializeExperimentalDockviewHost() {
             });
         },
     });
+    const hadSavedLayout = layoutHost.didRestoreInitialLayout;
     const unbindShellInteractions = () => {};
     if (!layoutHost.api?.getPanel?.(MAIN_VIEW_PANEL_ID)) {
         layoutHost.addPanel(DEFAULT_DOCKVIEW_SPIKE_PANELS[0]);
@@ -1676,7 +1656,10 @@ function initializeExperimentalDockviewHost() {
         resetWorkspaceLayout: resetDockviewWorkspaceLayout,
         dispose,
     };
-    progressiveWorkspace = createProgressiveWorkspace({ layoutHost, root, documentRef });
+    progressiveWorkspace = createProgressiveWorkspace({
+        layoutHost, root, documentRef,
+        savedExpandedLayout: hadSavedLayout ? savedExpandedLayout : null,
+    });
     globalThis.__moonMissionDockviewSpike.progressiveWorkspace = progressiveWorkspace;
 
     return globalThis.__moonMissionDockviewSpike;

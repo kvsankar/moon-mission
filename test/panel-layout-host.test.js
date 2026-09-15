@@ -142,7 +142,7 @@ describe("panel layout host", () => {
         globalThis.localStorage = storage;
         const api = createDockviewApiStub({ throwFromJSON: true });
 
-        createPanelLayoutHost({
+        const host = createPanelLayoutHost({
             container: createContainerStub(),
             storageKey: "dock-key",
             panels: [
@@ -153,6 +153,7 @@ describe("panel layout host", () => {
         });
 
         expect(api.fromJSON).toHaveBeenCalledWith({ corrupt: true }, { reuseExistingPanels: false });
+        expect(host.didRestoreInitialLayout).toBe(false);
         expect(api.clear).toHaveBeenCalled();
         expect(api.addPanel).toHaveBeenCalledWith(expect.objectContaining({
             id: "workflow:splashdown",

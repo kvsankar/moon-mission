@@ -31,6 +31,7 @@ function createMissionAppStatePort(ctx, helpers) {
             setState("globalConfig", value);
         },
         getConfig: () => getState("config"),
+        getTransitionRevision: () => ctx.state?.transitionRevision?.get?.() ?? 0,
         setConfig: (val) => {
             setState("config", val);
         },

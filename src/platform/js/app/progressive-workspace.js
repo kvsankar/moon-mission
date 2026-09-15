@@ -1,10 +1,10 @@
 import { MAIN_PANEL_ID, reconcileWorkspaceLayout, resolveWorkspacePanelPriority, resolveWorkspaceSpaceLevel } from "../core/domain/workspace-disclosure.js";
 
-function createProgressiveWorkspace({ layoutHost, root, documentRef = document, windowRef = window }) {
+function createProgressiveWorkspace({ layoutHost, root, documentRef = document, windowRef = window, savedExpandedLayout = null }) {
     const api = layoutHost.api;
     const hiddenGroups = new Set();
     let reference = null;
-    let expandedSnapshot = api.toJSON();
+    let expandedSnapshot = savedExpandedLayout || api.toJSON();
     let selectedTool = null;
     let pendingTool = null;
     let level = "full";
@@ -28,6 +28,8 @@ function createProgressiveWorkspace({ layoutHost, root, documentRef = document, 
         reference = reconcileWorkspaceLayout(reference, current);
         return reference;
     });
+    // Recover the raw expanded snapshot after a constrained-window bootstrap.
+    layoutHost.saveLayout();
 
     function update() {
         frame = null;

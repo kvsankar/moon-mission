@@ -132,6 +132,12 @@ configuration, launcher wiring, and focused tests together. Use
 `?legacyPanels=1` or `?dockPanels=0` only for legacy-layout debugging and
 `?dockPanels=1` for targeted narrow-viewport workspace testing.
 
+Mission/profile configuration may also set `ui.dockviewEnabled: false`.
+The CY3-only scene SSIM profile uses this configuration so Dockview is never
+mounted for those captures. Explicit URL flags override the config; ordinary
+desktop sessions still use Dockview. See [Testing Guide](testing.md) for the
+separate scene, chrome, workspace and mobile coverage.
+
 ## 3) Core Commands
 
 ### Development

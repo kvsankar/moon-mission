@@ -8,6 +8,7 @@ function createReadonlyStateCell(get) {
 
 function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
     return {
+        transitionRevision: createReadonlyStateCell(() => runtimeViewState.getTransitionRevision()),
         config: createMutableStateCell(
             () => runtimeViewState.getConfig(),
             (value) => { runtimeViewState.setConfig(value); },

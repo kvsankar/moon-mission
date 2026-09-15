@@ -2,6 +2,18 @@ import { describe, expect, it } from "vitest";
 import { createRuntimeViewState } from "../src/platform/js/core/state/runtime-view-state.js";
 
 describe("runtime-view-state", () => {
+    it("invalidates origin and dimension ABA transitions without treating no-op selections as changes", () => {
+        const state = createRuntimeViewState({ initialConfig: "geo", initialCurrentDimension: "3D" });
+        expect(state.getTransitionRevision()).toBe(0);
+        state.setConfig("geo"); state.setCurrentDimension("3D");
+        expect(state.getTransitionRevision()).toBe(0);
+        state.setConfig("lunar"); state.setConfig("geo");
+        expect(state.getTransitionRevision()).toBe(2);
+        state.setCurrentDimension("2D"); state.setCurrentDimension("3D");
+        expect(state.getTransitionRevision()).toBe(4);
+        state.setViewFlags({ viewOrbit: false });
+        expect(state.getTransitionRevision()).toBe(4);
+    });
     it("tracks config and dimension state", () => {
         const state = createRuntimeViewState({
             initialConfig: "geo",

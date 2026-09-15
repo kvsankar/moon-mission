@@ -8,7 +8,7 @@ canonical_for:
 
 # Panel Runtime Regressions
 
-## September 15 Disposition — Ready For Independent Review
+## September 15 Disposition — Technical Review Follow-Up
 
 The three assertions reproduced, but they applied legacy panel geometry and
 grips to the default Dockview workspace. The explicit legacy route passes the
@@ -17,8 +17,11 @@ pending and accepts both current loading states. New browser coverage verifies
 Dockview dividers and maximize/restore at both desktop viewports.
 
 See [visual design and regression evidence](../../evidence/reviews/visual-design-tokens-2026-09-15.md).
-No panel runtime correction was needed. Independent review and the recorded
-broader SSIM limitation remain before final roadmap closure.
+No panel runtime correction was needed for the original geometry assertions.
+Independent review subsequently identified and cleared keyboard/persistence
+issues in the accompanying progressive UX work. The CY3 SSIM profile now
+disables Dockview; remaining scene-image failures still prevent full closure.
+See [follow-up evidence](../../evidence/reviews/cy3-ssim-technical-verification-2026-09-15.md).
 
 ## Source Evidence
 

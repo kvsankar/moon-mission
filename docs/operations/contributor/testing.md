@@ -1,6 +1,6 @@
 # Test Strategy (UI + Visual Regression)
 
-This repository uses Vitest + Playwright with four complementary suites.
+This repository uses Vitest + Playwright with complementary suites.
 
 ## Goals
 
@@ -14,6 +14,21 @@ This repository uses Vitest + Playwright with four complementary suites.
   - Primary CH3 end-to-end coverage (Earth/Moon, 2D/3D, camera/view interactions, full-run snapshots).
   - Uses SSIM-based image comparisons against tracked baselines.
   - Writes latest SSIM scores and reports SSIM drift against committed history.
+  - Runs only CY3 at `1280x720`, device scale factor 1, using
+    `/chandrayaan3/?testMode=true&testProfile=ssim`. The profile sets
+    `ui.dockviewEnabled: false`; the harness asserts legacy layout and rejects
+    other missions or a mounted Dockview workspace.
+  - Compares the same scene region in both images, below the header and above
+    bottom controls. Chrome is covered separately, not by scene SSIM.
+
+- **Workspace/chrome/mobile behavior**
+  - `npm run test:browser:progressive` checks Dockview disclosure, keyboard
+    access, resize/reload persistence and scene/playback preservation.
+  - `npm run test:browser:design` checks design tokens and chrome screenshots
+    using pixel differences (not SSIM).
+  - `npm run test:browser:mobile` checks Artemis II mounted-camera invariants
+    across mobile tab switches, without screenshot baselines or an SSIM profile.
+  - These commands expect an already running local test server on `8111`.
 
 - **Cross-mission smoke** (`test/mission-smoke.test.js`)
   - Functional smoke checks for non-CH3 missions (`a10`, `a11`, `cy2`) across origin/dimension combinations.
@@ -32,6 +47,27 @@ This repository uses Vitest + Playwright with four complementary suites.
   - Phase blocks are automatically skipped when required NPZ files are not present.
 
 ## Run Commands
+
+Transition-focused verification (no screenshot baseline):
+
+```bash
+npm run test:transitions:unit
+npm run test:browser:transitions
+```
+
+The browser command expects the local test server and staged CY3 data. It uses
+normal Dockview, fresh browser contexts, visible controls and read-only state
+probes for origin/dimension/camera sequences. Fresh context means cold browser
+state/lazy scene initialization, not a controlled cold network or GPU cache.
+See [paired audit and harness plan](../../plans/implementation/runtime-transition-audit-and-tests.md)
+for remaining coverage and migration rules.
+
+`npm run test:audit:transitions` runs opt-in deterministic reproductions for
+three audited architecture findings. RTA-01/02 now pass; it deliberately exits
+nonzero for the still-open RTA-03 camera contract. The fixed race regressions
+also run in the normal unit suite. The diagnostic script itself is outside
+normal unit/CI discovery; it is
+neither an expected-green gate nor a test that blesses broken behavior.
 
 Quick default visual run (managed server lifecycle):
 
@@ -87,11 +123,17 @@ Regenerate baselines only for intentional visual changes:
 make baseline
 ```
 
+This explicitly enables PNG writes; normal runs fail on missing baselines.
+Existing baseline files are not deleted first. Review every changed PNG before
+acceptance, then run without update flags to verify the result. Updating PNGs
+and updating committed score history are separate, deliberate actions.
+
 ## Useful Env Flags
 
 - `VITE_TEST_BASE_URL` - target app URL (`http://localhost:8111` default in tests).
 - `HEADLESS=false` - run with visible browser for debugging.
 - `SSIM_REGRESSION_STRICT=true` - fail UI suite on SSIM regression report.
+- `UPDATE_SSIM_BASELINES=true` - explicitly write CY3 PNG baselines (enabled by `make baseline`).
 - `UPDATE_SSIM_COMMITTED=true` - update `ssim-history.json` from current run (use intentionally).
 
 Vitest discovery excludes nested `.tmp/**` scratch repos so temporary worktrees do not pollute app test runs.

@@ -45,7 +45,7 @@ function createRuntimeBootstrapActions(ports) {
 
     return {
         init: runtimeInitActions.init,
-        processOrbitData: () => orbitProcessActions.processOrbitData(),
+        processOrbitData: (context) => orbitProcessActions.processOrbitData(context),
         initOrchestrationActions,
         ...animationActions,
         ...uiControlsActions,

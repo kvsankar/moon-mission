@@ -18,6 +18,15 @@ the current queue owns delivery.
 
 ## Current Verified Queue
 
+The user requested a new transition/lifecycle audit alongside test-harness
+modernization on 2026-09-15. See the
+[paired plan](runtime-transition-audit-and-tests.md) and
+[current evidence](../../evidence/reviews/runtime-transition-audit-2026-09-15.md).
+Its concrete stale-completion, camera-order, failure/retry and landing-readiness
+findings take precedence over generic structural cleanup in this workstream.
+The queue below remains the broader architectural context, not a claim that
+those defects are fixed.
+
 1. Remove the domain-to-app dependency from
    `core/domain/active-event-ui-state.js` to `app/burn-event-metadata.js` by
    moving reusable burn metadata policy inward or reclassifying the caller.

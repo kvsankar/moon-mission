@@ -46,6 +46,7 @@ function createDataflowWiringDeps(ctx, { getStartAndEndTimes, loadProgress }) {
         resolveLandingChebyshevUrl: ctx.resolveLandingChebyshevUrl,
         getConfig: ctx.getConfig,
         getCurrentDimension: ctx.getCurrentDimension,
+        getTransitionRevision: ctx.getTransitionRevision,
         setSvgContainer: ctx.setSvgContainer,
         setDataLoaded: ctx.setDataLoaded,
         setSvgX: ctx.setSvgX,

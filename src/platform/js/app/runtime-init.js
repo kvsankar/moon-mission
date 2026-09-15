@@ -2,6 +2,7 @@ function createRuntimeInitActions(deps) {
     const {
         getConfig,
         getScene,
+        getTransitionRevision = () => 0,
         getSceneStateInitDone,
         setSceneState,
         resetViewTransformState,
@@ -26,9 +27,18 @@ function createRuntimeInitActions(deps) {
         loadLandingDataAndProcess,
     } = deps;
 
-    async function init(callback) {
+    let latestInitRequest = 0;
+    async function init(callback, { isCurrent: isParentCurrent = () => true } = {}) {
+        const requestId = ++latestInitRequest;
         const sceneConfig = getConfig();
         const scene = getScene(sceneConfig);
+        const transitionRevision = getTransitionRevision();
+        const isCurrent = () =>
+            requestId === latestInitRequest && isParentCurrent() &&
+            !!scene && scene.stopCreationFlag !== true &&
+            getConfig() === sceneConfig && getScene(sceneConfig) === scene &&
+            getTransitionRevision() === transitionRevision;
+        if (!isCurrent()) return;
         if (scene && scene.state >= getSceneStateInitDone()) {
             return;
         }
@@ -61,15 +71,18 @@ function createRuntimeInitActions(deps) {
         });
 
         await sleep();
+        if (!isCurrent()) return;
 
         setAnimDate(d3Select("#date"));
 
         await sleep();
+        if (!isCurrent()) return;
         if (getCurrentDimension() === "2D") {
             initSVG();
         }
 
         await sleep();
+        if (!isCurrent()) return;
         loadOrbitDataIfNeededAndProcess(callback);
         loadLandingDataAndProcess();
 
