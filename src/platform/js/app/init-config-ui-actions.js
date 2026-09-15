@@ -17,6 +17,7 @@ function createInitConfigUiActions(deps) {
         clearEventInfo,
     } = deps;
     let eventRangeHoverBound = false;
+    const swipersBySelector = new Map();
 
     function resolveEventTimeMs(eventInfo) {
         if (!eventInfo) return Number.NaN;
@@ -203,32 +204,47 @@ function createInitConfigUiActions(deps) {
         renderBurnButtonsWithEventInfos(eventInfos);
         bindEventRangeHover();
         bindBurnEventButtons(eventInfos);
+        const eventSwiper = swipersBySelector.get(".swiper2");
+        if (eventSwiper && !eventSwiper.destroyed) {
+            eventSwiper.update?.();
+        }
+    }
+
+    function replaceSwiper(selector, options) {
+        const previous = swipersBySelector.get(selector);
+        if (previous && !previous.destroyed) {
+            previous.destroy?.(true, true);
+        }
+        swipersBySelector.set(selector, new SwiperClass(selector, options));
     }
 
     function initializeSwipers() {
-        new SwiperClass(".swiper1", {
+        replaceSwiper(".swiper1", {
             direction: "horizontal",
             loop: false,
             slidesPerView: "auto",
             watchOverflow: true,
             freeMode: false,
             allowTouchMove: false,
+            a11y: { scrollOnFocus: false },
             spaceBetween: 6,
         });
 
-        new SwiperClass(".swiper2", {
+        replaceSwiper(".swiper2", {
             direction: "horizontal",
             loop: false,
             slidesPerView: "auto",
             watchOverflow: true,
-            freeMode: true,
+            // The timeline controller owns mouse scrolling/click suppression;
+            // CSS pan-x and the browser own touch/focus scrolling. A second
+            // Swiper transform/momentum owner would move the strip twice.
+            freeMode: false,
+            allowTouchMove: false,
+            a11y: { scrollOnFocus: false },
             noSwiping: false,
-            simulateTouch: true,
+            simulateTouch: false,
             touchStartPreventDefault: false,
             touchMoveStopPropagation: false,
-            // Allow drag-to-scroll even when pointer starts on an event button.
-            // Swiper treats "button" as focusable by default and skips swiping.
-            focusableElements: "input, select, option, textarea, video, label",
             grabCursor: true,
             threshold: 4,
             // Spacing is handled by CSS gap so connector segments can align

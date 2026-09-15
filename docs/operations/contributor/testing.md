@@ -74,6 +74,13 @@ keyboard Retry and origin changes during a held retry. It also checks that
 the recovery card stays clear of playback. The suite starts no server; use
 the same local test server as the other browser suites.
 
+`npm run test:browser:swiper` checks the full Swiper bundle against native event
+scrolling: mouse/touch drag without seeking, keyboard event activation,
+origin-reinitialization cleanup and transport clicks. Its setup also imports
+the authored CDN bundle in the browser. `test/swiper-distribution.test.js`
+keeps npm, lockfile and generated-page CDN versions aligned and runs the
+reported prototype-pollution bypass in an isolated Node process.
+
 Quick default visual run (managed server lifecycle):
 
 ```bash

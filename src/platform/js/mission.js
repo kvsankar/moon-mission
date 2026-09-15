@@ -75,7 +75,7 @@ import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
 import { createMissionPlaybackRuntime } from "./app/mission-entry-composition.js";
 import { buildTimelineEventInfos } from "./app/comparison-timeline.js";
 
-import Swiper from 'swiper';
+import Swiper from 'swiper/bundle';
 import * as THREE from 'three';
 
 // Expose THREE for runtime modules that are initialized outside DI wiring.

@@ -24,17 +24,20 @@ The preserved May planning snapshot is
 The same-major toolchain slice is complete: Vite 7.3.6, Vitest/coverage 3.2.7,
 loopback-only serving with wildcard CORS disabled, and generated-report watcher
 isolation. See [update evidence](../evidence/reviews/dependency-updates-2026-09-15.md).
-The audit now reports 13 affected package entries (one critical), down from 18.
+The coordinated Swiper slice is also complete at exact version 12.2.0 across
+npm and authored CDN JavaScript/CSS, with bundle parity and native carousel
+gesture/lifecycle checks: [Swiper evidence](../evidence/reviews/swiper-upgrade-2026-09-15.md).
+The repository audit now reports 12 affected package entries and zero critical
+entries, down from the original 18. Production remains unchanged until the
+user explicitly authorizes deployment.
 
-Next, coordinate the major Swiper update across npm and production CDN
-JavaScript/CSS; an npm-only change does not update the deployed carousel.
-Keep the optional MCP upgrade and major Vitest/mocker migration as separate
-tested slices. Do not apply blind audit-fix upgrades.
+Next, handle the optional MCP/SDK chain and the major Vitest/mocker migration
+as separate tested slices. Do not apply blind audit-fix upgrades.
 
 Evidence and version candidates:
 [Dependency Advisory Triage](../evidence/reviews/dependency-triage-2026-09-15.md).
-Swiper, MCP-related and other deferred advisories remain; the toolchain update
-is not a clean security audit. No runtime dependency versions changed in it.
+MCP-related, Vitest/mocker and other deferred advisories remain. This is not a
+clean security audit; the live site's Swiper remains pending explicit deployment.
 
 ### 2. Reduce camera-state ownership ambiguity (RTA-06)
 
@@ -69,6 +72,9 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Coordinated Swiper security update and carousel compatibility fixes:
+  [Swiper upgrade evidence](../evidence/reviews/swiper-upgrade-2026-09-15.md).
 
 - Same-major Vite/Vitest updates and local development-server hardening:
   [dependency update evidence](../evidence/reviews/dependency-updates-2026-09-15.md).

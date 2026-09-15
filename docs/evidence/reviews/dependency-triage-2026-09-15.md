@@ -4,6 +4,10 @@ Follow-up: [same-major toolchain updates](dependency-updates-2026-09-15.md)
 reduced the audit to 13 affected entries. The inventory below is the original
 pre-update checkpoint, not the current installed-version list.
 
+The subsequent [Swiper update](swiper-upgrade-2026-09-15.md) reduces the
+repository audit to 12 affected entries, with no critical entries. Deployment
+remains explicitly deferred by the user.
+
 Read-only triage of the reported 18 vulnerable package entries (three critical,
 ten high, five moderate). Counts include affected wrappers/transitive packages;
 they are not counts of independent deployed exploits. No dependencies changed.

@@ -268,6 +268,13 @@ may scroll the upcoming event into view and run a short reduced-motion-aware
 cue. Horizontal dragging inside the event carousel suppresses the click that
 would otherwise fire at drag end.
 
+The event strip has one scrolling owner: the timeline controller handles mouse
+drag/click suppression, while native browser scrolling handles touch and focus.
+Swiper must not add a competing wrapper transform, momentum or focus-scroll
+operation. Reinitializing controls replaces/destroys prior Swiper instances;
+replacing event slides refreshes the current instance rather than accumulating
+listeners or keeping stale slide geometry.
+
 The `Media` button toggles the Mission Media workflow panel and the timeline
 media lane together. The media lane is desktop-only in the current
 implementation. On non-desktop layouts, the Media button is disabled and the
