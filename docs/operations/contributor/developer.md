@@ -149,6 +149,11 @@ separate scene, chrome, workspace and mobile coverage.
 
 ### Development
 
+Browser automation uses the direct `playwright` package. No repository-local
+MCP server is required by the current tests or development workflow. The unused
+MCP package and obsolete `mcp-server` npm command were removed; mentions in
+archived design/review documents are historical, not setup instructions.
+
 - `npm run dev` - Vite dev server
 - `npm run test:unit` - unit/integration tests excluding UI visual suite
 - `make test` - primary Playwright+SSIM UI suite (`test/ui.test.js`, managed server on `8111`)

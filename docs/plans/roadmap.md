@@ -27,17 +27,21 @@ isolation. See [update evidence](../evidence/reviews/dependency-updates-2026-09-
 The coordinated Swiper slice is also complete at exact version 12.2.0 across
 npm and authored CDN JavaScript/CSS, with bundle parity and native carousel
 gesture/lifecycle checks: [Swiper evidence](../evidence/reviews/swiper-upgrade-2026-09-15.md).
-The repository audit now reports 12 affected package entries and zero critical
-entries, down from the original 18. Production remains unchanged until the
-user explicitly authorizes deployment.
+The unused repository MCP dependency and launcher have now been removed after
+usage review, eliminating 82 development-only packages while preserving the
+direct Playwright/browser versions: [removal evidence](../evidence/reviews/mcp-dependency-removal-2026-09-15.md).
+The fresh repository audit reports five affected entries (one high, four
+moderate, zero critical). Production remains unchanged until the user explicitly
+authorizes deployment.
 
-Next, handle the optional MCP/SDK chain and the major Vitest/mocker migration
-as separate tested slices. Do not apply blind audit-fix upgrades.
+Next, resolve compatible brace-expansion/fflate transitive updates and handle
+the major Vitest/coverage/mocker migration as a separate tested slice. Do not
+apply blind audit-fix upgrades or reinstall unused MCP tooling.
 
 Evidence and version candidates:
 [Dependency Advisory Triage](../evidence/reviews/dependency-triage-2026-09-15.md).
-MCP-related, Vitest/mocker and other deferred advisories remain. This is not a
-clean security audit; the live site's Swiper remains pending explicit deployment.
+Brace-expansion, fflate and Vitest/mocker advisories remain. This is not a clean
+security audit; the live site's Swiper remains pending explicit deployment.
 
 ### 2. Reduce camera-state ownership ambiguity (RTA-06)
 
@@ -72,6 +76,9 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Removed unused repository MCP tooling and its exclusive dependency chain:
+  [MCP removal evidence](../evidence/reviews/mcp-dependency-removal-2026-09-15.md).
 
 - Coordinated Swiper security update and carousel compatibility fixes:
   [Swiper upgrade evidence](../evidence/reviews/swiper-upgrade-2026-09-15.md).

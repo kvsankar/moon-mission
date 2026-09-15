@@ -10,7 +10,6 @@
     "preview": "vite preview",
     "start": "vite --port 7274",
     "mission-pages:generate": "node scripts/generate-mission-pages.mjs",
-    "mcp-server": "playwright mcp",
     "typecheck": "tsc",
     "lint": "tsc --noEmit",
     "test": "vitest test/ui.test.js",
@@ -79,7 +78,6 @@
   "author": "Sankar",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/mcp": "^0.0.32",
     "@types/d3": "^7.4.3",
     "@types/jquery": "^3.5.32",
     "@types/node": "^24.2.1",
