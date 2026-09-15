@@ -4,12 +4,14 @@ All tiers use the shared Physical renderer. Paths below are under `images/moon/`
 
 | Tier | Color | Terrain |
 | --- | --- | --- |
-| Low | `lroc_color_2025_2k_low.jpg` | `terrain-low-v1.moon.gz` |
-| Medium | `lroc_color_2025_4k_fast.jpg` | `terrain-medium-v1.moon.gz` |
+| Low | `lroc_color_2025_2k_low.jpg` | `terrain-low-v2.moon.gz` |
+| Medium | `lroc_color_2025_4k_fast.jpg` | `terrain-medium-v2.moon.gz` |
 | High | `lroc_color_2025_16k_quality.jpg` | `ldem_16_uint_quality.png` |
 
-Low/Medium packages contain area-averaged NASA uint16 heights and prepared RGB8
-normals, using the same spherical normal algorithm as High. Heights retain
+Low/Medium V2 packages retain the V1 area-averaged NASA uint16 heights byte-for-byte.
+Their RGB8 normals are calculated at the native source resolution with the same
+spherical algorithm used by High, then area-filtered in tangent-slope space.
+This avoids the extra blur from differentiating an already reduced height grid. Heights retain
 half-metre samples with the +10 km encoding offset and 1737.4 km reference radius.
 There is no per-image height normalization. High retains its accepted PNG and
 half-float normal precision. Old `ldem_16_gsfc.png` profile overrides migrate to
@@ -25,8 +27,11 @@ node scripts/generate-sun-corona.mjs
 
 The color generator creates the 1K app preview (JPEG quality 78) and Low's 2K
 color (quality 85) from the existing NASA 4K color, using Pillow Lanczos resizing.
-Terrain preparation reuses `buildPhysicalMoonNormalData`; dimensions, source hash,
-format and output hashes are recorded in `images/moon/terrain-v1-provenance.json`.
+Terrain preparation reuses `buildPhysicalMoonNormalData`, then
+`scripts/lib/moon-normal-reduction.mjs` filters the native slopes. Dimensions,
+source/helper hashes, format and output hashes are recorded in
+`images/moon/terrain-v2-provenance.json`. This runs offline, never during loading.
+Low/Medium use normal compensation 2.1; High remains at its accepted settings.
 The original source chain is in the [provenance baseline](../../evidence/baselines/moon-render-assets-2026-04.md).
 
 Moon runtime textures/packages follow the existing app/data mirror contract:
@@ -39,7 +44,11 @@ The Sun generator preserves the original raster math; pixel equality is tested.
 
 Vite development serves staged local assets. Production retains the configured
 runtime asset base/CDN. Upload the new terrain and 2K color assets before releasing
-the consuming app; the runtime manifest now requires all six profile assets.
+the consuming app; the runtime manifest requires all six profile assets.
+V2 changes URLs so cached V1 packages cannot silently replace the new normals.
+Keep V1 files available for older app consumers until their rollout is retired.
+V2 terrain downloads are 1,795,449 bytes (Low) and 7,319,808 bytes (Medium),
+increases of 98,011 and 272,763 bytes; GPU dimensions and memory are unchanged.
 
 Vite bundles module workers. The source-based static deployment and Python build
 also run `scripts/build-moon-worker.mjs`, producing a self-contained worker at the

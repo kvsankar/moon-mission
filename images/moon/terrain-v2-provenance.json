@@ -1,0 +1,32 @@
+{
+  "source": "images/moon/ldem_16_uint_quality.png",
+  "sourceSha256": "37b3a7f19157298e21a3a0cb982827f20bf71fbbfe4f79565da95b9dbdc19a81",
+  "sourceWidth": 5760,
+  "sourceHeight": 2880,
+  "heightUnits": "NASA uint16: half metres with +10000 metre offset; radius 1737400 metres",
+  "reduction": "area average, rounded to original half-metre units; no normalization",
+  "normals": "buildPhysicalMoonNormalData at source resolution, slopeBoost=1; then area-average tangent slopes with reducePhysicalMoonNormalData before RGB8 packing",
+  "normalSourceWidth": 5760,
+  "normalSourceHeight": 2880,
+  "normalReduction": "average nx/nz and ny/nz over each output footprint, then renormalize; no height modification",
+  "normalReductionSha256": "5aee86a8d06f9f68d232c4a38782425943ca7a2bc9a4fd8ff60ac943276c6196",
+  "format": "MOONDEM1 little-endian header + uint16 heights + RGB8 physical normals; gzip level 9",
+  "outputs": [
+    {
+      "tier": "low",
+      "file": "images/moon/terrain-low-v2.moon.gz",
+      "width": 1024,
+      "height": 512,
+      "bytes": 1795449,
+      "sha256": "e2e1ded35a2e2ac21e875087f8f98bbd902231023823d8820d5fb2e8b5cbdf43"
+    },
+    {
+      "tier": "medium",
+      "file": "images/moon/terrain-medium-v2.moon.gz",
+      "width": 2048,
+      "height": 1024,
+      "bytes": 7319808,
+      "sha256": "eada1011508049cdb5f94906f1fb9a209a34245274657fedcfda6e547a0ee59d"
+    }
+  ]
+}

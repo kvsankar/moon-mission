@@ -28,7 +28,7 @@ describe("cross-device rendering policy", () => {
         const device = { MOON_RENDER_MAX_TEXTURE_SIZE: 4096 };
         const selection = resolveMoonRenderAssetSelection({ globalObject: device, profile: "quality" });
         expect(selection.profile).toBe("fast");
-        expect(selection.active.moonDisplacementMap).toContain("terrain-medium-v1.moon.gz");
+        expect(selection.active.moonDisplacementMap).toContain("terrain-medium-v2.moon.gz");
         expect(constrainMoonRenderProfile("fast", { MOON_RENDER_MAX_TEXTURE_SIZE: 1024 })).toBe("low");
         expect(constrainMoonRenderProfile("quality", {})).toBe("quality");
     });

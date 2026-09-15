@@ -388,7 +388,7 @@ describe("texture-loader", () => {
 
         expect(loadCalls).toEqual([
             `${ASSET_BASE_URL}/images/moon/lroc_color_2025_2k_low.jpg`,
-            `${ASSET_BASE_URL}/images/moon/terrain-low-v1.moon.gz`,
+            `${ASSET_BASE_URL}/images/moon/terrain-low-v2.moon.gz`,
         ]);
         expect(textures.moonRenderProfile).toBe("low");
         expect(textures.moonDisplacementMap.userData.moonDemEncoding).toBe("nasa-uint16-float");
@@ -560,7 +560,7 @@ describe("texture-loader", () => {
 
         expect(loadCalls).toEqual([
             `${ASSET_BASE_URL}/images/moon/lroc_color_2025_2k_low.jpg`,
-            `${ASSET_BASE_URL}/images/moon/terrain-low-v1.moon.gz`,
+            `${ASSET_BASE_URL}/images/moon/terrain-low-v2.moon.gz`,
         ]);
         expect(textures.moonMap).toBeTruthy();
         expect(textures.moonDisplacementMap.userData.moonDemEncoding).toBe("nasa-uint16-float");

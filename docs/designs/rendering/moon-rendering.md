@@ -29,7 +29,7 @@ flowchart LR
     R --> V[Main, auxiliary, composer, observer, tuner, exports]
 ```
 
-Every completed tier has terrain. Low and Medium use smaller versions of High's NASA elevation map, preserving its half-metre height units and lunar reference radius. Their normals are prepared with the same spherical algorithm as High, then stored at lower precision. The fast path reduces detail and work; it does not substitute a different lighting model.
+Every completed tier has terrain. Low and Medium preserve NASA half-metre height units and the lunar reference radius. V2 compact normals use the same spherical algorithm as High at source resolution, then filter the slopes before RGB8 storage. Calculating slopes before reduction preserves sharper crater edges; a 2.1 normal compensation restores restrained relief contrast. This is offline preparation with the same runtime lighting. [Visual review and budgets](../../evidence/audits/moon-low-medium-quality-2026-09-15.md).
 
 | Tier / key | Color | Terrain / normals | Geometry | Shadow samples | Texture memory per context* |
 | --- | --- | --- | --- | --- | --- |

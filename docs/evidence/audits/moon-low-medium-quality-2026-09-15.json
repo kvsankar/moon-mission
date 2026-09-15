@@ -1,0 +1,195 @@
+{
+  "baselineCommit": "0c0483b1f2194c8dd098262481f1016c10796bf3",
+  "method": "Matched 1494x996 RGB render captures. Mean absolute luminance difference against untouched High over High pixels >5/255. This measures similarity to High, not photographic ground truth. First three views used for selection; last three held out.",
+  "highPixelIdenticalScenes": 6,
+  "sourceHashesUnchanged": true,
+  "metrics": [
+    {
+      "scene": "manzinus",
+      "tier": "low",
+      "before": 13.935249291913719,
+      "after": 11.887848524291522,
+      "errorReductionPercent": 14.69224356689659
+    },
+    {
+      "scene": "manzinus",
+      "tier": "medium",
+      "before": 11.862531479984634,
+      "after": 8.028758761861555,
+      "errorReductionPercent": 32.31833546314893
+    },
+    {
+      "scene": "earthset",
+      "tier": "low",
+      "before": 13.0614463440425,
+      "after": 11.272686978755116,
+      "errorReductionPercent": 13.694956271847037
+    },
+    {
+      "scene": "earthset",
+      "tier": "medium",
+      "before": 11.284582954240303,
+      "after": 7.872693358259294,
+      "errorReductionPercent": 30.23496401964022
+    },
+    {
+      "scene": "quarter",
+      "tier": "low",
+      "before": 4.530516641536713,
+      "after": 4.1451595348549,
+      "errorReductionPercent": 8.505809318716084
+    },
+    {
+      "scene": "quarter",
+      "tier": "medium",
+      "before": 3.7259453846948256,
+      "after": 2.937750952390788,
+      "errorReductionPercent": 21.154213251265762
+    },
+    {
+      "scene": "oblique",
+      "tier": "low",
+      "before": 13.535054313811438,
+      "after": 11.680034095659188,
+      "errorReductionPercent": 13.70530309774487
+    },
+    {
+      "scene": "oblique",
+      "tier": "medium",
+      "before": 11.636632604676869,
+      "after": 8.201875766296304,
+      "errorReductionPercent": 29.51675931575003
+    },
+    {
+      "scene": "gibbous",
+      "tier": "low",
+      "before": 4.7504884360992605,
+      "after": 4.2902137060342245,
+      "errorReductionPercent": 9.688998010549387
+    },
+    {
+      "scene": "gibbous",
+      "tier": "medium",
+      "before": 3.818944576035557,
+      "after": 2.925902017944547,
+      "errorReductionPercent": 23.384538327552185
+    },
+    {
+      "scene": "waxing",
+      "tier": "low",
+      "before": 6.562752063763871,
+      "after": 5.759829473005,
+      "errorReductionPercent": 12.234540981552467
+    },
+    {
+      "scene": "waxing",
+      "tier": "medium",
+      "before": 5.571799795671038,
+      "after": 4.064706272568217,
+      "errorReductionPercent": 27.048594320882536
+    }
+  ],
+  "gpu": {
+    "method": "Paired 1024x1024 offscreen GPU elapsed queries, same page/camera/geometry/color/height/shader. Twelve alternating rounds per variant, 10 warmup + 10 timed draws each; gl.finish brackets draws to avoid queue buildup. Original v1 normals at scale1 versus v2 at2.1. Excludes UI/loading.",
+    "results": [
+      {
+        "tier": "low",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "normalDimensions": [
+          1024,
+          512
+        ],
+        "triangles": 65024,
+        "summary": {
+          "before": {
+            "medianMs": 0.142272,
+            "p95Ms": 0.3584,
+            "draws": 120
+          },
+          "after": {
+            "medianMs": 0.142144,
+            "p95Ms": 0.373632,
+            "draws": 120
+          }
+        }
+      },
+      {
+        "tier": "medium",
+        "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Laptop GPU (0x00002860) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "dimensions": [
+          1024,
+          1024
+        ],
+        "normalDimensions": [
+          2048,
+          1024
+        ],
+        "triangles": 146688,
+        "summary": {
+          "before": {
+            "medianMs": 0.422912,
+            "p95Ms": 2.276352,
+            "draws": 120
+          },
+          "after": {
+            "medianMs": 0.422912,
+            "p95Ms": 1.335296,
+            "draws": 120
+          }
+        }
+      }
+    ],
+    "note": "A first queued-query run had unstable Medium timings; the recorded run brackets draws with gl.finish and alternates variant order to reduce queue-related bias. Tail timings remain variable."
+  },
+  "assets": {
+    "source": "images/moon/ldem_16_uint_quality.png",
+    "sourceSha256": "37b3a7f19157298e21a3a0cb982827f20bf71fbbfe4f79565da95b9dbdc19a81",
+    "sourceWidth": 5760,
+    "sourceHeight": 2880,
+    "heightUnits": "NASA uint16: half metres with +10000 metre offset; radius 1737400 metres",
+    "reduction": "area average, rounded to original half-metre units; no normalization",
+    "normals": "buildPhysicalMoonNormalData at source resolution, slopeBoost=1; then area-average tangent slopes with reducePhysicalMoonNormalData before RGB8 packing",
+    "normalSourceWidth": 5760,
+    "normalSourceHeight": 2880,
+    "normalReduction": "average nx/nz and ny/nz over each output footprint, then renormalize; no height modification",
+    "normalReductionSha256": "5aee86a8d06f9f68d232c4a38782425943ca7a2bc9a4fd8ff60ac943276c6196",
+    "format": "MOONDEM1 little-endian header + uint16 heights + RGB8 physical normals; gzip level 9",
+    "outputs": [
+      {
+        "tier": "low",
+        "file": "images/moon/terrain-low-v2.moon.gz",
+        "width": 1024,
+        "height": 512,
+        "bytes": 1795449,
+        "sha256": "e2e1ded35a2e2ac21e875087f8f98bbd902231023823d8820d5fb2e8b5cbdf43"
+      },
+      {
+        "tier": "medium",
+        "file": "images/moon/terrain-medium-v2.moon.gz",
+        "width": 2048,
+        "height": 1024,
+        "bytes": 7319808,
+        "sha256": "eada1011508049cdb5f94906f1fb9a209a34245274657fedcfda6e547a0ee59d"
+      }
+    ]
+  },
+  "validation": {
+    "unitPassed": 1460,
+    "unitSkipped": 31,
+    "chromiumObserverAndLoadingPassed": 23,
+    "webkitEclipseAndTouchPassed": 5
+  },
+  "protectedHighSourceHashes": {
+    "src/platform/js/rendering/moon-renderer.js": "c3c95aa7188bf5e96c1a8d5345624daedf90ec2a70648abca29b2e53c5d088e4",
+    "src/platform/js/rendering/moon-physical-normal-data.js": "d0f65dd2ede760e083d631e828fe207f6294016fcd9fa116d9b765ab89250bd3",
+    "src/platform/js/rendering/moon-normal-map.js": "acbc7f66ae4b822f987542d4bc0873fbdaa201e0e7250cff5a243fce7d82588d",
+    "src/platform/js/workers/moon-dem-worker.js": "c7a439f99fc5c99759841f1d0ce29aa0623b4ae72e5d61dc0011044087f72e8a",
+    "src/platform/js/app/moon-render-pipeline.js": "8c40c75c4b37ffc931b36ff8dfe3fdd6e84c3b051fc39caad9705139ae8ed54e",
+    "images/moon/lroc_color_2025_16k_quality.jpg": "14ba95e251dd444ad408df91a7004ee1801c333f0fa8f963be0db692a00e4ebe",
+    "images/moon/ldem_16_uint_quality.png": "37b3a7f19157298e21a3a0cb982827f20bf71fbbfe4f79565da95b9dbdc19a81"
+  }
+}

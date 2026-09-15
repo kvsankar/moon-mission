@@ -197,3 +197,8 @@ docs/design/references/sun-fov/
 !images/moon/terrain-medium-v1.moon.gz
 !images/moon/terrain-v1-provenance.json
 !images/moon/lroc_color_2025_2k_low.jpg
+
+# Sharper compact Moon normals; v1 remains for existing consumers.
+!images/moon/terrain-low-v2.moon.gz
+!images/moon/terrain-medium-v2.moon.gz
+!images/moon/terrain-v2-provenance.json

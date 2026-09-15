@@ -3,12 +3,12 @@ import { constrainMoonRenderProfile, resolveDefaultMoonProfile } from "../core/d
 
 const DEFAULT_FAST_MOON_RENDER_ASSET_PATHS = Object.freeze({
     moonMap: "images/moon/lroc_color_2025_4k_fast.jpg",
-    moonDisplacementMap: "images/moon/terrain-medium-v1.moon.gz",
+    moonDisplacementMap: "images/moon/terrain-medium-v2.moon.gz",
 });
 
 const DEFAULT_LOW_MOON_RENDER_ASSET_PATHS = Object.freeze({
     moonMap: "images/moon/lroc_color_2025_2k_low.jpg",
-    moonDisplacementMap: "images/moon/terrain-low-v1.moon.gz",
+    moonDisplacementMap: "images/moon/terrain-low-v2.moon.gz",
 });
 
 const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
@@ -23,7 +23,8 @@ const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     physicalDisplacementScale: MOON_HEIGHT_SCALE,
     physicalDisplacementBias: MOON_HEIGHT_BIAS,
     physicalNormalHeightScale: MOON_HEIGHT_SCALE,
-    physicalNormalResolutionCompensation: 1.0,
+    // Compensate the compact, source-slope-filtered normals without extra GPU work.
+    physicalNormalResolutionCompensation: 2.1,
     physicalNormalSlopeBoost: 1.0,
     physicalNormalSlopeBoostStart: 0.16,
     physicalNormalSlopeBoostEnd: 0.34,
@@ -152,6 +153,10 @@ function migrateLegacyMoonAssetPath(profileName, assetKey, pathValue) {
         return normalized;
     }
 
+    if (assetKey === "moonDisplacementMap" && (
+        (profileName === "low" && normalized === "images/moon/terrain-low-v1.moon.gz") ||
+        (profileName === "fast" && normalized === "images/moon/terrain-medium-v1.moon.gz")
+    )) return DEFAULT_MOON_RENDER_ASSET_PROFILES[profileName].moonDisplacementMap;
     if (assetKey === "moonDisplacementMap" && normalized === "images/moon/ldem_16_gsfc.png") {
         return DEFAULT_MOON_RENDER_ASSET_PROFILES[profileName].moonDisplacementMap;
     }

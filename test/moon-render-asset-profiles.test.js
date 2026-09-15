@@ -37,9 +37,25 @@ describe("moon-render-asset-profiles", () => {
 
         expect(selection.profile).toBe("low");
         expect(selection.active.moonMap).toBe(DEFAULT_MOON_RENDER_ASSET_PROFILES.low.moonMap);
-        expect(selection.active.moonDisplacementMap).toContain("terrain-low-v1.moon.gz");
+        expect(selection.active.moonDisplacementMap).toContain("terrain-low-v2.moon.gz");
         expect(selection.activeRenderSettings.physicalGeometryWidthSegments).toBe(256);
         expect(selection.activeRenderSettings.physicalTerrainShadowSamples).toBe(4);
+    });
+
+    it("upgrades saved compact package defaults while leaving custom and High assets alone", () => {
+        const profiles = resolveMoonRenderAssetProfiles({ globalObject: {
+            MOON_RENDER_ASSET_PATHS: {
+                low: { moonDisplacementMap: "images/moon/terrain-low-v1.moon.gz" },
+                fast: { moonDisplacementMap: "images/moon/terrain-medium-v1.moon.gz" },
+                quality: { moonDisplacementMap: "/custom/high.png" },
+            },
+        } });
+        expect(profiles.low.moonDisplacementMap).toContain("terrain-low-v2");
+        expect(profiles.fast.moonDisplacementMap).toContain("terrain-medium-v2");
+        expect(profiles.quality.moonDisplacementMap).toBe("/custom/high.png");
+        expect(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.low.physicalNormalResolutionCompensation).toBe(2.1);
+        expect(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast.physicalNormalResolutionCompensation).toBe(2.1);
+        expect(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.quality.physicalNormalResolutionCompensation).toBe(2.08);
     });
 
     it("defaults Artemis II to Medium when no explicit override is present", () => {
