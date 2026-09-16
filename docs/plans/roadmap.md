@@ -46,7 +46,8 @@ metadata validation. SA-08 media-manifest recovery and SA-13 hidden-panel keyboa
 ownership are complete. SA-21 workspace initialization/lifecycle and SA-12 Reset
 View selection and SA-11 explicit constrained-layout edit persistence are
 complete. SA-14 detached-window geometry/lifecycle is complete. SA-20 detached
-panel-registry snapshots are next.
+panel-registry snapshots are complete. SA-16 scene compatibility mirrors are
+next among the remaining reproduced risk items.
 The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and

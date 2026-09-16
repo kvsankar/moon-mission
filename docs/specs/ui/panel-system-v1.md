@@ -102,6 +102,11 @@ Deferred targets are not part of the V1 contract. They are tracked in
 
 - A concrete panel on screen.
 - Has runtime state plus persisted mission-layout state.
+- Registry descriptors are copied on registration/update. Snapshot/detail reads
+  and each subscriber notification receive detached nested data, so callers
+  cannot mutate registry state without an explicit update and notification.
+- Executable actions stay private; snapshots expose only boolean action
+  availability.
 
 ### Layout
 

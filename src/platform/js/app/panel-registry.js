@@ -1,6 +1,36 @@
 const panelEntries = new Map();
 const panelListeners = new Set();
 
+function clonePanelDescriptorData(value, seen = new WeakMap()) {
+    if (value == null || typeof value !== "object") return value;
+    if (seen.has(value)) return seen.get(value);
+    if (value instanceof Date) return new Date(value.getTime());
+    if (Array.isArray(value)) {
+        const clone = [];
+        seen.set(value, clone);
+        value.forEach(item => clone.push(clonePanelDescriptorData(item, seen)));
+        return clone;
+    }
+    if (value instanceof Map) {
+        const clone = new Map();
+        seen.set(value, clone);
+        value.forEach((item, key) => clone.set(clonePanelDescriptorData(key, seen), clonePanelDescriptorData(item, seen)));
+        return clone;
+    }
+    if (value instanceof Set) {
+        const clone = new Set();
+        seen.set(value, clone);
+        value.forEach(item => clone.add(clonePanelDescriptorData(item, seen)));
+        return clone;
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return value;
+    const clone = prototype === null ? Object.create(null) : {};
+    seen.set(value, clone);
+    for (const [key, item] of Object.entries(value)) clone[key] = clonePanelDescriptorData(item, seen);
+    return clone;
+}
+
 function sanitizeSnapshotEntry(entry) {
     if (!entry || typeof entry !== "object") {
         return null;
@@ -12,7 +42,7 @@ function sanitizeSnapshotEntry(entry) {
     } = entry;
 
     return {
-        ...rest,
+        ...clonePanelDescriptorData(rest),
         actions: {
             open: typeof actions?.open === "function",
             restore: typeof actions?.restore === "function",
@@ -73,21 +103,20 @@ function emitPanelRegistryChange() {
             .filter(Boolean),
     );
 
-    for (const listener of panelListeners) {
-        listener(snapshot);
-    }
+    for (const listener of panelListeners) listener(clonePanelDescriptorData(snapshot));
 }
 
 function normalizePanelEntry(id, descriptor, previous = null) {
     const safeDescriptor = descriptor && typeof descriptor === "object" ? descriptor : {};
+    const { actions: descriptorActions, ...descriptorData } = safeDescriptor;
     const nextActions = {
         ...(previous?.actions || {}),
-        ...(safeDescriptor.actions || {}),
+        ...(descriptorActions || {}),
     };
 
     return {
         ...(previous || {}),
-        ...safeDescriptor,
+        ...clonePanelDescriptorData(descriptorData),
         id,
         actions: nextActions,
     };

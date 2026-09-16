@@ -464,6 +464,23 @@ verifies owner identity and opener-bounded geometry. Final verification:
 **1,953 unit tests passed, six skipped, 242 files**, and all **ten auxiliary
 panel browser checks** passed. SA-14 is complete.
 
+## SA-20 — Detached Panel Registry Snapshots
+
+Four RED cases showed nested registry state remained writable through the input
+descriptor, `getMissionPanelSnapshot`, `getMissionPanelDetails`, update patches,
+and one subscriber's mutation before a later subscriber ran. The registry now
+deep-copies plain descriptor data, arrays, maps, sets and dates on write and on
+every read/notification. Each subscriber receives its own copy.
+
+Action functions remain in the private registry entry. Snapshots continue to
+expose the established boolean `actions` capability map, and real action
+invocation remains unchanged. The SA-21 initial-listener exception cleanup is
+preserved and covered in the combined focused run.
+
+Final verification: **31 focused registry/host tests**, **1,957 unit tests
+passed, six skipped, 242 files**, and the real registry-Focus browser check
+passed. SA-20 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
