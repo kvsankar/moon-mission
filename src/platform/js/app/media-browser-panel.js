@@ -13,6 +13,7 @@ import {
 } from "./panel-defaults.js";
 import {
     getDockviewSpikeLayoutHost,
+    focusDockviewWorkflowPanel,
     resolveDockedWorkflowPanelPosition,
 } from "./dockview-workflow-panels.js";
 import { bringPanelElementToFront } from "./panel-z-order.js";
@@ -2276,7 +2277,7 @@ function createMediaBrowserPanelActions({
                 open: () => setPanelState("open"),
                 restore: () => setPanelState("open"),
                 focus: panelStateName === "open"
-                    ? () => setPanelState("open")
+                    ? () => { setPanelState("open"); focusDockviewWorkflowPanel(MEDIA_BROWSER_PANEL_ID); }
                     : undefined,
                 close: panelStateName === "open"
                     ? () => setPanelState("closed")

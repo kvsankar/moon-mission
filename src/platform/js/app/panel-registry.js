@@ -141,7 +141,13 @@ function subscribeMissionPanels(listener) {
         return () => {};
     }
     panelListeners.add(listener);
-    listener(getMissionPanelSnapshot());
+    try {
+        listener(getMissionPanelSnapshot());
+    } catch (error) {
+        // The caller never received its unsubscribe handle.
+        panelListeners.delete(listener);
+        throw error;
+    }
     return () => {
         panelListeners.delete(listener);
     };

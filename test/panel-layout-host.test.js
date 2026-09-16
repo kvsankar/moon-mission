@@ -93,6 +93,40 @@ function createDockviewApiStub({ throwFromJSON = false } = {}) {
 describe("panel layout host", () => {
     afterEach(() => {
         delete globalThis.localStorage;
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it("disposes an allocated API when default panel construction fails", () => {
+        const api = createDockviewApiStub();
+        const failure = new Error("renderer construction failed");
+        api.addPanel.mockImplementationOnce(() => { throw failure; });
+        expect(() => createPanelLayoutHost({ container: createContainerStub(), panels: [{ id: "main" }],
+            renderPanel: vi.fn(), createDockviewImpl: () => api })).toThrow(failure);
+        expect(api.dispose).toHaveBeenCalledOnce();
+    });
+
+    it("releases earlier subscriptions when later initialization fails", () => {
+        const api = createDockviewApiStub(), subscription = { dispose: vi.fn() };
+        api.onDidLayoutChange.mockReturnValueOnce(subscription);
+        api.onDidActivePanelChange.mockImplementationOnce(() => { throw new Error("subscribe failed"); });
+        expect(() => createPanelLayoutHost({ container: createContainerStub(), renderPanel: vi.fn(),
+            createDockviewImpl: () => api })).toThrow("subscribe failed");
+        expect(subscription.dispose).toHaveBeenCalledOnce();
+        expect(api.dispose).toHaveBeenCalledOnce();
+    });
+
+    it("cancels and guards deferred initial sizing after idempotent disposal", () => {
+        const frames = [], cancel = vi.fn();
+        vi.stubGlobal("requestAnimationFrame", callback => { frames.push(callback); return frames.length; });
+        vi.stubGlobal("cancelAnimationFrame", cancel);
+        const api = createDockviewApiStub();
+        const host = createPanelLayoutHost({ container: createContainerStub(), renderPanel: vi.fn(), createDockviewImpl: () => api });
+        host.dispose(); host.dispose(); api.layout.mockClear();
+        frames.forEach(callback => callback());
+        expect(cancel).toHaveBeenCalledWith(1);
+        expect(api.layout).not.toHaveBeenCalled();
+        expect(api.dispose).toHaveBeenCalledOnce();
     });
 
     it("normalizes mission keys for layout storage", () => {

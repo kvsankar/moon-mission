@@ -9,6 +9,7 @@ import {
     resolveNearestInactiveBackgroundItem,
     shouldUseBackgroundTransportPlayback,
 } from "../src/platform/js/app/background-media-panel.js";
+import { invokeMissionPanelAction } from "../src/platform/js/app/panel-registry.js";
 
 describe("background media panel helpers", () => {
     afterEach(() => {
@@ -17,6 +18,7 @@ describe("background media panel helpers", () => {
         delete globalThis.window;
         delete globalThis.localStorage;
         delete globalThis.fetch;
+        delete globalThis.__moonMissionDockviewSpike;
     });
 
     function installBackgroundPanelDom({ currentTime = 0, paused = true } = {}) {
@@ -185,6 +187,24 @@ describe("background media panel helpers", () => {
         const [, enablePlayback] = nodes.get("background-media-enable").addEventListener.mock.calls.find(([type]) => type === "click");
         enablePlayback();
     }
+
+    it("reveals only explicit registry Focus, not automatic background Restore", () => {
+        const { nodes } = installBackgroundPanelDom();
+        nodes.get("background-media-panel").classList.contains.mockImplementation(name => name === "background-media-panel--dockview");
+        const revealPanel = vi.fn(() => true), focusPanel = vi.fn(() => true);
+        globalThis.__moonMissionDockviewSpike = { progressiveWorkspace: { revealPanel },
+            layoutHost: { focusPanel, api: { getPanel: () => ({}) } } };
+        const actions = createBackgroundMediaPanelActions();
+        actions.setMissionContext({ available: true, configData: { ui: { panels: { defaults: {
+            "workflow:background-media": { enabled: true, defaultState: "open" },
+        } } } } });
+        revealPanel.mockClear();
+        expect(invokeMissionPanelAction("workflow:background-media", "restore")).toBe(true);
+        expect(revealPanel).not.toHaveBeenCalled();
+        expect(focusPanel).toHaveBeenCalled();
+        expect(invokeMissionPanelAction("workflow:background-media", "focus")).toBe(true);
+        expect(revealPanel).toHaveBeenCalledExactlyOnceWith("workflow:background-media");
+    });
 
     it("selects the highest-priority background video active at mission time", () => {
         const timeMs = Date.parse("2026-04-06T18:00:00Z");

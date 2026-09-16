@@ -306,12 +306,54 @@ function createFullscreenToggleButton(documentRef = globalThis?.document) {
     };
 }
 
-function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
+// Each owner cancels its handles and also guards callbacks already delivered
+// to the browser queue. A replacement host never inherits old deferred work.
+function createDeferredWorkspaceWork(isOwnerCurrent = () => true) {
+    let disposed = false;
+    const timers = new Set();
+    const frames = new Set();
+    const active = () => !disposed && isOwnerCurrent();
+    const timeout = (callback, delay = 0) => {
+        if (!active()) return null;
+        const handle = setTimeout(() => {
+            timers.delete(handle);
+            if (active()) callback();
+        }, delay);
+        timers.add(handle);
+        return handle;
+    };
+    return {
+        active,
+        timeout,
+        clearTimeout(handle) { timers.delete(handle); clearTimeout(handle); },
+        frame(callback) {
+            if (!active()) return null;
+            if (typeof requestAnimationFrame !== "function") return timeout(callback);
+            const handle = requestAnimationFrame(() => {
+                frames.delete(handle);
+                if (active()) callback();
+            });
+            frames.add(handle);
+            return handle;
+        },
+        microtask(callback) { queueMicrotask(() => { if (active()) callback(); }); },
+        dispose() {
+            if (disposed) return;
+            disposed = true;
+            timers.forEach(handle => clearTimeout(handle));
+            frames.forEach(handle => globalThis.cancelAnimationFrame?.(handle));
+            timers.clear(); frames.clear();
+        },
+    };
+}
+
+function createDockviewPanelLaunchStrip(documentRef = globalThis?.document, isOwnerCurrent = () => true) {
     const header = documentRef?.getElementById?.("header");
     const navbar = header?.querySelector?.(".navbar") || header;
     if (!navbar || documentRef.getElementById("dockview-panel-launch-strip")) {
         return { dispose() {} };
     }
+    const work = createDeferredWorkspaceWork(isOwnerCurrent);
 
     const strip = documentRef.createElement("div");
     strip.id = "dockview-panel-launch-strip";
@@ -341,6 +383,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     toolsSummary.setAttribute("aria-controls", toolsBody.id);
     tools.append(toolsSummary, toolsBody);
     const closeToolsAfterSelection = () => {
+        if (!work.active()) return;
         if (tools.open) {
             tools.open = false;
             toolsSummary.focus();
@@ -350,7 +393,9 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     sceneButton.type = "button";
     sceneButton.className = "dockview-panel-launch-strip__pill workspace-scene-return";
     sceneButton.textContent = "Scene";
-    sceneButton.addEventListener("click", () => globalThis.__moonMissionDockviewSpike?.progressiveWorkspace?.revealPanel(MAIN_VIEW_PANEL_ID));
+    sceneButton.addEventListener("click", () => {
+        if (work.active()) globalThis.__moonMissionDockviewSpike?.progressiveWorkspace?.revealPanel(MAIN_VIEW_PANEL_ID);
+    });
     strip.appendChild(sceneButton);
 
     const proxyButtons = sourceButtons.map(([targetId, label, panelId]) => {
@@ -362,6 +407,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
         if (panelId) button.dataset.workspacePanel = panelId;
         button.textContent = label;
         button.addEventListener("click", () => {
+            if (!work.active()) return;
             const progressive = globalThis.__moonMissionDockviewSpike?.progressiveWorkspace;
             if (panelId === "workflow:background-transcript") {
                 const host = globalThis.__moonMissionDockviewSpike?.layoutHost;
@@ -378,7 +424,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
             const target = documentRef.getElementById(targetId);
             const wasOpen = target?.getAttribute?.("aria-pressed") === "true";
             target?.dispatchEvent?.(new MouseEvent("click", { bubbles: true, cancelable: true }));
-            if (panelId && !wasOpen) queueMicrotask(() => progressive?.revealPanel(panelId));
+            if (panelId && !wasOpen) work.microtask(() => progressive?.revealPanel(panelId));
             closeToolsAfterSelection();
         });
         strip.appendChild(button);
@@ -398,6 +444,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     orbitDetailsPopover.className = "dockview-orbit-details-popover";
     orbitDetailsPopover.hidden = true;
     orbitDetailsButton.addEventListener("click", () => {
+        if (!work.active()) return;
         orbitDetailsPopover.hidden = !orbitDetailsPopover.hidden;
         orbitDetailsButton.setAttribute("aria-expanded", orbitDetailsPopover.hidden ? "false" : "true");
     });
@@ -409,6 +456,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     resetViewButton.textContent = "Reset View";
     resetViewButton.title = "Reset panel layout and dimensions";
     resetViewButton.addEventListener("click", () => {
+        if (!work.active()) return;
         if (typeof globalThis?.__moonMissionResetDockviewWorkspace === "function") {
             globalThis.__moonMissionResetDockviewWorkspace();
             return;
@@ -422,12 +470,13 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     strip.appendChild(fullscreenToggle.button);
     strip.appendChild(tools);
     const closeTools = event => {
+        if (!work.active()) return;
         if (event.key === "Escape" && tools.open) {
             tools.open = false;
             toolsSummary.focus();
         }
     };
-    const dismissTools = event => { if (tools.open && !tools.contains(event.target)) tools.open = false; };
+    const dismissTools = event => { if (work.active() && tools.open && !tools.contains(event.target)) tools.open = false; };
     documentRef.addEventListener("keydown", closeTools);
     documentRef.addEventListener("pointerdown", dismissTools);
 
@@ -444,6 +493,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     };
 
     const sync = () => {
+        if (!work.active()) return;
         const progressive = globalThis.__moonMissionDockviewSpike?.progressiveWorkspace;
         const level = progressive?.level || "full";
         for (const button of proxyButtons) {
@@ -496,6 +546,7 @@ function createDockviewPanelLaunchStrip(documentRef = globalThis?.document) {
     }
     return {
         dispose() {
+            work.dispose();
             documentRef.removeEventListener("moon-mission:workspace-disclosure-change", sync);
             documentRef.removeEventListener("keydown", closeTools);
             documentRef.removeEventListener("pointerdown", dismissTools);
@@ -753,13 +804,10 @@ function arrangeDockviewMainControlRibbon(documentRef = globalThis?.document) {
     appendGroupByLabel(strip, "Panels");
 }
 
-function scheduleDockviewMainControlRibbonArrangement(documentRef = globalThis?.document) {
+function scheduleDockviewMainControlRibbonArrangement(documentRef, work) {
     arrangeDockviewMainControlRibbon(documentRef);
-    const scheduleFrame = typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame
-        : (callback) => setTimeout(callback, 0);
-    scheduleFrame(() => arrangeDockviewMainControlRibbon(documentRef));
-    setTimeout(() => arrangeDockviewMainControlRibbon(documentRef), 250);
+    work.frame(() => arrangeDockviewMainControlRibbon(documentRef));
+    work.timeout(() => arrangeDockviewMainControlRibbon(documentRef), 250);
 }
 
 function clampWorkspaceSize(value, min, max) {
@@ -953,7 +1001,8 @@ function createDockviewTabContextMenuItems({ panel, group, api } = {}) {
     ];
 }
 
-function applyDefaultDockviewWorkspaceLayout(layoutHost) {
+function applyDefaultDockviewWorkspaceLayout(layoutHost, isCurrent = () => true) {
+    if (!isCurrent()) return false;
     const api = layoutHost?.api;
     if (!api?.fromJSON || !api?.toJSON) {
         return false;
@@ -1081,8 +1130,11 @@ function applyDefaultDockviewWorkspaceLayout(layoutHost) {
         panels: current.panels,
         activeGroup: "main-view",
     }, { reuseExistingPanels: true });
+    if (!isCurrent()) return false;
     api.layout?.(width, height, true);
+    if (!isCurrent()) return false;
     layoutHost.focusPanel?.(MAIN_VIEW_PANEL_ID);
+    if (!isCurrent()) return false;
     layoutHost.saveLayout?.();
     return true;
 }
@@ -1112,18 +1164,24 @@ const DEFAULT_DOCKVIEW_SPIKE_PANELS = [
     },
 ];
 
-function scheduleMainViewResize() {
-    const schedule = typeof requestAnimationFrame === "function"
-        ? requestAnimationFrame
-        : (callback) => setTimeout(callback, 0);
-    schedule(() => {
+function scheduleMainViewResize(work) {
+    work.frame(() => {
         if (typeof globalThis?.__moonMissionResizeMainView === "function") {
             globalThis.__moonMissionResizeMainView();
         }
     });
 }
 
-function renderMainViewPanel() {
+function isMountedWithin(node, owner) {
+    for (let parent = node?.parentNode; parent; parent = parent.parentNode) {
+        if (parent === owner) return true;
+    }
+    return false;
+}
+
+function renderMainViewPanel(isOwnerCurrent = () => true) {
+    const work = createDeferredWorkspaceWork(isOwnerCurrent);
+    let disposed = false;
     const element = document.createElement("div");
     element.className = "experimental-dockview-panel experimental-dockview-panel--mounted mission-main-view-pane";
     const surface = document.createElement("div");
@@ -1143,7 +1201,7 @@ function renderMainViewPanel() {
         element.appendChild(mountedControls.node);
         mountedControls.node.classList.add("header-pill-strip--collapsed");
         mountedControls.node.classList.remove("header-pill-strip--groups-expanded");
-        scheduleDockviewMainControlRibbonArrangement(document);
+        scheduleDockviewMainControlRibbonArrangement(document, work);
     }
 
     const mountIds = [
@@ -1164,15 +1222,18 @@ function renderMainViewPanel() {
     for (const entry of mountedNodes) {
         surface.appendChild(entry.node);
     }
-    scheduleMainViewResize();
+    scheduleMainViewResize(work);
 
     return {
         element,
         layout() {
-            scheduleMainViewResize();
+            scheduleMainViewResize(work);
         },
         dispose() {
-            if (mountedControls) {
+            if (disposed) return;
+            disposed = true;
+            work.dispose();
+            if (mountedControls && isMountedWithin(mountedControls.node, element)) {
                 [
                     "header-pill-strip-primary",
                     "header-pill-strip-secondary",
@@ -1204,6 +1265,7 @@ function renderMainViewPanel() {
                 }
             }
             for (const entry of mountedNodes) {
+                if (!isMountedWithin(entry.node, element)) continue;
                 const parent = entry.originalParent || document.getElementById("content-wrapper");
                 if (!parent) continue;
                 if (entry.originalNextSibling && entry.originalNextSibling.parentNode === parent) {
@@ -1212,7 +1274,6 @@ function renderMainViewPanel() {
                     parent.appendChild(entry.node);
                 }
             }
-            scheduleMainViewResize();
         },
     };
 }
@@ -1270,13 +1331,16 @@ function renderMountedElementPanel({ params }) {
     return {
         element,
         layout() {
+            if (disposed) return;
             if (typeof CustomEvent === "function") {
                 mountedElement?.dispatchEvent?.(new CustomEvent("moon-mission:dockview-panel-layout"));
             }
         },
         dispose() {
+            if (disposed) return;
             disposed = true;
             observer?.disconnect?.();
+            if (!mountedElement || mountedElement.parentNode !== element) return;
             if (mountClassName) {
                 mountedElement?.classList?.remove?.(mountClassName);
             }
@@ -1324,9 +1388,9 @@ function renderPlaceholderPanel({ title, params }) {
     return element;
 }
 
-function renderExperimentalPanel(context) {
+function renderExperimentalPanel(context, isOwnerCurrent) {
     if (context?.id === MAIN_VIEW_PANEL_ID) {
-        return renderMainViewPanel();
+        return renderMainViewPanel(isOwnerCurrent);
     }
     if (context?.params?.mountElementId) {
         return renderMountedElementPanel(context);
@@ -1451,6 +1515,8 @@ function bindShellInteractions({
     };
 }
 
+let latestWorkspaceInitialization = 0;
+
 function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
     if (!isDockviewSpikeEnabled(undefined, undefined, missionConfig)) {
         return null;
@@ -1461,10 +1527,17 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
         return null;
     }
 
+    const initialization = ++latestWorkspaceInitialization;
     globalThis.__moonMissionDockviewSpike?.dispose?.();
+    if (initialization !== latestWorkspaceInitialization) return globalThis.__moonMissionDockviewSpike || null;
+    let disposed = false;
+    let workspace = null;
+    const work = createDeferredWorkspaceWork(() => !disposed &&
+        (!workspace || globalThis.__moonMissionDockviewSpike === workspace));
+    const rendererCleanups = new Set();
     documentRef.getElementById("experimental-dockview-host")?.remove();
     documentRef.body.classList?.add?.("dockview-panels-enabled");
-    const panelLaunchStrip = createDockviewPanelLaunchStrip(documentRef);
+    const panelLaunchStrip = createDockviewPanelLaunchStrip(documentRef, work.active);
 
     const storageKey = getDockviewSpikeStorageKey();
     const shellStorageKey = getDockviewSpikeShellStorageKey(storageKey);
@@ -1472,7 +1545,9 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
     const { root, toolbar, dockRoot, resetButton, resizeGrip } = createHostRoot(documentRef, { shellStorageKey });
     let suppressPanelCloseSync = false;
     let progressiveWorkspace = null;
-    const layoutHost = createPanelLayoutHost({
+    let layoutHost;
+    try {
+    layoutHost = createPanelLayoutHost({
         container: dockRoot,
         missionKey: resolveMissionKeyFromWindow(),
         panels: DEFAULT_DOCKVIEW_SPIKE_PANELS,
@@ -1487,12 +1562,33 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             },
             getTabContextMenuItems: createDockviewTabContextMenuItems,
         },
-        renderPanel: renderExperimentalPanel,
+        renderPanel(context) {
+            if (!work.active()) return { element: documentRef.createElement("div"), dispose() {} };
+            const renderer = renderExperimentalPanel(context, work.active);
+            if (!work.active()) {
+                renderer?.dispose?.();
+                return { element: documentRef.createElement("div"), dispose() {} };
+            }
+            if (typeof renderer?.dispose !== "function") return renderer;
+            let retired = false;
+            const disposeRenderer = () => {
+                if (retired) return;
+                retired = true;
+                rendererCleanups.delete(disposeRenderer);
+                renderer.dispose();
+            };
+            rendererCleanups.add(disposeRenderer);
+            return { ...renderer, dispose: disposeRenderer,
+                layout: (...args) => { if (!retired && work.active()) renderer.layout?.(...args); } };
+        },
         onPanelClose(panelId) {
+            if (!work.active()) return;
             if (panelId === MAIN_VIEW_PANEL_ID) {
-                queueMicrotask(() => {
+                work.microtask(() => {
                     layoutHost.addPanel(DEFAULT_DOCKVIEW_SPIKE_PANELS[0]);
+                    if (!work.active()) return;
                     layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
+                    if (!work.active()) return;
                     layoutHost.saveLayout();
                 });
                 return;
@@ -1500,7 +1596,7 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             if (suppressPanelCloseSync || !DOCKED_WORKFLOW_PANEL_IDS.includes(panelId)) {
                 return;
             }
-            queueMicrotask(() => {
+            work.microtask(() => {
                 const panel = getMissionPanelSnapshot().find((entry) => entry.id === panelId);
                 if (panel?.state === "open") {
                     invokeMissionPanelAction(panelId, "close");
@@ -1508,6 +1604,16 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             });
         },
     });
+    } catch (error) {
+        disposed = true;
+        work.dispose();
+        for (const cleanup of [...rendererCleanups, () => root.remove(), () => panelLaunchStrip.dispose()]) {
+            try { cleanup(); } catch (cleanupError) { console.warn("Dockview workspace cleanup failed", cleanupError); }
+        }
+        rendererCleanups.clear();
+        if (initialization === latestWorkspaceInitialization) documentRef.body.classList?.remove?.("dockview-panels-enabled");
+        throw error;
+    }
     const hadSavedLayout = layoutHost.didRestoreInitialLayout;
     const unbindShellInteractions = () => {};
     if (!layoutHost.api?.getPanel?.(MAIN_VIEW_PANEL_ID)) {
@@ -1522,8 +1628,10 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
     let resetWorkspaceRetryHandle = null;
 
     const resetDockviewWorkspaceLayout = () => {
+        if (!work.active()) return;
         enableAuxiliaryPanelsForDockviewDefaults(documentRef);
         for (const panel of getMissionPanelSnapshot() || []) {
+            if (!work.active()) return;
             if (
                 DEFAULT_CLOSED_DOCKVIEW_PANEL_IDS.includes(panel.id) &&
                 panel.available !== false &&
@@ -1532,6 +1640,7 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
                 invokeMissionPanelAction(panel.id, "close");
             }
         }
+        if (!work.active()) return;
         if (!layoutHost.api?.getPanel?.(MAIN_VIEW_PANEL_ID)) {
             layoutHost.addPanel(DEFAULT_DOCKVIEW_SPIKE_PANELS[0]);
         }
@@ -1539,6 +1648,7 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             layoutHost.addPanel(DEFAULT_DOCKVIEW_SPIKE_PANELS[1]);
         }
         for (const panelId of DEFAULT_OPEN_DOCKVIEW_PANEL_IDS) {
+            if (!work.active()) return;
             if (layoutHost.api?.getPanel?.(panelId)) {
                 continue;
             }
@@ -1547,11 +1657,13 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
                 invokeMissionPanelAction(panelId, "focus");
         }
         const applyWithRetry = (attempt = 0) => {
+            if (!work.active()) return;
             if (resetWorkspaceRetryHandle != null) {
-                clearTimeout(resetWorkspaceRetryHandle);
+                work.clearTimeout(resetWorkspaceRetryHandle);
                 resetWorkspaceRetryHandle = null;
             }
-            const applied = applyDefaultDockviewWorkspaceLayout(layoutHost);
+            const applied = applyDefaultDockviewWorkspaceLayout(layoutHost, work.active);
+            if (!work.active()) return;
             if (applied) {
                 progressiveWorkspace?.captureExpandedLayout();
                 layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
@@ -1559,10 +1671,11 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             }
             if (attempt >= 16) {
                 layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
+                if (!work.active()) return;
                 layoutHost.saveLayout?.();
                 return;
             }
-            resetWorkspaceRetryHandle = setTimeout(() => applyWithRetry(attempt + 1), 250);
+            resetWorkspaceRetryHandle = work.timeout(() => applyWithRetry(attempt + 1), 250);
         };
         suppressPanelCloseSync = true;
         try {
@@ -1571,98 +1684,124 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             suppressPanelCloseSync = false;
         }
     };
+    const dispose = () => {
+        if (disposed) return;
+        disposed = true;
+        workspace.disposed = true;
+        work.dispose();
+        unsubscribeDefaultPanelOpen?.();
+        unsubscribeDefaultPanelOpen = null;
+        if (globalThis.__moonMissionDockviewSpike === workspace) {
+            delete globalThis.__moonMissionDockviewSpike;
+            documentRef.body.classList?.remove?.("dockview-panels-enabled");
+        }
+        if (globalThis.__moonMissionResetDockviewWorkspace === resetDockviewWorkspaceLayout) {
+            delete globalThis.__moonMissionResetDockviewWorkspace;
+        }
+        // Complete all owner cleanup even if an adapter's cleanup fails.
+        const cleanups = [() => progressiveWorkspace?.dispose(), unbindShellInteractions,
+            () => layoutHost.dispose(), ...rendererCleanups,
+            () => root.remove(), () => panelLaunchStrip.dispose()];
+        for (const cleanup of cleanups) {
+            try { cleanup(); } catch (error) { console.warn("Dockview workspace cleanup failed", error); }
+        }
+        rendererCleanups.clear();
+    };
+    // Registry subscriptions run immediately. Their actions must be able to
+    // discover this host before they try to dock already-available panels.
+    workspace = { api: layoutHost.api, layoutHost, root, storageKey, shellStorageKey,
+        resetWorkspaceLayout: resetDockviewWorkspaceLayout, dispose, disposed: false };
+    globalThis.__moonMissionDockviewSpike = workspace;
     globalThis.__moonMissionResetDockviewWorkspace = resetDockviewWorkspaceLayout;
 
+    try {
     if (!hadSavedLayout) {
         const pendingDefaultPanelIds = new Set(DEFAULT_OPEN_DOCKVIEW_PANEL_IDS);
+        const pendingClosedPanelIds = new Set(DEFAULT_CLOSED_DOCKVIEW_PANEL_IDS);
         let defaultWorkspaceLayoutApplied = false;
+        let opening = false;
+        let recheckQueued = false;
         enableAuxiliaryPanelsForDockviewDefaults(documentRef);
         const openDefaultPanels = (snapshot = getMissionPanelSnapshot()) => {
+            if (!work.active()) return;
+            if (opening) {
+                if (!recheckQueued) {
+                    recheckQueued = true;
+                    work.microtask(() => { recheckQueued = false; openDefaultPanels(); });
+                }
+                return;
+            }
+            opening = true;
+            let openedPanel = false;
+            try {
             for (const panelId of Array.from(pendingDefaultPanelIds)) {
                 if (layoutHost.api?.getPanel?.(panelId)) {
                     pendingDefaultPanelIds.delete(panelId);
+                    openedPanel = true;
                 }
             }
             for (const panel of snapshot || []) {
-                if (
-                    DEFAULT_CLOSED_DOCKVIEW_PANEL_IDS.includes(panel.id) &&
-                    panel.available !== false &&
-                    panel.state === "open"
-                ) {
+                if (!work.active()) return;
+                if (!pendingClosedPanelIds.has(panel.id) || panel.available === false) continue;
+                pendingClosedPanelIds.delete(panel.id);
+                if (panel.state === "open") {
                     invokeMissionPanelAction(panel.id, "close");
                 }
             }
             for (const panel of snapshot || []) {
+                if (!work.active()) return;
                 if (!pendingDefaultPanelIds.has(panel.id) || panel.available === false) {
                     continue;
                 }
                 if (layoutHost.api?.getPanel?.(panel.id)) {
                     pendingDefaultPanelIds.delete(panel.id);
+                    openedPanel = true;
                     continue;
                 }
-                const opened = invokeMissionPanelAction(panel.id, "restore") ||
+                invokeMissionPanelAction(panel.id, "restore") ||
                     invokeMissionPanelAction(panel.id, "open") ||
                     invokeMissionPanelAction(panel.id, "focus");
-                if (opened) {
+                if (layoutHost.api?.getPanel?.(panel.id)) {
                     pendingDefaultPanelIds.delete(panel.id);
+                    openedPanel = true;
                 }
             }
+            if (!work.active()) return;
             if (!defaultWorkspaceLayoutApplied) {
-                defaultWorkspaceLayoutApplied = applyDefaultDockviewWorkspaceLayout(layoutHost);
+                defaultWorkspaceLayoutApplied = applyDefaultDockviewWorkspaceLayout(layoutHost, work.active);
                 if (defaultWorkspaceLayoutApplied) progressiveWorkspace?.captureExpandedLayout();
             }
-            layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
+            if (!work.active()) return;
+            if (openedPanel && !defaultWorkspaceLayoutApplied) layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
             if (pendingDefaultPanelIds.size === 0) {
                 unsubscribeDefaultPanelOpen?.();
                 unsubscribeDefaultPanelOpen = null;
             }
+            } finally { opening = false; }
         };
         unsubscribeDefaultPanelOpen = subscribeMissionPanels(openDefaultPanels);
-        setTimeout(() => {
-            openDefaultPanels();
-            if (pendingDefaultPanelIds.size === 0) {
-                return;
-            }
+        // A synchronous first notification can finish before subscribe returns
+        // its unsubscribe function. Readiness, not a deadline, ends ownership.
+        if (!work.active() || pendingDefaultPanelIds.size === 0) {
             unsubscribeDefaultPanelOpen?.();
             unsubscribeDefaultPanelOpen = null;
-        }, 8000);
+        }
     }
 
     resetButton.addEventListener("click", resetDockviewWorkspaceLayout);
 
-    const dispose = () => {
-        progressiveWorkspace?.dispose();
-        unsubscribeDefaultPanelOpen?.();
-        if (resetWorkspaceRetryHandle != null) {
-            clearTimeout(resetWorkspaceRetryHandle);
-            resetWorkspaceRetryHandle = null;
-        }
-        unbindShellInteractions();
-        layoutHost.dispose();
-        root.remove();
-        panelLaunchStrip.dispose();
-        if (globalThis.__moonMissionResetDockviewWorkspace === resetDockviewWorkspaceLayout) {
-            delete globalThis.__moonMissionResetDockviewWorkspace;
-        }
-        documentRef.body.classList?.remove?.("dockview-panels-enabled");
-    };
-
-    globalThis.__moonMissionDockviewSpike = {
-        api: layoutHost.api,
-        layoutHost,
-        root,
-        storageKey,
-        shellStorageKey,
-        resetWorkspaceLayout: resetDockviewWorkspaceLayout,
-        dispose,
-    };
+    if (!work.active()) return workspace;
     progressiveWorkspace = createProgressiveWorkspace({
         layoutHost, root, documentRef,
         savedExpandedLayout: hadSavedLayout ? savedExpandedLayout : null,
     });
-    globalThis.__moonMissionDockviewSpike.progressiveWorkspace = progressiveWorkspace;
+    workspace.progressiveWorkspace = progressiveWorkspace;
 
-    return globalThis.__moonMissionDockviewSpike;
+    return workspace;
+    } catch (error) {
+        dispose();
+        throw error;
+    }
 }
 
 export {

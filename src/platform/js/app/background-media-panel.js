@@ -12,6 +12,7 @@ import {
 } from "./panel-defaults.js";
 import {
     getDockviewSpikeLayoutHost,
+    focusDockviewWorkflowPanel,
     resolveDockedWorkflowPanelPosition,
 } from "./dockview-workflow-panels.js";
 import { bringPanelElementToFront } from "./panel-z-order.js";
@@ -1001,7 +1002,7 @@ function createBackgroundMediaPanelActions({
             actions: {
                 open: panelAvailable ? openPanel : null,
                 restore: panelAvailable ? openPanel : null,
-                focus: panelAvailable ? focusPanel : null,
+                focus: panelAvailable ? () => focusPanel({ reveal: true }) : null,
                 close: panelAvailable ? closePanel : null,
                 delete: panelAvailable && panelStateName !== "deleted" ? confirmDeletePanel : null,
             },
@@ -1691,11 +1692,15 @@ function createBackgroundMediaPanelActions({
         syncPanelVisibility();
     }
 
-    function focusPanel() {
+    function focusPanel({ reveal = false } = {}) {
         const panel = getPanel();
         if (!panel || panel.classList.contains("background-media-panel--hidden")) return;
         if (isBackgroundMediaPanelDocked(panel)) {
-            getDockviewSpikeLayoutHost()?.focusPanel?.(BACKGROUND_MEDIA_PANEL_ID);
+            if (reveal) {
+                focusDockviewWorkflowPanel(BACKGROUND_MEDIA_PANEL_ID);
+            } else {
+                getDockviewSpikeLayoutHost()?.focusPanel?.(BACKGROUND_MEDIA_PANEL_ID);
+            }
         }
         panel.focus?.();
     }

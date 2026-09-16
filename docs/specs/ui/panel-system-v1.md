@@ -119,6 +119,16 @@ Deferred targets are not part of the V1 contract. They are tracked in
 - Feature modules must not import Dockview directly; they add/focus/close panels through the layout host exposed by the workspace.
 - The workspace persists Dockview layout JSON separately from legacy panel geometry.
 - Closing a Dockview tab maps back to the panel registry `close` action.
+- Workspace publication precedes registry callbacks that can add already-ready
+  workflow panels. Default-panel readiness is based on observed panel presence,
+  not merely invoking an action, and remains owned until fulfilled or disposed.
+- Host, layout, renderer, timer, frame, microtask and registry subscriptions are
+  instance-owned. Disposal is terminal and idempotent; stale callbacks and an
+  older host cannot mutate or clean up a replacement. Partial initialization
+  failures release any API, DOM, subscriptions and deferred work already created.
+- Explicit registry `Focus` reveals an automatically collapsed panel through the
+  progressive workspace. Automatic first-load Open/Restore uses raw Dockview
+  focus and must not replace the user's currently selected constrained tool.
 - The first-load desktop layout opens the left and right rails by default:
   - left: `Flyby Broadcast` above `Mission Media`
   - center: main mission view

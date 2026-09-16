@@ -166,6 +166,11 @@ function createPanelLayoutHost({
     const disposables = [];
     let persistenceFilter = null;
     let applyingTransientLayout = false;
+    let disposed = false;
+    let resizeObserver = null;
+    let initialFrameHandle = null;
+    let initialTimerHandle = null;
+    let windowResizeBound = false;
     const api = createDockviewImpl(container, {
         ...(dockviewOptions && typeof dockviewOptions === "object" ? dockviewOptions : {}),
         createComponent() {
@@ -177,6 +182,7 @@ function createPanelLayoutHost({
     });
 
     function layoutToContainer() {
+        if (disposed) return;
         const rect = container.getBoundingClientRect?.() || {};
         const width = Math.max(1, Math.round(Number(rect.width) || container.clientWidth || 1));
         const height = Math.max(1, Math.round(Number(rect.height) || container.clientHeight || 1));
@@ -213,34 +219,66 @@ function createPanelLayoutHost({
         }
     }
 
-    // Restoring into Dockview's initial 100px grid distorts saved proportions.
-    layoutToContainer();
-    const didRestoreInitialLayout = restoreLayout();
-    saveLayout();
+    function dispose() {
+        if (disposed) return;
+        disposed = true;
+        if (initialFrameHandle != null) {
+            globalThis?.cancelAnimationFrame?.(initialFrameHandle);
+            initialFrameHandle = null;
+        }
+        if (initialTimerHandle != null) {
+            clearTimeout(initialTimerHandle);
+            initialTimerHandle = null;
+        }
+        for (const disposable of disposables.splice(0)) {
+            try { disposable.dispose(); } catch { /* Continue owner cleanup. */ }
+        }
+        try { resizeObserver?.disconnect?.(); } catch { /* Continue owner cleanup. */ }
+        resizeObserver = null;
+        if (windowResizeBound) {
+            globalThis?.removeEventListener?.("resize", layoutToContainer);
+            windowResizeBound = false;
+        }
+        api.dispose?.();
+    }
 
-    disposables.push(asDisposable(api.onDidLayoutChange?.(() => {
+    let didRestoreInitialLayout;
+    try {
+        // Restoring into Dockview's initial 100px grid distorts saved proportions.
+        layoutToContainer();
+        didRestoreInitialLayout = restoreLayout();
         saveLayout();
-    })));
-    disposables.push(asDisposable(api.onDidActivePanelChange?.((panel) => {
-        if (panel?.id) {
-            onPanelFocus?.(panel.id);
-        }
-    })));
-    disposables.push(asDisposable(api.onDidRemovePanel?.((panel) => {
-        if (panel?.id && !applyingTransientLayout) {
-            onPanelClose?.(panel.id);
-        }
-    })));
 
-    const resizeObserver = typeof ResizeObserver === "function"
-        ? new ResizeObserver(layoutToContainer)
-        : null;
-    resizeObserver?.observe?.(container);
-    globalThis?.addEventListener?.("resize", layoutToContainer, { passive: true });
-    if (typeof globalThis?.requestAnimationFrame === "function") {
-        globalThis.requestAnimationFrame(layoutToContainer);
-    } else {
-        setTimeout(layoutToContainer, 0);
+        disposables.push(asDisposable(api.onDidLayoutChange?.(() => {
+            if (!disposed) saveLayout();
+        })));
+        disposables.push(asDisposable(api.onDidActivePanelChange?.((panel) => {
+            if (!disposed && panel?.id) onPanelFocus?.(panel.id);
+        })));
+        disposables.push(asDisposable(api.onDidRemovePanel?.((panel) => {
+            if (!disposed && panel?.id && !applyingTransientLayout) onPanelClose?.(panel.id);
+        })));
+
+        resizeObserver = typeof ResizeObserver === "function"
+            ? new ResizeObserver(layoutToContainer)
+            : null;
+        resizeObserver?.observe?.(container);
+        globalThis?.addEventListener?.("resize", layoutToContainer, { passive: true });
+        windowResizeBound = true;
+        if (typeof globalThis?.requestAnimationFrame === "function") {
+            initialFrameHandle = globalThis.requestAnimationFrame(() => {
+                initialFrameHandle = null;
+                layoutToContainer();
+            });
+        } else {
+            initialTimerHandle = setTimeout(() => {
+                initialTimerHandle = null;
+                layoutToContainer();
+            }, 0);
+        }
+    } catch (error) {
+        dispose();
+        throw error;
     }
 
     return {
@@ -297,14 +335,7 @@ function createPanelLayoutHost({
             }
             saveLayout();
         },
-        dispose() {
-            for (const disposable of disposables.splice(0)) {
-                disposable.dispose();
-            }
-            resizeObserver?.disconnect?.();
-            globalThis?.removeEventListener?.("resize", layoutToContainer);
-            api.dispose?.();
-        },
+        dispose,
     };
 }
 

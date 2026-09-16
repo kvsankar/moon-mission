@@ -16,6 +16,18 @@ function getDockviewSpikeLayoutHost() {
     return globalThis?.__moonMissionDockviewSpike?.layoutHost || null;
 }
 
+// Explicit workflow Focus is also a disclosure command. Automatic docking and
+// default-layout focus keep using the raw host API so they do not select tools.
+function focusDockviewWorkflowPanel(panelId) {
+    const workspace = globalThis?.__moonMissionDockviewSpike;
+    const id = String(panelId || "").trim();
+    if (!workspace || !id) return false;
+    if (typeof workspace.progressiveWorkspace?.revealPanel === "function") {
+        return workspace.progressiveWorkspace.revealPanel(id);
+    }
+    return workspace.layoutHost?.focusPanel?.(id) === true;
+}
+
 function hasDockviewPanel(layoutHost, panelId) {
     return !!layoutHost?.api?.getPanel?.(panelId);
 }
@@ -262,5 +274,6 @@ export {
     DOCKED_WORKFLOW_PANEL_IDS,
     MAIN_VIEW_PANEL_ID,
     getDockviewSpikeLayoutHost,
+    focusDockviewWorkflowPanel,
     resolveDockedWorkflowPanelPosition,
 };

@@ -366,6 +366,37 @@ Added startup diagnostics retain panel IDs, manifest responses and media status
 for recurrence. This separate cold-workspace readiness finding remains open
 under SA-21; the focus fix is not claimed to fix it.
 
+## SA-21 — Workspace Initialization And Lifetime
+
+The cold-start defect was reproduced deterministically by holding the lazy
+Dockview module until media descriptors were already available. Releasing the
+old host left six panels and omitted both media workflows. The host now publishes
+its owned identity before synchronous registry callbacks, retains unfulfilled
+default intents until panels are observed in the API, and removes one-time
+close/focus intents without an arbitrary eight-second cutoff.
+
+Initial host TDD produced **nine failures / one pass**. Review then drove
+additional failing cases for reentrant replacement and disposal, failed initial
+registry callbacks, constructor/partial API cleanup, stale renderer factories,
+mounted-event retirement, replacement-owned DOM, focus-then-save ordering, and
+cancelled frames delivered anyway. The layout host now releases allocated APIs,
+subscriptions, observers and its initial sizing job when setup fails or retires.
+Host globals and body classes are cleared only by their current owner.
+
+Explicit registry `Focus` now routes through progressive reveal; automatic
+Open/Restore remains raw Dockview focus. Browser RED showed Flyby Broadcast
+remaining hidden/inert after a successful Focus action. A review regression also
+caught automatic background Restore accidentally revealing the tool; the final
+callback split preserves both contracts.
+
+Final verification: **114 focused tests / eight files**, **1,939 unit tests
+passed, six skipped, 241 files**, and all **six progressive browser checks**
+passed. The browser suite covers controlled late-host availability, registry
+Focus across media/Moon/composer tools, keyboard exclusion, progressive layout
+restoration, compact controls and constrained reload. The local production build
+passed with the existing classic-script, Three.js `sRGBEncoding` and large-chunk
+warnings. SA-21 is complete; SA-12 Reset View selection remains separate.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
@@ -391,11 +422,8 @@ closed above; other entries still require tracked tests, review and verification
   inflight work by resolved URL without replacing the default catalog getter.
   Disabled orbit refinement should remain disabled with a guard test and an
   explicit no-change disposition, not speculative worker activation.
-- SA-21: test instance-owned timers/frames/globals on workspace disposal, and
-  reproduce registry Focus after stable layout readiness before routing reveal.
-  Also investigate the repeated six-of-eight-panel cold startup recorded in
-  SA-13. The host has an eight-second default-panel subscription cutoff; this
-  is a candidate timing boundary, not yet a proven complete root cause.
+- SA-21 (complete above): the cold six-panel startup, explicit Focus reveal,
+  host replacement and deferred-work ownership now have deterministic coverage.
 - SA-22: existing mobile/desktop specs support live widening restoration, not
   a new reload-required exception. Own lazy desktop mounting across breakpoint
   crossings; preserve time/camera/layout and respect explicit legacy policy.

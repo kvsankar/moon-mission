@@ -54,6 +54,76 @@ describe("progressive workspace UX",()=>{
         browser=await chromium.launch({headless:true,args:["--no-sandbox","--enable-webgl","--ignore-gpu-blocklist","--use-angle=gl","--enable-unsafe-swiftshader"]});
     });
     afterAll(async()=>{await browser?.close();});
+    it("docks already-available workflow panels when the lazy host import completes later", async () => {
+        const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+        let release;
+        const importGate = new Promise(resolve => { release = resolve; });
+        let intercepted = false;
+        const hostRequests = [];
+        page.on("request", request => { if (request.url().includes("experimental-dockview-host")) hostRequests.push(request.url()); });
+        await page.route(/\/src\/platform\/js\/app\/experimental-dockview-host\.js(?:\?.*)?$/, async route => {
+            intercepted = true;
+            await importGate;
+            await route.continue();
+        });
+        try {
+            await page.goto(`${getEffectiveTestBaseUrl()}/artemis2/`, { waitUntil: "domcontentloaded" });
+            // Use the app's loaded module URL (including Vite's version query),
+            // not a second module instance with an independent registry.
+            await page.waitForFunction(`(async () => {
+                const registryUrl = performance.getEntriesByType("resource")
+                    .find(entry => new URL(entry.name).pathname.endsWith("/src/platform/js/app/panel-registry.js"))?.name;
+                if (!registryUrl) return false;
+                const { getMissionPanelSnapshot } = await import(registryUrl);
+                const panels = getMissionPanelSnapshot();
+                return Object.values(window.animationScenes || {}).some(scene => scene.initialized3D)
+                    && ["workflow:media-browser", "workflow:background-media"].every(id =>
+                    panels.some(panel => panel.id === id && panel.available && panel.state === "open"));
+            })()`);
+            await expect.poll(() => intercepted, { timeout: 30000 }).toBe(true);
+            expect(await page.evaluate(() => !!window.__moonMissionDockviewSpike)).toBe(false);
+            release();
+            await page.waitForFunction(() => !!window.__moonMissionDockviewSpike);
+            await page.waitForFunction(() => {
+                const api = window.__moonMissionDockviewSpike.api;
+                return api.getPanel("workflow:media-browser") && api.getPanel("workflow:background-media")
+                    && api.getPanel("aux:earth-rise-composer")?.group.id === "right-frame-shoot";
+            }, null, { timeout: 10000 });
+        } catch (error) {
+            console.error("Delayed host startup:", hostRequests, await page.evaluate(() =>
+                window.__moonMissionDockviewSpike?.api?.panels.map(panel => panel.id)).catch(() => null));
+            throw error;
+        } finally { release(); await page.close(); }
+    }, 90000);
+
+    it("reveals a collapsed tool when focused through the panel registry", async () => {
+        const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+        try {
+            await ready(page);
+            await page.setViewportSize({ width: 800, height: 700 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "focused");
+            for (const id of ["workflow:background-media", "workflow:media-browser", "aux:moon", "aux:earth-rise-composer"]) {
+                expect(await page.evaluate(id => window.__moonMissionDockviewSpike.api
+                    .getPanel(id).group.api.isVisible, id)).toBe(false);
+                const invoked = await page.evaluate(`(async () => {
+                    const registryUrl = performance.getEntriesByType("resource")
+                        .find(entry => new URL(entry.name).pathname.endsWith("/src/platform/js/app/panel-registry.js"))?.name;
+                    const { invokeMissionPanelAction } = await import(registryUrl);
+                    return invokeMissionPanelAction(${JSON.stringify(id)}, "focus");
+                })()`);
+                expect(invoked).toBe(true);
+                const focused = await page.evaluate(id => {
+                    const workspace = window.__moonMissionDockviewSpike;
+                    const panel = workspace.api.getPanel(id);
+                    return { visible: panel.group.api.isVisible, inert: panel.group.element.inert,
+                        active: workspace.api.activePanel?.id };
+                }, id);
+                expect(focused).toEqual({ visible: true, inert: false, active: id });
+                await page.locator(".workspace-scene-return").click();
+            }
+        } finally { await page.close(); }
+    }, 90000);
+
     it("keeps hidden workspace tools out of the keyboard focus order", async () => {
         const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
         try {

@@ -84,6 +84,7 @@ import { renderWithSurfacePointView } from "./surface-point-view-renderer.js";
 import { getSceneVisibleCraftIds } from "./scene-craft-helpers.js";
 import {
     getDockviewSpikeLayoutHost,
+    focusDockviewWorkflowPanel,
     resolveDockedWorkflowPanelPosition,
 } from "./dockview-workflow-panels.js";
 
@@ -1303,7 +1304,7 @@ class AuxiliaryCameraViewsManager {
                     ? () => this.restoreComposerGuidedPanel(panelState)
                     : undefined,
                 focus: panelStateName === "open"
-                    ? () => this.restorePanel(panelState)
+                    ? () => { this.restorePanel(panelState); focusDockviewWorkflowPanel(panelState.panelRegistryId); }
                     : undefined,
                 close: panelStateName === "open"
                     ? () => this.setPanelClosed(panelState, true)
