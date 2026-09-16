@@ -43,9 +43,9 @@ and SA-18 terminal scene disposal are complete, including real receiver cleanup.
 SA-09 playback restart publication and SA-10 mobile FoV ownership are complete.
 SA-15 required comparison error/Retry is complete, including review-driven
 metadata validation. SA-08 media-manifest recovery and SA-13 hidden-panel keyboard
-ownership are complete. SA-21 workspace initialization/lifecycle is complete,
-including the cold missing-panel startup and explicit Focus routing. SA-12 Reset
-View selection is next.
+ownership are complete. SA-21 workspace initialization/lifecycle and SA-12 Reset
+View selection are complete. SA-11 explicit constrained-layout edit persistence
+is next.
 The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and

@@ -43,6 +43,10 @@ navigation surface.
   Scene return action. All tool names remain available in the Tools surface.
 - Automatically collapsed panels remain open in the mission registry. Opening
   one restores/focuses it rather than toggling it closed.
+- `Reset View` is an explicit return to the default workspace and Scene. It
+  clears selected and pending constrained-tool disclosure state while retaining
+  mission time and semantic camera state. Ordinary expanded-layout capture and
+  first-load panel readiness must not clear an explicit tool choice.
 - At minimal/focused levels, an explicit tool choice replaces the previous
   secondary tool. Mission time, camera settings, media selection and playback
   are retained.

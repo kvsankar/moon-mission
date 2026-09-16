@@ -248,12 +248,22 @@ describe("Dockview host default readiness and lifetime", () => {
         expect(host.saveLayout).not.toHaveBeenCalled();
     });
 
-    it("reset fallback stops before save if focusing retires the host", () => {
+    it("reset fallback stops before save if revealing Scene retires the host", () => {
         const workspace = initialize(), host = workspace.layoutHost;
-        host.focusPanel.mockImplementationOnce(() => workspace.dispose());
+        mocks.progressive.at(-1).revealPanel.mockImplementationOnce(() => workspace.dispose());
         host.saveLayout.mockClear();
         workspace.resetWorkspaceLayout(); vi.runAllTimers();
         expect(host.saveLayout).not.toHaveBeenCalled();
+    });
+
+    it("Reset View clears constrained tool selection through the progressive owner", () => {
+        ids.forEach(id => panel(id));
+        const workspace = initialize();
+        const progressive = mocks.progressive.at(-1);
+        workspace.layoutHost.focusPanel.mockClear();
+        workspace.resetWorkspaceLayout();
+        expect(progressive.captureExpandedLayout).toHaveBeenCalledOnce();
+        expect(progressive.revealPanel).toHaveBeenCalledExactlyOnceWith("mission:main-view");
     });
 
     it("cancels pending main-view resize frames on renderer retirement", () => {

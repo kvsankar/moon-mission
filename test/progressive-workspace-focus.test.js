@@ -165,6 +165,19 @@ describe("progressive workspace keyboard ownership", () => {
         expect(h.tool.api.isVisible).toBe(true);
     });
 
+    it("explicitly revealing Scene clears a pending tool while ordinary capture does not", () => {
+        const h = harness(); h.flush();
+        expect(h.workspace.revealPanel("workflow:not-mounted-yet")).toBe(false);
+        h.workspace.captureExpandedLayout(); h.flush();
+        const late = h.group("late", "workflow:not-mounted-yet");
+        h.api.groups.push(late);
+        h.subscribers.forEach(callback => callback()); h.flush();
+        expect(late.api.isVisible).toBe(true);
+        expect(h.workspace.revealPanel(MAIN)).toBe(true);
+        expect(h.main.api.isVisible).toBe(true);
+        expect(late.api.isVisible).toBe(false);
+    });
+
     it("restores owned inert state once and ignores queued callbacks and public calls after disposal", () => {
         const h = harness(); h.flush();
         h.subscribers[0](); const queued = [...h.frames.values()];

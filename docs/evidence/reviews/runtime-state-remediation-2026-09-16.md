@@ -397,6 +397,25 @@ restoration, compact controls and constrained reload. The local production build
 passed with the existing classic-script, Three.js `sRGBEncoding` and large-chunk
 warnings. SA-21 is complete; SA-12 Reset View selection remains separate.
 
+## SA-12 — Reset View Tool Selection
+
+RED: after selecting a constrained tool, the reset host rebuilt the default
+layout and focused Main View directly while `selectedTool`/`pendingTool` remained
+owned by the progressive workspace. A focused unit regression required actual
+Reset to return through the progressive Scene action; a companion regression
+protects ordinary `captureExpandedLayout()` from clearing an explicit or pending
+tool during first-load/layout reconciliation.
+
+Reset success and fallback now reveal `mission:main-view` through the progressive
+owner. Terminal checks still stop persistence if reveal synchronously retires
+the host. The browser case selects Craft → Moon at 800x700, invokes the visible
+Tools → Reset View command, verifies Scene is the only visible focused group,
+and proves timeline time plus camera position/look are unchanged.
+
+Final verification: **41 focused lifecycle tests**, **1,941 unit tests passed,
+six skipped, 241 files**, and all **seven progressive browser checks** passed.
+SA-12 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now

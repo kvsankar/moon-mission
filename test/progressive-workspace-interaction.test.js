@@ -124,6 +124,36 @@ describe("progressive workspace UX",()=>{
         } finally { await page.close(); }
     }, 90000);
 
+    it("Reset View returns a selected constrained tool to Scene without resetting mission state", async () => {
+        const page = await browser.newPage({ viewport: { width: 800, height: 700 } });
+        try {
+            await ready(page);
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "focused");
+            await page.locator(".workspace-tools__summary").click();
+            await page.locator('[data-workspace-panel="aux:moon"]').click();
+            await page.waitForFunction(() => window.__moonMissionDockviewSpike.api
+                .getPanel("aux:moon")?.group.api.isVisible);
+            const before = await page.evaluate(() => ({
+                time: document.getElementById("timeline-slider")?.dataset.currentTimeMs,
+                position: document.getElementById("camera-position")?.value,
+                look: document.getElementById("camera-look")?.value,
+            }));
+            await page.locator(".workspace-tools__summary").click();
+            await page.getByRole("button", { name: "Reset View", exact: true }).click();
+            await page.waitForFunction(() => {
+                const api = window.__moonMissionDockviewSpike.api;
+                return api.getPanel("mission:main-view")?.group.api.isVisible
+                    && !api.getPanel("aux:moon")?.group.api.isVisible;
+            });
+            const after = await page.evaluate(() => ({
+                time: document.getElementById("timeline-slider")?.dataset.currentTimeMs,
+                position: document.getElementById("camera-position")?.value,
+                look: document.getElementById("camera-look")?.value,
+            }));
+            expect(after).toEqual(before);
+        } finally { await page.close(); }
+    }, 90000);
+
     it("keeps hidden workspace tools out of the keyboard focus order", async () => {
         const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
         try {

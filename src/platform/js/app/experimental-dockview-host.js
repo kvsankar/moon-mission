@@ -1666,11 +1666,15 @@ function initializeExperimentalDockviewHost({ missionConfig = null } = {}) {
             if (!work.active()) return;
             if (applied) {
                 progressiveWorkspace?.captureExpandedLayout();
-                layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
+                progressiveWorkspace?.revealPanel(MAIN_VIEW_PANEL_ID);
                 return;
             }
             if (attempt >= 16) {
-                layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
+                if (progressiveWorkspace?.revealPanel) {
+                    progressiveWorkspace.revealPanel(MAIN_VIEW_PANEL_ID);
+                } else {
+                    layoutHost.focusPanel(MAIN_VIEW_PANEL_ID);
+                }
                 if (!work.active()) return;
                 layoutHost.saveLayout?.();
                 return;
