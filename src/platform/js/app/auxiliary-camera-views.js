@@ -6267,7 +6267,8 @@ class AuxiliaryCameraViewsManager {
             return;
         }
 
-        const windowRef = typeof window !== "undefined" ? window : null;
+        const windowRef = panelState.panel.ownerDocument?.defaultView ||
+            (typeof window !== "undefined" ? window : null);
         const viewportWidth = Math.max(1, Number(windowRef?.innerWidth) || 1);
         const viewportHeight = Math.max(1, Number(windowRef?.innerHeight) || 1);
         const gap = 8;

@@ -442,6 +442,28 @@ auxiliary column, reloads while compact, then expands and verifies the persisted
 direction/proportions. All **eight progressive browser checks** and **1,951 unit
 tests passed, six skipped, 241 files**. SA-11 is complete.
 
+## SA-14 — Detached Window Geometry And Lifecycle
+
+The confirmed 480px popout placed the Frame-and-Shoot View disclosure beyond
+the owning viewport because `createComposerDisclosure` captured the opener
+window. Initial owner-realm tests failed before helpers existed. Geometry now
+resolves from each element's current `ownerDocument.defaultView`, and disclosure
+position clamps to that viewport. The auxiliary control-matrix positioning path
+uses the panel's owner window as well.
+
+Disclosure resize/document subscriptions and ResizeObserver ownership rebind on
+Dockview mount, layout and unmount/adoption events. The old realm's pending frame,
+resize and document listeners are released; disposal cancels the current realm.
+Review corrected fallback-frame cancellation so non-RAF environments do not
+strand a timeout.
+
+The browser test opens the real Frame-and-Shoot group in a 480px Dockview popout,
+opens View options and verifies all edges remain inside that window. It then
+adopts the panel back into a compact opener, triggers the same disclosure and
+verifies owner identity and opener-bounded geometry. Final verification:
+**1,953 unit tests passed, six skipped, 242 files**, and all **ten auxiliary
+panel browser checks** passed. SA-14 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now

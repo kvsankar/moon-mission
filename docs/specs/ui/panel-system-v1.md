@@ -126,6 +126,11 @@ Deferred targets are not part of the V1 contract. They are tracked in
   instance-owned. Disposal is terminal and idempotent; stale callbacks and an
   older host cannot mutate or clean up a replacement. Partial initialization
   failures release any API, DOM, subscriptions and deferred work already created.
+- Detached/adopted panel controls resolve viewport geometry, animation frames,
+  resize listeners, active focus and document events from their current
+  `ownerDocument.defaultView`. Mount, layout and unmount/adoption events rebind
+  those owners and release the old realm; redocking must not retain popout
+  listeners or clamp controls against the opener's viewport.
 - Explicit registry `Focus` reveals an automatically collapsed panel through the
   progressive workspace. Automatic first-load Open/Restore uses raw Dockview
   focus and must not replace the user's currently selected constrained tool.

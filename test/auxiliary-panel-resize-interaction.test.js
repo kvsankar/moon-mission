@@ -28,6 +28,58 @@ describe("Auxiliary panel resize interactions", () => {
         await browser?.close();
     });
 
+    it("keeps Frame and Shoot disclosure geometry within its owning popout window and redocks cleanly", async () => {
+        const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+        const page = await context.newPage();
+        try {
+            await page.addInitScript(() => localStorage.clear());
+            await page.goto(`${getEffectiveTestBaseUrl(process.cwd())}/artemis2/`, { waitUntil: "domcontentloaded" });
+            await page.waitForFunction(() => document.getElementById("mission-loading-overlay")?.dataset.blocking === "false");
+            const composerGroup = page.locator(".dv-groupview").filter({ has: page.locator(".aux-camera-view--composer") });
+            const popupPromise = page.waitForEvent("popup");
+            await composerGroup.getByRole("button", { name: "Open panel group in a new window", exact: true }).click();
+            const popup = await popupPromise;
+            await popup.waitForLoadState("domcontentloaded");
+            await popup.setViewportSize({ width: 480, height: 700 });
+            const viewButton = popup.getByRole("button", { name: "View options", exact: true });
+            await viewButton.waitFor({ state: "visible", timeout: 30000 });
+            await viewButton.click();
+            const disclosureId = await viewButton.getAttribute("aria-controls");
+            await popup.waitForFunction(id => document.getElementById(id)?.matches(":popover-open"), disclosureId);
+            const popupGeometry = await popup.locator(`#${disclosureId}`).evaluate(element => {
+                const rect = element.getBoundingClientRect();
+                return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
+                    viewportWidth: innerWidth, viewportHeight: innerHeight };
+            });
+            expect(popupGeometry.left).toBeGreaterThanOrEqual(8);
+            expect(popupGeometry.right).toBeLessThanOrEqual(popupGeometry.viewportWidth - 8);
+            expect(popupGeometry.top).toBeGreaterThanOrEqual(8);
+            expect(popupGeometry.bottom).toBeLessThanOrEqual(popupGeometry.viewportHeight - 8);
+            await page.setViewportSize({ width: 1366, height: 768 });
+            await popup.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                const destination = window.opener.document.getElementById("aux-camera-views");
+                destination.appendChild(panel);
+                panel.dispatchEvent(new CustomEvent("moon-mission:dockview-panel-unmounted", { bubbles: true }));
+            });
+            const openerComposer = page.locator(".aux-camera-view--composer");
+            await openerComposer.waitFor({ state: "visible", timeout: 30000 });
+            const openerGeometry = await openerComposer.evaluate(async panel => {
+                const content = panel.querySelector(".aux-camera-view__composer-sky-controls");
+                content.setAttribute("popover", "auto");
+                content.showPopover();
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                const rect = content.getBoundingClientRect();
+                return { ownerIsCurrent: panel.ownerDocument.defaultView === window,
+                    left: rect.left, right: rect.right, viewportWidth: innerWidth };
+            });
+            expect(openerGeometry.ownerIsCurrent).toBe(true);
+            expect(openerGeometry.left).toBeGreaterThanOrEqual(8);
+            expect(openerGeometry.right).toBeLessThanOrEqual(openerGeometry.viewportWidth - 8);
+            await popup.close();
+        } finally { await context.close(); }
+    }, TEST_TIMEOUT_MS * 2);
+
     it("keeps docked panels below the header and resizes Frame and Shoot with the workspace divider", async () => {
         for (const viewport of [{ width: 1920, height: 1080 }, { width: 1366, height: 768 }]) {
             const page = await browser.newPage({ viewport });
