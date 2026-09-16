@@ -334,6 +334,38 @@ with one request before Retry and two afterward. The error panel screenshot was
 visually inspected. Final full-unit verification: **1,892 passed, six skipped,
 238 files**. SA-08 is complete.
 
+## SA-13 — Hidden Workspace Keyboard Ownership
+
+Unit RED: **six failed / three passed** before implementation. Browser RED:
+at 800x700, the twelfth Tab press focused the hidden `left-broadcast` group
+(Flyby Broadcast). Hidden grid groups now receive owned `inert` suppression,
+tracked by element identity so rebuilding/reusing a group ID cannot transfer
+the wrong ownership. Reveal, expansion, removal, floating and disposal restore
+only this controller's changes, preserving pre-existing inert/hidden state.
+
+The first focused run passed **23 tests / three files**, and all **four browser
+checks** passed, including keyboard/reveal/restoration and existing progressive
+layout behavior. Independent review found a remaining synchronous teardown
+edge: a visibility callback can dispose the controller before the outer update
+reapplies inert. Closure requires a regression, correction and rereview of this
+case. SA-12 selection reset remains separate.
+
+The reentrant case failed before correction. Guards now stop work at the
+terminal boundary and after external visibility, constraints, activation,
+layout and publication effects. Additional cases cover all those checkpoints
+and explicit reveal activation after update returns. **18 focus lifecycle
+tests** and **29 focused tests / three files** pass. Independent rereview cleared
+the correction. Final unit verification: **1,910 passed, six skipped, 239 files**.
+The post-fix keyboard/reveal/full-expansion browser test passed. SA-13 is complete.
+
+Two preceding post-fix browser attempts stopped before the keyboard scenario:
+startup exposed six panels instead of eight, missing both media workflows,
+while scene loading reported ready and no page errors occurred. The unchanged
+test subsequently passed; neither requirements nor timeouts were relaxed.
+Added startup diagnostics retain panel IDs, manifest responses and media status
+for recurrence. This separate cold-workspace readiness finding remains open
+under SA-21; the focus fix is not claimed to fix it.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
@@ -361,6 +393,9 @@ closed above; other entries still require tracked tests, review and verification
   explicit no-change disposition, not speculative worker activation.
 - SA-21: test instance-owned timers/frames/globals on workspace disposal, and
   reproduce registry Focus after stable layout readiness before routing reveal.
+  Also investigate the repeated six-of-eight-panel cold startup recorded in
+  SA-13. The host has an eight-second default-panel subscription cutoff; this
+  is a candidate timing boundary, not yet a proven complete root cause.
 - SA-22: existing mobile/desktop specs support live widening restoration, not
   a new reload-required exception. Own lazy desktop mounting across breakpoint
   crossings; preserve time/camera/layout and respect explicit legacy policy.

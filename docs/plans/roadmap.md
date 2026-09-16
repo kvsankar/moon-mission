@@ -42,8 +42,9 @@ construction/cancellation. SA-06 texture handoff, SA-17 shared resource ownershi
 and SA-18 terminal scene disposal are complete, including real receiver cleanup.
 SA-09 playback restart publication and SA-10 mobile FoV ownership are complete.
 SA-15 required comparison error/Retry is complete, including review-driven
-metadata validation. SA-08 media-manifest recovery is also complete. SA-13
-hidden-panel keyboard ownership is next, followed by SA-12 Reset View state.
+metadata validation. SA-08 media-manifest recovery and SA-13 hidden-panel keyboard
+ownership are complete. SA-12 Reset View state is next. The separate cold-panel
+startup readiness finding remains open under SA-21.
 The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and

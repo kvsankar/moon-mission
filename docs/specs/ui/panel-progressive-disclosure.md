@@ -8,7 +8,7 @@ canonical_for:
 
 # Panel Progressive Disclosure Spec
 
-Last updated: 2026-09-15
+Last updated: 2026-09-16
 
 This spec defines how resizable workflow panels adapt their information density
 as available space changes. The goal is not to hide useful information for its
@@ -50,6 +50,12 @@ navigation surface.
   Growing the viewport restores its layout, respecting subsequent explicit
   panel closes/opens. Derived disclosure levels are not saved preferences.
 - Hidden groups must not intercept input or keep rendering auxiliary scenes.
+- Hidden workspace groups and their descendants are excluded from keyboard
+  focus and accessibility interaction. If disclosure hides the focused group,
+  focus moves to an available Tools or Scene-return control. Reveal restores
+  interaction without overriding pre-existing inert/hidden state. Element
+  replacement and controller disposal release only that controller's suppression;
+  a retired controller cannot reapply it from queued or reentrant callbacks.
 - Reducing height follows the same priority rules as reducing width.
 
 ## Frame And Shoot Space Budget

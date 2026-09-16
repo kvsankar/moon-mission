@@ -7,6 +7,13 @@ import { getEffectiveTestBaseUrl } from "./local-test-config.js";
 let browser;
 const captureDir = join(process.cwd(), "test/screenshots/current/progressive-ux");
 async function ready(page) {
+    const errors = [];
+    const mediaResponses = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("response", response => {
+        if (response.url().includes("media-manifest.json")) mediaResponses.push({ url: response.url(), status: response.status() });
+    });
+    try {
     await page.goto(`${getEffectiveTestBaseUrl()}/artemis2/`, { waitUntil:"domcontentloaded" });
     await page.waitForFunction(()=>document.querySelector("#mission-loading-overlay")?.dataset.blocking==="false");
     await page.waitForFunction(()=>window.__moonMissionDockviewSpike?.api?.panels.length >= 8);
@@ -14,6 +21,20 @@ async function ready(page) {
     await page.waitForFunction(() => window.__moonMissionDockviewSpike.api
         .getPanel("aux:earth-rise-composer")?.group.id === "right-frame-shoot");
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    } catch (error) {
+        const startup = await page.evaluate(() => ({
+            loading: document.getElementById("mission-loading-overlay")?.dataset,
+            layout: document.documentElement.dataset.panelLayout,
+            space: document.body.dataset.workspaceSpace,
+            mediaStatus: document.getElementById("media-browser-status")?.textContent,
+            mediaButtonHidden: document.getElementById("panel-pill-media")?.hidden,
+            missionDataPath: window.missionConfig?.dataPath,
+            panels: window.__moonMissionDockviewSpike?.api?.panels.map(panel => panel.id),
+            groups: window.__moonMissionDockviewSpike?.api?.groups.map(group => ({ id: group.id, visible: group.api.isVisible })),
+        })).catch(() => null);
+        console.error("Progressive workspace startup did not settle:", JSON.stringify({ errors, mediaResponses, startup }));
+        throw error;
+    }
 }
 async function state(page) {
     return page.evaluate(()=>{
@@ -33,6 +54,34 @@ describe("progressive workspace UX",()=>{
         browser=await chromium.launch({headless:true,args:["--no-sandbox","--enable-webgl","--ignore-gpu-blocklist","--use-angle=gl","--enable-unsafe-swiftshader"]});
     });
     afterAll(async()=>{await browser?.close();});
+    it("keeps hidden workspace tools out of the keyboard focus order", async () => {
+        const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+        try {
+            await ready(page);
+            await page.setViewportSize({ width: 800, height: 700 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "focused");
+            await page.locator(".workspace-tools__summary").focus();
+            for (let index = 0; index < 30; index += 1) {
+                await page.keyboard.press("Tab");
+                const focus = await page.evaluate(() => {
+                    const active = document.activeElement;
+                    const group = window.__moonMissionDockviewSpike.api.groups.find(group => group.element.contains(active));
+                    return { group: group?.id, visible: group?.api.isVisible ?? true, label: active?.getAttribute("aria-label") || active?.textContent?.slice(0, 60) };
+                });
+                expect(focus.visible, `Tab ${index + 1} focused hidden group: ${JSON.stringify(focus)}`).toBe(true);
+            }
+            await page.locator(".workspace-tools__summary").click();
+            await page.locator('[data-workspace-panel="aux:moon"]').click();
+            await page.waitForFunction(() => {
+                const group = window.__moonMissionDockviewSpike.api.getPanel("aux:moon")?.group;
+                return group?.api.isVisible && group.element.inert === false;
+            });
+            await page.setViewportSize({ width: 1920, height: 1080 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "full"
+                && window.__moonMissionDockviewSpike.api.groups.every(group => group.api.isVisible && !group.element.inert));
+        } finally { await page.close(); }
+    }, 120000);
+
     it("shows progressively fewer panels and restores the expanded layout without resetting time",async()=>{
         const page=await browser.newPage({viewport:{width:1920,height:1080}});
         try {
