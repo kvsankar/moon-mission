@@ -249,6 +249,19 @@ transitions, load recovery and Artemis II mobile continuity. SA-18 and the
 linked SA-06 receiver-cleanup dependency are complete. No baselines, thresholds
 or mission data were changed; no deployment was performed.
 
+## SA-09 — Playback Restart Publication
+
+Two of four initial regressions failed: the controller silently rewound while
+its real session/scene/timeline callbacks retained the end time. Restart now
+uses `setTime` with a committed `transport-restart` seek before announcing Play.
+Ordinary resume remains seek-free and frame timing still starts fresh.
+
+Independent review cleared the callback/media ordering. **89 focused tests
+across five files** passed. A new CY3 browser test uses the visible timeline
+and Play controls and observes the timeline at the synchronous Play event;
+it passed without waiting for a correcting animation frame. Full-unit
+verification: **1,816 passed, six skipped, 235 files**. SA-09 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now

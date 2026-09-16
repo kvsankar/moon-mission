@@ -139,7 +139,12 @@ export class AnimationController {
     play() {
         // If at end, restart from beginning
         if (this.currentTime >= this.endTime) {
-            this.currentTime = this.startTime;
+            this.setTime(this.startTime, true, {
+                source: "transport-restart",
+                phase: "commit",
+                commit: true,
+                seekEvent: true,
+            });
         }
 
         // Discard stale frame timing so resume-after-seek starts from a fresh baseline.

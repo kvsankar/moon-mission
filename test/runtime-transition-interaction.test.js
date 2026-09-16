@@ -284,6 +284,36 @@ describe("CY3 semantic runtime transitions in the normal Dockview workspace", ()
         } finally { await context.close(); }
     }, TIMEOUT * 2);
 
+    it("publishes restart time before the visible Play state changes", async () => {
+        const { context, page, errors } = await openScenario();
+        try {
+            await page.locator("#timeline-slider").press("End");
+            await page.waitForFunction(() => {
+                const slider = document.getElementById("timeline-slider");
+                return Number(slider.dataset.currentTimeMs) === Number(slider.dataset.rangeMaxMs);
+            });
+            await page.evaluate(() => {
+                window.__restartObservation = null;
+                document.addEventListener("animation-play-state-updated", function observe(event) {
+                    if (!event.detail?.isPlaying) return;
+                    const slider = document.getElementById("timeline-slider");
+                    window.__restartObservation = {
+                        time: Number(slider.dataset.currentTimeMs), start: Number(slider.dataset.rangeMinMs),
+                    };
+                    document.removeEventListener("animation-play-state-updated", observe);
+                });
+            });
+            await page.locator("#animate").click();
+            const observed = await page.evaluate(() => window.__restartObservation);
+            expect(observed).not.toBeNull();
+            expect(observed.time).toBe(observed.start);
+            expect(errors).toEqual([]);
+        } catch (error) {
+            await recordFailure(page, "playback-restart", error);
+            throw error;
+        } finally { await context.close(); }
+    }, TIMEOUT * 2);
+
     it("applies mounted and free camera changes while paused without advancing mission time", async () => {
         const { context, page, errors } = await openScenario();
         try {

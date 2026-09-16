@@ -39,7 +39,7 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 6 | SA-06 | Explicit acceptance/disposal ownership at texture handoff | Complete after SA-17/18; real producer/init/disposal path verifies receiver cleanup |
 | 6a | SA-17 | Last-consumer ownership for shared Moon textures, including scene-held inputs | Complete; shared leases, real-consumer and cleanup-reentry regressions reviewed |
 | 6b | SA-18 | Terminal/idempotent scene disposal, including accepted textures not adopted by a renderer | Complete; scene-owned cancellation and real-adapter readiness reviewed |
-| 7 | SA-09 | Commit restart time before notifying playback consumers | Pending |
+| 7 | SA-09 | Commit restart time before notifying playback consumers | Complete; real callback and synchronous browser event ordering verified |
 | 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Pending |
 | 9 | SA-15 | Required comparison error with Retry, per user decision | Pending; decision recorded in comparison spec |
 | 10 | SA-08 | Distinguish absent/error manifest state and permit explicit recovery | Pending |

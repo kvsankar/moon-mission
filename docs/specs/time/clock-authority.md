@@ -52,6 +52,9 @@ comparison specifications own their mode-specific behavior.
    a feature explicitly defines those semantics.
 7. UTC/TDB conversion decisions belong at the data boundary and require tests
    for event-sensitive behavior.
+8. Play at the mission end commits a restart seek through the normal time-change
+   channel before publishing Play. Scene, timeline and media consumers observe
+   the rewound clock immediately; ordinary pause/resume does not create a seek.
 
 ## Related Current Contracts And Evidence
 
