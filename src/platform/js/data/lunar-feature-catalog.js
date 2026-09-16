@@ -3,7 +3,8 @@ import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
 const LUNAR_FEATURE_CATALOG_PATH = "assets/lunar-features.json";
 
 let loadedCatalog = null;
-let loadingPromise = null;
+const catalogsByUrl = new Map();
+const promisesByUrl = new Map();
 
 function validateLunarFeatureCatalog(catalog, url) {
     if (!catalog || !Array.isArray(catalog.features)) {
@@ -18,7 +19,8 @@ function getLoadedLunarFeatureCatalog() {
 
 function setLoadedLunarFeatureCatalogForTests(catalog) {
     loadedCatalog = catalog || null;
-    loadingPromise = null;
+    catalogsByUrl.clear();
+    promisesByUrl.clear();
 }
 
 async function loadLunarFeatureCatalog({
@@ -27,18 +29,18 @@ async function loadLunarFeatureCatalog({
     url = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 } = {}) {
-    if (loadedCatalog) {
+    const isDefaultRequest = url == null && path === LUNAR_FEATURE_CATALOG_PATH;
+    if (isDefaultRequest && loadedCatalog) {
         return loadedCatalog;
-    }
-    if (loadingPromise) {
-        return loadingPromise;
     }
     if (typeof fetchFn !== "function") {
         throw new Error("Lunar feature catalog loading requires fetch support");
     }
 
     const resolvedUrl = url || resolveRuntimeAssetUrl(path, { globalObject });
-    loadingPromise = fetchFn(resolvedUrl, { cache: "no-store" })
+    if (catalogsByUrl.has(resolvedUrl)) return catalogsByUrl.get(resolvedUrl);
+    if (promisesByUrl.has(resolvedUrl)) return promisesByUrl.get(resolvedUrl);
+    const loadingPromise = fetchFn(resolvedUrl, { cache: "no-store" })
         .then((response) => {
             if (!response?.ok) {
                 throw new Error(`Failed to load lunar feature catalog from ${resolvedUrl}: ${response?.status}`);
@@ -46,13 +48,15 @@ async function loadLunarFeatureCatalog({
             return response.json();
         })
         .then((catalog) => {
-            loadedCatalog = validateLunarFeatureCatalog(catalog, resolvedUrl);
-            return loadedCatalog;
+            const validated = validateLunarFeatureCatalog(catalog, resolvedUrl);
+            catalogsByUrl.set(resolvedUrl, validated);
+            if (isDefaultRequest) loadedCatalog = validated;
+            return validated;
         })
         .finally(() => {
-            loadingPromise = null;
+            if (promisesByUrl.get(resolvedUrl) === loadingPromise) promisesByUrl.delete(resolvedUrl);
         });
-
+    promisesByUrl.set(resolvedUrl, loadingPromise);
     return loadingPromise;
 }
 

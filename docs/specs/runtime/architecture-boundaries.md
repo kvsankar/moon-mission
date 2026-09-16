@@ -128,6 +128,10 @@ inputs are explicit and the behavior is independently testable.
   until the final owner releases them; failed adoption cannot strand inputs.
 - Cleanup continues after an individual cleanup failure. Reentrant or repeated
   disposal cannot restore readiness or release another consumer's resources.
+- Async model/resource completion carries renderer identity/generation. Late or
+  out-of-order results are disposed and settle as superseded rather than
+  attaching to a retired/replaced scene. URL-selectable catalogs key both values
+  and in-flight work by resolved URL; failures remain retryable.
 
 ### Required Data Readiness And Recovery
 

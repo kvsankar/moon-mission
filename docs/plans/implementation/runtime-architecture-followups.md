@@ -48,7 +48,7 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 12 | SA-11 | Persist explicit constrained-layout edits without saving automatic collapse | Complete; explicit sash/tab provenance and real compact reload/expand verified |
 | 13 | SA-14 | Detached controls use their owning window geometry/lifecycle | Complete; real 480px popout and adoption back to opener verified |
 | 14 | SA-20 | Panel snapshots do not expose writable registry data | Complete; nested input/read/subscriber isolation verified |
-| 15 | SA-16/19/22 | Reproduce/disposition scene mirrors, dormant caches and viewport capability contracts | SA-16 complete; SA-19/22 pending |
+| 15 | SA-16/19/22 | Reproduce/disposition scene mirrors, dormant caches and viewport capability contracts | SA-16/19 complete; SA-22 pending |
 
 The inventory contains 16 confirmed module/browser defects or approved behavior
 gaps, plus six risk areas. It does not certify an exhaustive absence of other

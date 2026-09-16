@@ -14,17 +14,25 @@ export function createSpacecraftModelActions({
         const craftColor = planetProperties["SC"]["color"];
         const modelPath = getModelPathPrefix() + globalConfig.spacecraftModel.file;
 
-        scene.spacecraftRenderer = new SpacecraftRenderer(
+        const renderer = new SpacecraftRenderer(
             scene.motherContainer,
             getCraftSize(),
             craftColor,
         );
-        await scene.spacecraftRenderer.loadModel(modelPath);
+        scene.spacecraftRenderer = renderer;
+        const generation = scene.deferred3DInitRunId;
+        const outcome = await renderer.loadModel(modelPath);
+        if (outcome?.status !== "ready" || scene.disposed === true || scene.stopCreationFlag === true ||
+            scene.spacecraftRenderer !== renderer || scene.deferred3DInitRunId !== generation) {
+            renderer.disposeModel();
+            return outcome;
+        }
 
-        scene.craft = scene.spacecraftRenderer.craft;
-        scene.craftInner = scene.spacecraftRenderer.craftInner;
-        scene.craftAxesHelper = scene.spacecraftRenderer.axesHelper;
-        scene.craftVisible = scene.spacecraftRenderer.visible;
+        scene.craft = renderer.craft;
+        scene.craftInner = renderer.craftInner;
+        scene.craftAxesHelper = renderer.axesHelper;
+        scene.craftVisible = renderer.visible;
+        return outcome;
     }
 
     function disposeSpacecraftModel(scene) {
@@ -41,4 +49,3 @@ export function createSpacecraftModelActions({
 
     return { addSpacecraftModel, disposeSpacecraftModel };
 }
-

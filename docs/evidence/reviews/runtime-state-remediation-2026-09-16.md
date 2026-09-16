@@ -499,6 +499,27 @@ Final verification: **24 focused scene/plane tests**, **1,962 unit tests passed,
 six skipped, 242 files**, and all **seven runtime-transition browser checks**
 passed. SA-16 is complete.
 
+## SA-19 — Dormant Model, Catalog And Refinement Paths
+
+Five of seven initial regressions failed. Real GLTF model loads now carry a
+monotonic renderer generation; disposal or a newer request makes completion
+superseded, disposes the late scene graph, and prevents parent attachment. The
+scene adapter captures renderer plus scene generation and refuses publication
+after renderer replacement, scene retirement or initialization supersession.
+
+Lunar feature catalog values and in-flight promises are keyed by resolved URL.
+Concurrent A/B/A requests share only matching URLs, alternate catalogs no longer
+alias the default getter, and failed URLs can retry. The test-only default seed
+retains its existing meaning without poisoning alternate URL loads.
+
+Orbit-overlap refinement remains intentionally disabled. Enabling its dormant
+worker path would require separate product/performance and cancellation work;
+the conservative disposition is protected by a regression proving the current
+gate constructs no Worker and schedules no timer while restoring baseline
+opacity. Final verification: **seven focused lifecycle/cache/gate tests** and
+**1,969 unit tests passed, six skipped, 245 files**. SA-19 is complete without
+enabling dormant refinement.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now

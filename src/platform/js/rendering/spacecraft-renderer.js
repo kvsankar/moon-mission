@@ -64,6 +64,10 @@ export class SpacecraftRenderer {
         // Needed when model forward axis != Three.js default forward (-Z).
         this.attitudeOffsetQuaternion = new THREE.Quaternion();
         this.hasAttitudeOffset = false;
+        this.gltfLoaderFactory = typeof options?.gltfLoaderFactory === "function"
+            ? options.gltfLoaderFactory
+            : () => new GLTFLoader();
+        this.modelLoadGeneration = 0;
     }
 
     /**
@@ -531,16 +535,22 @@ export class SpacecraftRenderer {
      * @returns {Promise} Resolves when model is loaded
      */
     async loadModel(modelPath) {
+        const generation = ++this.modelLoadGeneration;
         this.solarArrayTrackers = [];
         this.solarArrayAutoTrack = false;
         this.attitudeOffsetQuaternion.identity();
         this.hasAttitudeOffset = false;
         return new Promise((resolve, reject) => {
-            const loader = new GLTFLoader();
+            const loader = this.gltfLoaderFactory();
 
             loader.load(
                 modelPath,
                 (gltf) => {
+                    if (generation !== this.modelLoadGeneration) {
+                        this._disposeLoadedModelGraph(gltf?.scene);
+                        resolve({ status: "superseded" });
+                        return;
+                    }
                     this.craft = new THREE.Group();
                     this.craftInner = gltf.scene;
                     this.craftInner.rotateX(Math.PI / 2);  // Top points to Z
@@ -572,7 +582,7 @@ export class SpacecraftRenderer {
 
                     this.parentContainer.add(this.craft);
 
-                    resolve();
+                    resolve({ status: "ready" });
                 },
                 undefined,
                 (error) => {
@@ -580,6 +590,15 @@ export class SpacecraftRenderer {
                     reject(error);
                 }
             );
+        });
+    }
+
+    _disposeLoadedModelGraph(root) {
+        root?.traverse?.((child) => {
+            const node = /** @type {any} */ (child);
+            node.geometry?.dispose?.();
+            if (Array.isArray(node.material)) node.material.forEach(material => material?.dispose?.());
+            else node.material?.dispose?.();
         });
     }
 
@@ -654,6 +673,7 @@ export class SpacecraftRenderer {
      * Dispose simple spacecraft
      */
     dispose() {
+        this.modelLoadGeneration += 1;
         if (this.craft) {
             // Dispose craft inner geometry and material
             if (this.craftInner) {
@@ -715,6 +735,7 @@ export class SpacecraftRenderer {
      * Dispose GLTF model spacecraft
      */
     disposeModel() {
+        this.modelLoadGeneration += 1;
         if (this.craft) {
             // Dispose model lights
             for (const light of this.modelLights) {
