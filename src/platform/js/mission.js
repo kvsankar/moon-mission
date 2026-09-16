@@ -23,6 +23,7 @@ import {
 import { startMissionApp } from "./app/mission-app.js";
 import { createRuntimeCameraState } from "./core/state/runtime-camera-state.js";
 import { whenMissionConfigLoaded } from "./data/mission-data.js";
+import { createViewportCapabilityCoordinator } from "./app/viewport-capability-coordinator.js";
 import { resolveDockviewEnabled } from "./core/domain/dockview-policy.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import {
@@ -937,12 +938,15 @@ publishMissionRuntimeGlobals({
 
 let runtimeCleanupRegistered = false;
 let runtimeCleanupComplete = false;
+let desktopCapabilityCoordinator = null;
 
 function disposeMissionRuntimeResources() {
     if (runtimeCleanupComplete) {
         return;
     }
     runtimeCleanupComplete = true;
+    desktopCapabilityCoordinator?.dispose?.();
+    desktopCapabilityCoordinator = null;
     if (window.__moonMissionResizeMainView) {
         delete window.__moonMissionResizeMainView;
     }
@@ -975,19 +979,25 @@ registerMissionRuntimeCleanup();
 // Wait for a successful runtime-driven load (including an explicit retry) before
 // importing or mounting the workspace. Never use defaults after a config failure:
 // CY3's SSIM profile, for example, explicitly selects the legacy scene layout.
-whenMissionConfigLoaded().then(async (missionConfig) => {
-    const enabled = resolveDockviewEnabled({
-        urlSearch: window.location.search,
-        viewportWidth: window.innerWidth,
-        missionConfig,
+whenMissionConfigLoaded().then((missionConfig) => {
+    desktopCapabilityCoordinator?.dispose?.();
+    desktopCapabilityCoordinator = createViewportCapabilityCoordinator({
+        windowRef: window,
+        isEnabled: ({ viewportWidth, missionConfig: config }) => resolveDockviewEnabled({
+            urlSearch: window.location.search,
+            viewportWidth,
+            missionConfig: config,
+        }),
+        loadCapability: () => import("./app/experimental-dockview-host.js"),
+        activateCapability: ({ initializeExperimentalDockviewHost }, config) => {
+            const workspace = initializeExperimentalDockviewHost({ missionConfig: config });
+            document.documentElement.dataset.panelLayout = workspace ? "dockview" : "legacy";
+            return workspace;
+        },
+        isCapabilityActive: () => !!window.__moonMissionDockviewSpike,
+        onUnavailable: () => { document.documentElement.dataset.panelLayout = "legacy"; },
     });
-    if (!enabled) {
-        document.documentElement.dataset.panelLayout = "legacy";
-        return;
-    }
-    const { initializeExperimentalDockviewHost } = await import("./app/experimental-dockview-host.js");
-    const workspace = initializeExperimentalDockviewHost({ missionConfig });
-    document.documentElement.dataset.panelLayout = workspace ? "dockview" : "legacy";
+    return desktopCapabilityCoordinator.start(missionConfig);
 }).catch((error) => {
     document.documentElement.dataset.panelLayout = "error";
     console.warn("Dockview panel workspace failed to initialize", error);

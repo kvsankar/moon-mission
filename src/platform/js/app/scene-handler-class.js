@@ -53,6 +53,7 @@ function createSceneHandlerClass(deps) {
             this.handleLunarCraterPointerLeaveBound = this.handleLunarCraterPointerLeave.bind(this);
             this.handleLunarCraterPointerDownBound = this.handleLunarCraterPointerDown.bind(this);
             this.handleLunarCraterPointerUpBound = this.handleLunarCraterPointerUp.bind(this);
+            this.handleDesktopCapabilityResizeBound = () => this.ensureDesktopPanelManager();
 
             this.init();
         }
@@ -76,16 +77,29 @@ function createSceneHandlerClass(deps) {
             this.canvasNode = canvasNode;
             this.bindLunarCraterHoverEvents();
 
-            if (!isTestMode && window.innerWidth > 600) {
-                const overlayHost = document.getElementById("content-wrapper") ||
-                    document.getElementById("wrapper") ||
-                    document.body;
-                this.desktopPanelManager = new DesktopPanelManager({
-                    overlayHost,
-                });
-            }
+            this.ensureDesktopPanelManager();
+            window?.addEventListener?.("resize", this.handleDesktopCapabilityResizeBound, { passive: true });
 
             this.initialized = true;
+        }
+
+        ensureDesktopPanelManager() {
+            if (this.desktopPanelManager || isTestMode || typeof window === "undefined" || window.innerWidth <= 600) {
+                return this.desktopPanelManager;
+            }
+            const overlayHost = document.getElementById("content-wrapper") ||
+                document.getElementById("wrapper") || document.body;
+            this.desktopPanelManager = new DesktopPanelManager({ overlayHost });
+            return this.desktopPanelManager;
+        }
+
+        dispose() {
+            globalThis?.window?.removeEventListener?.("resize", this.handleDesktopCapabilityResizeBound);
+            this.desktopPanelManager?.dispose?.();
+            this.desktopPanelManager = null;
+            this.auxiliaryCameraViews?.dispose?.();
+            this.auxiliaryCameraViews = null;
+            this.lastAnimationScene = null;
         }
 
         getPointerEventTarget() {

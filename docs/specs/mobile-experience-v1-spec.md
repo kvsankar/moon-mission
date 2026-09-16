@@ -154,6 +154,11 @@ must not be discarded during that adaptation.
 - Entering mobile may apply a mobile presentation preset.
 - Leaving mobile restores the captured desktop camera and view state.
 - Mobile tab changes must not leak simplified presentation state into desktop.
+- A session may cross the breakpoint without reloading. Desktop-only workspace
+  and panel capabilities mount lazily when first owned by a desktop viewport,
+  at most once, without resetting mission time or camera intent. Shrinking while
+  a lazy import is pending invalidates that mount; a later widening may activate
+  the already-loaded capability. Explicit legacy/config disable remains binding.
 
 ## Acceptance Criteria
 

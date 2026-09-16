@@ -48,7 +48,9 @@ View selection and SA-11 explicit constrained-layout edit persistence are
 complete. SA-14 detached-window geometry/lifecycle is complete. SA-20 detached
 panel-registry snapshots and SA-16 scene compatibility mirrors are complete.
 SA-19 late model/catalog ownership is complete, with orbit refinement explicitly
-kept disabled. SA-22 live viewport capability bootstrap is the remaining state-risk item.
+kept disabled. SA-22 live viewport capability bootstrap is complete. The runtime
+state-remediation queue is complete; transition/SSIM and coverage disposition
+remain the next roadmap work, followed by the deferred detailed human UX review.
 The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and

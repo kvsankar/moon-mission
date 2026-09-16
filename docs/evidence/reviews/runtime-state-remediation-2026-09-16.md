@@ -520,6 +520,28 @@ opacity. Final verification: **seven focused lifecycle/cache/gate tests** and
 **1,969 unit tests passed, six skipped, 245 files**. SA-19 is complete without
 enabling dormant refinement.
 
+## SA-22 — Live Viewport Capability Bootstrap
+
+The runtime previously chose Dockview once after config load, and SceneHandler
+constructed desktop panel facilities only when initially wider than 600px. An
+owned viewport-capability coordinator now separates module loading from
+activation. Each resize advances authority; a shrink while import is pending
+prevents activation, while a later widening reuses the loaded module and mounts
+exactly once. Existing mounted workspaces remain owned across crossings so saved
+layout is retained.
+
+SceneHandler now lazily ensures its desktop panel manager on widening and removes
+the resize owner on terminal disposal. Test mode and explicit legacy/config
+disable remain unchanged. No viewport crossing resets scene, mission clock or
+camera intent.
+
+Focused coordinator/SceneHandler/policy tests pass. The browser regression starts
+at 390px with no Dockview, widens into a deliberately held import, shrinks and
+releases it without mounting, widens again to a complete eight-panel workspace,
+then crosses twice more while verifying the same host plus timeline and camera
+state. Final verification: **1,972 unit tests passed, six skipped, 246 files**
+and all **three Artemis II mobile/desktop browser checks** passed. SA-22 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
@@ -539,7 +561,7 @@ closed above; other entries still require tracked tests, review and verification
   with 28 cleanup calls. Treat scene disposal as terminal/idempotent, invalidating
   readiness and only that scene's subscriptions before cleanup. Replacement,
   not same-instance resurrection, matches current origin-switch behavior.
-- SA-19 GLTF: completion after renderer disposal attached a new craft. Guard
+- SA-19 (complete above): GLTF completion after renderer disposal attached a new craft. Guard
   renderer generation and wrapper identity, dispose late models and settle
   cancellation. Catalog URL A then B returned A with one fetch; key cache and
   inflight work by resolved URL without replacing the default catalog getter.
@@ -547,7 +569,7 @@ closed above; other entries still require tracked tests, review and verification
   explicit no-change disposition, not speculative worker activation.
 - SA-21 (complete above): the cold six-panel startup, explicit Focus reveal,
   host replacement and deferred-work ownership now have deterministic coverage.
-- SA-22: existing mobile/desktop specs support live widening restoration, not
+- SA-22 (complete above): existing mobile/desktop specs support live widening restoration, not
   a new reload-required exception. Own lazy desktop mounting across breakpoint
   crossings; preserve time/camera/layout and respect explicit legacy policy.
   No further product choice is required for these conservative contracts.

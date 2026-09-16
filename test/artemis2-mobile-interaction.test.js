@@ -4,6 +4,37 @@ import { getEffectiveTestBaseUrl } from "./local-test-config.js";
 import { readMountedCameraInvariantSnapshot } from "./helpers/mounted-camera-invariants.js";
 
 describe("Artemis II mobile camera behavior", () => {
+    it("mounts desktop capabilities on widening and invalidates a mount superseded by shrinking", async () => {
+        const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--enable-webgl", "--ignore-gpu-blocklist", "--use-angle=gl", "--enable-unsafe-swiftshader"] });
+        const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+        let release; const gate = new Promise(resolve => { release = resolve; }); let intercepted = false;
+        await page.route(/\/src\/platform\/js\/app\/experimental-dockview-host\.js(?:\?.*)?$/, async route => {
+            intercepted = true; await gate; await route.continue();
+        });
+        try {
+            await page.goto(`${getEffectiveTestBaseUrl()}/artemis2/`, { waitUntil: "domcontentloaded" });
+            await page.waitForFunction(() => document.querySelector("#mission-loading-overlay")?.dataset.blocking === "false");
+            expect(await page.evaluate(() => !!window.__moonMissionDockviewSpike)).toBe(false);
+            const before = await readMountedCameraInvariantSnapshot(page);
+            await page.setViewportSize({ width: 1440, height: 900 });
+            await expect.poll(() => intercepted, { timeout: 30000 }).toBe(true);
+            await page.setViewportSize({ width: 390, height: 844 });
+            release();
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            expect(await page.evaluate(() => !!window.__moonMissionDockviewSpike)).toBe(false);
+            await page.setViewportSize({ width: 1440, height: 900 });
+            await page.waitForFunction(() => window.__moonMissionDockviewSpike?.api?.panels.length >= 8, null, { timeout: 30000 });
+            const host = await page.evaluateHandle(() => window.__moonMissionDockviewSpike);
+            const after = await readMountedCameraInvariantSnapshot(page);
+            expect(after.timelineSliderValue).toBe(before.timelineSliderValue);
+            expect(after.positionMode).toBe(before.positionMode);
+            expect(after.lookMode).toBe(before.lookMode);
+            await page.setViewportSize({ width: 390, height: 844 });
+            await page.setViewportSize({ width: 1440, height: 900 });
+            expect(await host.evaluate(value => value === window.__moonMissionDockviewSpike)).toBe(true);
+        } finally { release(); await browser.close(); }
+    }, 120000);
+
     it("keeps desktop FoV after leaving mobile Views and resizing again", async () => {
         const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--enable-webgl", "--ignore-gpu-blocklist", "--use-angle=gl", "--enable-unsafe-swiftshader"] });
         const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
