@@ -1,3 +1,4 @@
+import { replaceTextureOwner, updateTextureOwner, detachTextureOwner } from "./texture-ownership.js";
 /**
  * Earth Renderer - Earth sphere with texture, axis, and poles
  *
@@ -303,10 +304,17 @@ export class EarthRenderer {
      * @param {THREE.Texture} specularTexture - Specular map for oceans
      * @param {THREE.Texture} nightTexture - Night lights map
      */
+    _textureInputs() {
+        const material = this.mesh?.material;
+        return [this.texture, this.specularTexture, this.nightTexture,
+            material?.map, material?.specularMap, material?.emissiveMap];
+    }
+
     setTextures(texture, specularTexture, nightTexture = null) {
         this.texture = texture;
         this.specularTexture = specularTexture;
         this.nightTexture = nightTexture;
+        replaceTextureOwner(this, this._textureInputs(), { disposePrevious: false });
     }
 
     /**
@@ -317,47 +325,27 @@ export class EarthRenderer {
      * @param {{ disposePrevious?: boolean }} options
      */
     updateTextures(texture, specularTexture, nightTexture, { disposePrevious = true } = {}) {
-        const previousTexture = this.texture;
-        const previousSpecularTexture = this.specularTexture;
-        const previousNightTexture = this.nightTexture;
-        this.texture = texture;
-        this.specularTexture = specularTexture;
-        this.nightTexture = nightTexture;
+        return updateTextureOwner(this, () => this._textureInputs(), () => {
+            const previousTexture = this.texture;
+            this.texture = texture;
+            this.specularTexture = specularTexture;
+            this.nightTexture = nightTexture;
 
-        const material = this.mesh?.material;
-        if (material) {
-            material.map = this.texture || null;
-            material.specularMap = this.specularTexture || null;
-            material.emissiveMap = this.nightTexture || null;
-            material.emissiveIntensity = this.nightTexture ? 1.0 : 0.0;
-            if (
-                !material.userData.earthPhotoTexture ||
-                material.userData.earthPhotoTexture === previousTexture
-            ) {
-                material.userData.earthPhotoTexture = this.texture || null;
+            const material = this.mesh?.material;
+            if (material) {
+                material.map = this.texture || null;
+                material.specularMap = this.specularTexture || null;
+                material.emissiveMap = this.nightTexture || null;
+                material.emissiveIntensity = this.nightTexture ? 1.0 : 0.0;
+                if (
+                    !material.userData.earthPhotoTexture ||
+                    material.userData.earthPhotoTexture === previousTexture
+                ) {
+                    material.userData.earthPhotoTexture = this.texture || null;
+                }
+                material.needsUpdate = true;
             }
-            material.needsUpdate = true;
-        }
-        if (disposePrevious) {
-            if (previousTexture && previousTexture !== this.texture) {
-                previousTexture.dispose?.();
-            }
-            if (
-                previousSpecularTexture &&
-                previousSpecularTexture !== this.specularTexture &&
-                previousSpecularTexture !== this.texture
-            ) {
-                previousSpecularTexture.dispose?.();
-            }
-            if (
-                previousNightTexture &&
-                previousNightTexture !== this.nightTexture &&
-                previousNightTexture !== this.texture &&
-                previousNightTexture !== this.specularTexture
-            ) {
-                previousNightTexture.dispose?.();
-            }
-        }
+        }, { disposePrevious });
     }
 
     /**
@@ -566,64 +554,56 @@ export class EarthRenderer {
      * Dispose all Earth resources
      */
     dispose() {
-        if (this.container) {
-            // Dispose mesh
-            if (this.mesh) {
-                if (this.mesh.geometry) this.mesh.geometry.dispose();
-                if (this.mesh.material) this.mesh.material.dispose();
-                this.container.remove(this.mesh);
-                this.mesh = null;
-            }
+        const releaseTextures = detachTextureOwner(this, [this.texture, this.specularTexture, this.nightTexture]);
+        this.texture = null;
+        this.specularTexture = null;
+        this.nightTexture = null;
+        try {
+            if (this.container) {
+                // Dispose mesh
+                if (this.mesh) {
+                    if (this.mesh.geometry) this.mesh.geometry.dispose();
+                    if (this.mesh.material) this.mesh.material.dispose();
+                    this.container.remove(this.mesh);
+                    this.mesh = null;
+                }
 
-            // Dispose axis
-            if (this.axis) {
-                if (this.axis.geometry) this.axis.geometry.dispose();
-                if (this.axis.material) this.axis.material.dispose();
-                this.container.remove(this.axis);
-                this.axis = null;
-            }
+                // Dispose axis
+                if (this.axis) {
+                    if (this.axis.geometry) this.axis.geometry.dispose();
+                    if (this.axis.material) this.axis.material.dispose();
+                    this.container.remove(this.axis);
+                    this.axis = null;
+                }
 
-            // Dispose poles
-            if (this.northPoleSphere) {
-                if (this.northPoleSphere.geometry) this.northPoleSphere.geometry.dispose();
-                if (this.northPoleSphere.material) this.northPoleSphere.material.dispose();
-                this.container.remove(this.northPoleSphere);
-                this.northPoleSphere = null;
-            }
-            if (this.southPoleSphere) {
-                if (this.southPoleSphere.geometry) this.southPoleSphere.geometry.dispose();
-                if (this.southPoleSphere.material) this.southPoleSphere.material.dispose();
-                this.container.remove(this.southPoleSphere);
-                this.southPoleSphere = null;
-            }
+                // Dispose poles
+                if (this.northPoleSphere) {
+                    if (this.northPoleSphere.geometry) this.northPoleSphere.geometry.dispose();
+                    if (this.northPoleSphere.material) this.northPoleSphere.material.dispose();
+                    this.container.remove(this.northPoleSphere);
+                    this.northPoleSphere = null;
+                }
+                if (this.southPoleSphere) {
+                    if (this.southPoleSphere.geometry) this.southPoleSphere.geometry.dispose();
+                    if (this.southPoleSphere.material) this.southPoleSphere.material.dispose();
+                    this.container.remove(this.southPoleSphere);
+                    this.southPoleSphere = null;
+                }
 
-            if (this.latLonOverlay) {
-                this.latLonOverlay.dispose();
-                this.latLonOverlay = null;
-                this.latLonGrid = null;
-                this.latLonLabels = null;
-                this.latLonHoverLabel = null;
-            }
+                if (this.latLonOverlay) {
+                    this.latLonOverlay.dispose();
+                    this.latLonOverlay = null;
+                    this.latLonGrid = null;
+                    this.latLonLabels = null;
+                    this.latLonHoverLabel = null;
+                }
 
-            // Remove container from parent
-            if (this.container.parent) {
-                this.container.parent.remove(this.container);
+                // Remove container from parent
+                if (this.container.parent) {
+                    this.container.parent.remove(this.container);
+                }
+                this.container = null;
             }
-            this.container = null;
-        }
-
-        // Dispose textures
-        if (this.texture) {
-            this.texture.dispose();
-            this.texture = null;
-        }
-        if (this.specularTexture) {
-            this.specularTexture.dispose();
-            this.specularTexture = null;
-        }
-        if (this.nightTexture) {
-            this.nightTexture.dispose();
-            this.nightTexture = null;
-        }
+        } finally { releaseTextures(); }
     }
 }

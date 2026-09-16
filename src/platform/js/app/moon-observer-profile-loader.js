@@ -1,3 +1,5 @@
+import { disposeUnclaimedTextures } from "../rendering/texture-ownership.js";
+
 function disposeMoonProfileTextures(textures) {
     const uniqueTextures = new Set([
         textures?.moonMap,
@@ -5,7 +7,7 @@ function disposeMoonProfileTextures(textures) {
     ]);
     uniqueTextures.delete(null);
     uniqueTextures.delete(undefined);
-    uniqueTextures.forEach((texture) => texture?.dispose?.());
+    disposeUnclaimedTextures(uniqueTextures);
 }
 
 export function createMoonObserverProfileLoader({

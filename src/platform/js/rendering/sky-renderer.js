@@ -1,3 +1,4 @@
+import { replaceTextureOwner, updateTextureOwner, detachTextureOwner } from "./texture-ownership.js";
 /**
  * Sky Renderer - Starfield and constellation background
  *
@@ -68,9 +69,15 @@ export class SkyRenderer {
      * @param {THREE.Texture} skyTexture - Starmap texture
      * @param {THREE.Texture} constellationTexture - Constellation overlay texture
      */
+    _textureInputs() {
+        return [this.skyTexture, this.constellationTexture,
+            this.skyMesh?.material?.map, this.constellationMesh?.material?.map];
+    }
+
     setTextures(skyTexture, constellationTexture) {
         this.skyTexture = skyTexture;
         this.constellationTexture = constellationTexture;
+        replaceTextureOwner(this, this._textureInputs(), { disposePrevious: false });
     }
 
     /**
@@ -80,33 +87,20 @@ export class SkyRenderer {
      * @param {{ disposePrevious?: boolean }} options
      */
     updateTextures(skyTexture, constellationTexture, { disposePrevious = true } = {}) {
-        const previousSkyTexture = this.skyTexture;
-        const previousConstellationTexture = this.constellationTexture;
-        this.skyTexture = skyTexture;
-        this.constellationTexture = constellationTexture;
+        return updateTextureOwner(this, () => this._textureInputs(), () => {
+            this.skyTexture = skyTexture;
+            this.constellationTexture = constellationTexture;
 
-        if (this.skyMesh?.material) {
-            this.skyMesh.material.map = this.skyTexture || null;
-            this.skyMesh.material.needsUpdate = true;
-        }
-
-        if (this.constellationMesh?.material) {
-            this.constellationMesh.material.map = this.constellationTexture || null;
-            this.constellationMesh.material.needsUpdate = true;
-        }
-
-        if (disposePrevious) {
-            if (previousSkyTexture && previousSkyTexture !== this.skyTexture) {
-                previousSkyTexture.dispose?.();
+            if (this.skyMesh?.material) {
+                this.skyMesh.material.map = this.skyTexture || null;
+                this.skyMesh.material.needsUpdate = true;
             }
-            if (
-                previousConstellationTexture &&
-                previousConstellationTexture !== this.constellationTexture &&
-                previousConstellationTexture !== this.skyTexture
-            ) {
-                previousConstellationTexture.dispose?.();
+
+            if (this.constellationMesh?.material) {
+                this.constellationMesh.material.map = this.constellationTexture || null;
+                this.constellationMesh.material.needsUpdate = true;
             }
-        }
+        }, { disposePrevious });
     }
 
     /**
@@ -223,51 +217,46 @@ export class SkyRenderer {
      * Dispose all sky resources
      */
     dispose() {
-        if (this.container) {
-            // Dispose sky mesh
-            if (this.skyMesh) {
-                if (this.skyMesh.material) {
-                    this.skyMesh.material.dispose();
+        const releaseTextures = detachTextureOwner(this, [this.skyTexture, this.constellationTexture]);
+        this.skyTexture = null;
+        this.constellationTexture = null;
+        try {
+            if (this.container) {
+                // Dispose sky mesh
+                if (this.skyMesh) {
+                    if (this.skyMesh.material) {
+                        this.skyMesh.material.dispose();
+                    }
+                    this.container.remove(this.skyMesh);
+                    this.skyMesh = null;
                 }
-                this.container.remove(this.skyMesh);
-                this.skyMesh = null;
-            }
 
-            // Dispose constellation mesh
-            if (this.constellationMesh) {
-                if (this.constellationMesh.material) {
-                    this.constellationMesh.material.dispose();
+                // Dispose constellation mesh
+                if (this.constellationMesh) {
+                    if (this.constellationMesh.material) {
+                        this.constellationMesh.material.dispose();
+                    }
+                    this.container.remove(this.constellationMesh);
+                    this.constellationMesh = null;
                 }
-                this.container.remove(this.constellationMesh);
-                this.constellationMesh = null;
-            }
 
-            if (this.lowerShadeMesh) {
-                if (this.lowerShadeMesh.material) {
-                    this.lowerShadeMesh.material.dispose();
+                if (this.lowerShadeMesh) {
+                    if (this.lowerShadeMesh.material) {
+                        this.lowerShadeMesh.material.dispose();
+                    }
+                    this.container.remove(this.lowerShadeMesh);
+                    this.lowerShadeMesh = null;
                 }
-                this.container.remove(this.lowerShadeMesh);
-                this.lowerShadeMesh = null;
+
+                if (this.geometry) {
+                    this.geometry.dispose();
+                    this.geometry = null;
+                }
+
+                // Remove container
+                this.parentContainer.remove(this.container);
+                this.container = null;
             }
-
-            if (this.geometry) {
-                this.geometry.dispose();
-                this.geometry = null;
-            }
-
-            // Remove container
-            this.parentContainer.remove(this.container);
-            this.container = null;
-        }
-
-        // Dispose textures
-        if (this.skyTexture) {
-            this.skyTexture.dispose();
-            this.skyTexture = null;
-        }
-        if (this.constellationTexture) {
-            this.constellationTexture.dispose();
-            this.constellationTexture = null;
-        }
+        } finally { releaseTextures(); }
     }
 }

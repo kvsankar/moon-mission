@@ -1,4 +1,5 @@
 import { resolveMoonRenderPipelineState } from "./moon-render-pipeline.js";
+import { detachSceneTextureFields, SCENE_TEXTURE_FIELDS } from "./scene-texture-actions.js";
 
 function scheduleDeferredNormalMapUpgrade(scene, requestRender) {
     const upgrade = () => {
@@ -110,10 +111,9 @@ export function createMoonActions({
         scene.disposeBodyHalos();
         scene.disposeMoonOsculatingOrbit();
 
-        if (scene.moonRenderer) {
-            scene.moonRenderer.dispose();
-            scene.moonRenderer = null;
-        }
+        const renderer = scene.moonRenderer;
+        scene.moonRenderer = null;
+        const releaseInputs = detachSceneTextureFields(scene, SCENE_TEXTURE_FIELDS.moon);
 
         scene.moon = null;
         scene.moonAxis = null;
@@ -129,6 +129,8 @@ export function createMoonActions({
         scene.moonDisplacementMap = null;
         scene.moonRenderProfile = null;
         scene.moonRenderSettings = null;
+        try { renderer?.dispose(); }
+        finally { releaseInputs(); }
     }
 
     return { addMoon, disposeMoon };

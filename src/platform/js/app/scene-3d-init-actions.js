@@ -1,4 +1,5 @@
 import { constrainMoonRenderProfile } from "../core/domain/render-device-policy.js";
+import { disposeUnclaimedTextures } from "../rendering/texture-ownership.js";
 import { resolveMoonRenderAssetProfile } from "./moon-render-asset-profiles.js";
 import {
     resolveDelayUntilInputIdle,
@@ -40,7 +41,7 @@ export function createScene3dInitActions({
             const stillPlaceholder = Number(scene.moonMap?.image?.width || 0) <= 1;
             if (scene.deferred3DInitRunId !== runId || !scene.initialized3D
                 || scene.stopCreationFlag || controller?.signal.aborted || !stillPlaceholder) {
-                textures.moonMap?.dispose?.();
+                disposeUnclaimedTextures([textures.moonMap]);
                 return;
             }
             applyLoadedTextures(scene, textures);

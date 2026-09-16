@@ -1,6 +1,7 @@
 import { DEFAULT_MOON_RENDER_ASSET_PROFILES, MOON_PREVIEW_RENDER_SETTINGS, resolveMoonRenderAssetSelection } from "./moon-render-asset-profiles.js";
 import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
 import { decodeMoonUint16RgbaToFloatHeightData } from "../rendering/moon-physical-normal-data.js";
+import { disposeUnclaimedTextures, registerTextureDependency } from "../rendering/texture-ownership.js";
 
 export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthTexture: "images/earth/2_no_clouds_8k.jpg",
@@ -63,7 +64,7 @@ function loadTextureUrlWithSignal(THREE, loader, textureUrl, signal = null) {
     if (!signal || typeof globalThis.Image !== "function") {
         return loadTextureUrl(loader, textureUrl).then((texture) => {
             if (signal?.aborted) {
-                texture?.dispose?.();
+                disposeUnclaimedTextures([texture]);
                 throw createAbortError();
             }
             return texture;
@@ -352,9 +353,9 @@ async function loadNasaUint16MoonDem(THREE, fileName, renderSettings, signal = n
     physicalNormalTexture.userData.buildMilliseconds = workerResult.normalBuildMilliseconds;
     physicalNormalTexture.userData.sourceEncoding = "nasa-uint16-float";
     texture.userData.physicalNormalTexture = physicalNormalTexture;
-    texture.addEventListener?.("dispose", () => physicalNormalTexture.dispose?.());
+    registerTextureDependency(texture, physicalNormalTexture);
     if (signal?.aborted) {
-        texture.dispose?.();
+        disposeUnclaimedTextures([texture]);
         throw createAbortError();
     }
     texture.needsUpdate = true;
@@ -407,7 +408,7 @@ function loadTextureEntries(loader, entries, loadEntryTexture, { getCacheKey = n
     })).catch(error => {
         const disposed = new Set();
         for (const promise of promisesByCacheKey.values()) promise.then(texture => {
-            if (texture && !disposed.has(texture)) { disposed.add(texture); texture.dispose?.(); }
+            if (texture && !disposed.has(texture)) { disposed.add(texture); disposeUnclaimedTextures([texture]); }
         }, () => {});
         throw error;
     });
@@ -474,7 +475,7 @@ async function loadSceneTextureEntry(loader, key, fileName, moonAssets, THREE, s
         texture = await loadTextureUrlWithSignal(THREE, loader, textureUrl, signal);
     }
     if (signal?.aborted) {
-        texture?.dispose?.();
+        disposeUnclaimedTextures([texture]);
         throw createAbortError();
     }
     return texture;
@@ -804,7 +805,7 @@ export async function loadSceneTexturesProgressively({
             loading.then(texture => {
                 if (!texture || deliveredTextures.has(texture) || disposed.has(texture)) return;
                 disposed.add(texture);
-                texture.dispose?.();
+                disposeUnclaimedTextures([texture]);
             }, () => {});
         }
         throw error;

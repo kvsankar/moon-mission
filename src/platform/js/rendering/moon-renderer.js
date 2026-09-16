@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { replaceTextureOwner, updateTextureOwner, detachTextureOwner } from "./texture-ownership.js";
 import { DEFAULT_MOON_RENDER_PROFILE_SETTINGS } from "../app/moon-render-asset-profiles.js";
 import { MOON_RENDER_PIPELINE_SCHEMA_VERSION } from "../app/moon-render-pipeline.js";
 
@@ -873,25 +874,14 @@ export class MoonRenderer {
     }
 
     _refreshGeneratedNormalMap({ disposePrevious = true } = {}) {
-        const previousGeneratedNormalMap = this.generatedNormalMap;
-        this.generatedNormalMap = this._buildGeneratedNormalMap();
-        this.generatedNormalMapMode = this.generatedNormalMap
-            ? this._resolveGeneratedNormalMapMode()
-            : null;
+        return updateTextureOwner(this, () => this._textureInputs(), () => {
+            this.generatedNormalMap = this._buildGeneratedNormalMap();
+            this.generatedNormalMapMode = this.generatedNormalMap
+                ? this._resolveGeneratedNormalMapMode()
+                : null;
 
-        if (
-            disposePrevious &&
-            previousGeneratedNormalMap &&
-            previousGeneratedNormalMap !== this.generatedNormalMap &&
-            previousGeneratedNormalMap !== this.normalMap &&
-            previousGeneratedNormalMap !== this.displacementMap &&
-            previousGeneratedNormalMap !== this.displacementMap?.userData?.physicalNormalTexture &&
-            previousGeneratedNormalMap !== this.texture
-        ) {
-            previousGeneratedNormalMap.dispose?.();
-        }
-
-        return this._resolveNormalMap();
+            return this._resolveNormalMap();
+        }, { disposePrevious });
     }
 
     _cancelScheduledGeneratedNormalMapRefresh() {
@@ -928,6 +918,7 @@ export class MoonRenderer {
             }
             this._applyPipelineMapsToMaterial();
             this._applyRenderSettingsToMaterial();
+            replaceTextureOwner(this, this._textureInputs());
             this.requestRender?.();
         };
         if (typeof globalThis.requestIdleCallback === "function") {
@@ -1032,10 +1023,17 @@ export class MoonRenderer {
      * @param {THREE.Texture} displacementMap - Displacement/bump map
      * @param {THREE.Texture|null} normalMap - Optional normal map
      */
+    _textureInputs() {
+        const material = this.mesh?.material;
+        return [this.texture, this.displacementMap, this.normalMap, this.generatedNormalMap,
+            material?.map, material?.normalMap, material?.displacementMap, material?.bumpMap];
+    }
+
     setTextures(texture, displacementMap, normalMap = null) {
         this.texture = texture;
         this.displacementMap = displacementMap;
         this.normalMap = normalMap;
+        replaceTextureOwner(this, this._textureInputs(), { disposePrevious: false });
     }
 
     setRenderInvalidationCallback(callback = null) {
@@ -1066,42 +1064,35 @@ export class MoonRenderer {
         if (normalInputsChanged) this._refreshGeneratedNormalMap({ disposePrevious: true });
         this._applyPipelineMapsToMaterial();
         this._applyRenderSettingsToMaterial();
+        replaceTextureOwner(this, this._textureInputs());
     }
 
     setRenderPipeline(pipelineState = null) {
-        this._cancelScheduledGeneratedNormalMapRefresh();
-        this.renderPipeline = normalizeMoonRenderPipelineState({ schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION, ...pipelineState });
-        const pipeline = this._resolveEffectivePipeline();
-        const nextNormalMode = this._resolveGeneratedNormalMapMode();
-        const material = this.mesh?.material;
-        if (
-            material &&
-            pipeline.generatedNormalMap &&
-            !this.normalMap &&
-            this._hasUsableDem() &&
-            (!this.generatedNormalMap || this.generatedNormalMapMode !== nextNormalMode)
-        ) {
-            if (typeof globalThis.requestIdleCallback === "function") {
-                const previousGeneratedNormalMap = this.generatedNormalMap;
-                this.generatedNormalMap = null;
-                this.generatedNormalMapMode = null;
-                if (
-                    previousGeneratedNormalMap &&
-                    previousGeneratedNormalMap !== this.normalMap &&
-                    previousGeneratedNormalMap !== this.displacementMap &&
-                    previousGeneratedNormalMap !== this.displacementMap?.userData?.physicalNormalTexture &&
-                    previousGeneratedNormalMap !== this.texture
-                ) {
-                    previousGeneratedNormalMap.dispose?.();
+        return updateTextureOwner(this, () => this._textureInputs(), () => {
+            this._cancelScheduledGeneratedNormalMapRefresh();
+            this.renderPipeline = normalizeMoonRenderPipelineState({ schemaVersion: MOON_RENDER_PIPELINE_SCHEMA_VERSION, ...pipelineState });
+            const pipeline = this._resolveEffectivePipeline();
+            const nextNormalMode = this._resolveGeneratedNormalMapMode();
+            const material = this.mesh?.material;
+            if (
+                material &&
+                pipeline.generatedNormalMap &&
+                !this.normalMap &&
+                this._hasUsableDem() &&
+                (!this.generatedNormalMap || this.generatedNormalMapMode !== nextNormalMode)
+            ) {
+                if (typeof globalThis.requestIdleCallback === "function") {
+                    this.generatedNormalMap = null;
+                    this.generatedNormalMapMode = null;
+                    this._scheduleGeneratedNormalMapRefresh();
+                } else {
+                    this._refreshGeneratedNormalMap({ disposePrevious: true });
                 }
-                this._scheduleGeneratedNormalMapRefresh();
-            } else {
-                this._refreshGeneratedNormalMap({ disposePrevious: true });
             }
-        }
-        this._refreshMoonGeometry();
-        this._applyPipelineMapsToMaterial();
-        this._applyRenderSettingsToMaterial();
+            this._refreshMoonGeometry();
+            this._applyPipelineMapsToMaterial();
+            this._applyRenderSettingsToMaterial();
+        });
     }
 
     unregisterShaderRenderer(renderer) {
@@ -1122,76 +1113,42 @@ export class MoonRenderer {
         normalMap = null,
         { disposePrevious = true, renderSettings = null, deferGeneratedNormalMap = false } = {},
     ) {
-        this._cancelScheduledGeneratedNormalMapRefresh();
-        const previousTexture = this.texture;
-        const previousDisplacementMap = this.displacementMap;
-        const previousNormalMap = this.normalMap;
-        const previousGeneratedNormalMap = this.generatedNormalMap;
+        return updateTextureOwner(this, () => this._textureInputs(), () => {
+            this._cancelScheduledGeneratedNormalMapRefresh();
 
-        if (renderSettings) {
-            this.renderSettings = normalizeMoonRenderSettings(renderSettings);
-        }
-
-        this.texture = texture;
-        this.displacementMap = displacementMap;
-        this.normalMap = normalMap;
-
-        if (!this._hasUsableDem() && !this.normalMap) {
-            this.generatedNormalMap = null;
-            this.generatedNormalMapMode = null;
-        }
-
-        const pipeline = this._resolveEffectivePipeline();
-        if (pipeline.physicalModel && this.displacementMap?.userData?.physicalNormalTexture) deferGeneratedNormalMap = false;
-        if (deferGeneratedNormalMap && pipeline.generatedNormalMap && !this.normalMap) {
-            this.generatedNormalMap = null;
-            this.generatedNormalMapMode = null;
-        }
-        if (pipeline.generatedNormalMap && this._hasUsableDem() && !deferGeneratedNormalMap) {
-            this._refreshGeneratedNormalMap({ disposePrevious: false });
-        }
-        if (!pipeline.generatedNormalMap) {
-            this.generatedNormalMap = null;
-            this.generatedNormalMapMode = null;
-        }
-        const material = this.mesh?.material;
-        if (material) {
-            this._refreshMoonGeometry();
-            this._applyPipelineMapsToMaterial();
-            this._applyRenderSettingsToMaterial();
-        }
-
-        if (disposePrevious) {
-            if (previousTexture && previousTexture !== this.texture) {
-                previousTexture.dispose?.();
+            if (renderSettings) {
+                this.renderSettings = normalizeMoonRenderSettings(renderSettings);
             }
-            if (
-                previousDisplacementMap &&
-                previousDisplacementMap !== this.displacementMap &&
-                previousDisplacementMap !== this.texture
-            ) {
-                previousDisplacementMap.dispose?.();
+
+            this.texture = texture;
+            this.displacementMap = displacementMap;
+            this.normalMap = normalMap;
+
+            if (!this._hasUsableDem() && !this.normalMap) {
+                this.generatedNormalMap = null;
+                this.generatedNormalMapMode = null;
             }
-            if (
-                previousNormalMap &&
-                previousNormalMap !== this.normalMap &&
-                previousNormalMap !== this.displacementMap &&
-                previousNormalMap !== this.texture &&
-                previousNormalMap !== this.generatedNormalMap
-            ) {
-                previousNormalMap.dispose?.();
+
+            const pipeline = this._resolveEffectivePipeline();
+            if (pipeline.physicalModel && this.displacementMap?.userData?.physicalNormalTexture) deferGeneratedNormalMap = false;
+            if (deferGeneratedNormalMap && pipeline.generatedNormalMap && !this.normalMap) {
+                this.generatedNormalMap = null;
+                this.generatedNormalMapMode = null;
             }
-            if (
-                previousGeneratedNormalMap &&
-                previousGeneratedNormalMap !== this.generatedNormalMap &&
-                previousGeneratedNormalMap !== this.normalMap &&
-                previousGeneratedNormalMap !== this.displacementMap &&
-                previousGeneratedNormalMap !== previousDisplacementMap?.userData?.physicalNormalTexture &&
-                previousGeneratedNormalMap !== this.texture
-            ) {
-                previousGeneratedNormalMap.dispose?.();
+            if (pipeline.generatedNormalMap && this._hasUsableDem() && !deferGeneratedNormalMap) {
+                this._refreshGeneratedNormalMap({ disposePrevious: false });
             }
-        }
+            if (!pipeline.generatedNormalMap) {
+                this.generatedNormalMap = null;
+                this.generatedNormalMapMode = null;
+            }
+            const material = this.mesh?.material;
+            if (material) {
+                this._refreshMoonGeometry();
+                this._applyPipelineMapsToMaterial();
+                this._applyRenderSettingsToMaterial();
+            }
+        }, { disposePrevious });
     }
 
     refreshGeneratedNormalMap({ disposePrevious = true } = {}) {
@@ -1202,6 +1159,7 @@ export class MoonRenderer {
         }
         this._applyPipelineMapsToMaterial();
         this._applyRenderSettingsToMaterial();
+        replaceTextureOwner(this, this._textureInputs(), { disposePrevious });
         return resolvedNormalMap;
     }
 
@@ -1861,76 +1819,60 @@ export class MoonRenderer {
      * Dispose all Moon resources
      */
     dispose() {
-        this._cancelScheduledGeneratedNormalMapRefresh();
-        if (this.container) {
-            // Dispose mesh
-            if (this.mesh) {
-                if (this.mesh.geometry) this.mesh.geometry.dispose();
-                if (this.mesh.material) this.mesh.material.dispose();
-                this.container.remove(this.mesh);
-                this.mesh = null;
-            }
-
-            // Dispose axis
-            if (this.axis) {
-                if (this.axis.geometry) this.axis.geometry.dispose();
-                if (this.axis.material) this.axis.material.dispose();
-                this.container.remove(this.axis);
-                this.axis = null;
-            }
-            this.axisVector = null;
-
-            // Dispose poles
-            if (this.northPoleSphere) {
-                if (this.northPoleSphere.geometry) this.northPoleSphere.geometry.dispose();
-                if (this.northPoleSphere.material) this.northPoleSphere.material.dispose();
-                this.container.remove(this.northPoleSphere);
-                this.northPoleSphere = null;
-            }
-            if (this.southPoleSphere) {
-                if (this.southPoleSphere.geometry) this.southPoleSphere.geometry.dispose();
-                if (this.southPoleSphere.material) this.southPoleSphere.material.dispose();
-                this.container.remove(this.southPoleSphere);
-                this.southPoleSphere = null;
-            }
-
-            this._disposeLatLonGridAndLabels();
-            if (this.latLonHoverLabel) {
-                disposeObjectMaterialAndGeometry(this.latLonHoverLabel);
-                this.container.remove(this.latLonHoverLabel);
-                this.latLonHoverLabel = null;
-            }
-
-            // Remove container from parent
-            if (this.container.parent) {
-                this.container.parent.remove(this.container);
-            }
-            this.container = null;
-        }
-
-        // Dispose textures
-        const texture = this.texture;
-        const displacementMap = this.displacementMap;
-        const normalMap = this.normalMap;
-        const generatedNormalMap = this.generatedNormalMap;
+        const releaseTextures = detachTextureOwner(this, [this.texture, this.displacementMap, this.normalMap, this.generatedNormalMap]);
         this.texture = null;
         this.displacementMap = null;
         this.normalMap = null;
         this.generatedNormalMap = null;
         this.generatedNormalMapMode = null;
         this.requestRender = null;
+        try {
+            this._cancelScheduledGeneratedNormalMapRefresh();
+            if (this.container) {
+                // Dispose mesh
+                if (this.mesh) {
+                    if (this.mesh.geometry) this.mesh.geometry.dispose();
+                    if (this.mesh.material) this.mesh.material.dispose();
+                    this.container.remove(this.mesh);
+                    this.mesh = null;
+                }
 
-        texture?.dispose?.();
-        displacementMap?.dispose?.();
-        if (normalMap && normalMap !== displacementMap && normalMap !== generatedNormalMap) {
-            normalMap.dispose();
-        }
-        if (
-            generatedNormalMap &&
-            generatedNormalMap !== normalMap &&
-            generatedNormalMap !== displacementMap?.userData?.physicalNormalTexture
-        ) {
-            generatedNormalMap.dispose();
-        }
+                // Dispose axis
+                if (this.axis) {
+                    if (this.axis.geometry) this.axis.geometry.dispose();
+                    if (this.axis.material) this.axis.material.dispose();
+                    this.container.remove(this.axis);
+                    this.axis = null;
+                }
+                this.axisVector = null;
+
+                // Dispose poles
+                if (this.northPoleSphere) {
+                    if (this.northPoleSphere.geometry) this.northPoleSphere.geometry.dispose();
+                    if (this.northPoleSphere.material) this.northPoleSphere.material.dispose();
+                    this.container.remove(this.northPoleSphere);
+                    this.northPoleSphere = null;
+                }
+                if (this.southPoleSphere) {
+                    if (this.southPoleSphere.geometry) this.southPoleSphere.geometry.dispose();
+                    if (this.southPoleSphere.material) this.southPoleSphere.material.dispose();
+                    this.container.remove(this.southPoleSphere);
+                    this.southPoleSphere = null;
+                }
+
+                this._disposeLatLonGridAndLabels();
+                if (this.latLonHoverLabel) {
+                    disposeObjectMaterialAndGeometry(this.latLonHoverLabel);
+                    this.container.remove(this.latLonHoverLabel);
+                    this.latLonHoverLabel = null;
+                }
+
+                // Remove container from parent
+                if (this.container.parent) {
+                    this.container.parent.remove(this.container);
+                }
+                this.container = null;
+            }
+        } finally { releaseTextures(); }
     }
 }

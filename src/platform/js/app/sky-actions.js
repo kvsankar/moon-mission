@@ -1,3 +1,5 @@
+import { detachSceneTextureFields, SCENE_TEXTURE_FIELDS } from "./scene-texture-actions.js";
+
 import { applySkyLayerVisibility } from "./sky-visibility.js";
 
 export function createSkyActions({ SkyRenderer, render }) {
@@ -70,10 +72,9 @@ export function createSkyActions({ SkyRenderer, render }) {
     }
 
     function disposeSky(scene) {
-        if (scene.skyRenderer) {
-            scene.skyRenderer.dispose();
-            scene.skyRenderer = null;
-        }
+        const renderer = scene.skyRenderer;
+        scene.skyRenderer = null;
+        const releaseInputs = detachSceneTextureFields(scene, SCENE_TEXTURE_FIELDS.sky);
 
         scene.sky = null;
         scene.skyConstellation = null;
@@ -81,6 +82,8 @@ export function createSkyActions({ SkyRenderer, render }) {
         scene.skyBaseQuaternion = null;
         scene.skyTexture = null;
         scene.skyConstellationTexture = null;
+        try { renderer?.dispose(); }
+        finally { releaseInputs(); }
     }
 
     return { addSky, disposeSky };

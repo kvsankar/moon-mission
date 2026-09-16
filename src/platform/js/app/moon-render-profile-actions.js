@@ -1,4 +1,5 @@
 import { constrainMoonRenderProfile } from "../core/domain/render-device-policy.js";
+import { disposeUnclaimedTextures } from "../rendering/texture-ownership.js";
 import {
     MOON_RENDER_ASSET_PATHS_STORAGE_KEY,
     MOON_RENDER_ASSET_PROFILE_STORAGE_KEY,
@@ -28,7 +29,7 @@ function disposeLoadedMoonTextures(textures) {
     ]);
     uniqueTextures.delete(null);
     uniqueTextures.delete(undefined);
-    uniqueTextures.forEach((texture) => texture?.dispose?.());
+    disposeUnclaimedTextures(uniqueTextures);
 }
 
 export function persistMoonRenderAssetProfile(globalObject, profile) {

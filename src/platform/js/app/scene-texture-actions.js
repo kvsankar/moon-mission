@@ -1,4 +1,21 @@
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
+import { holdTextures, replaceTextureOwner, retainTextureOwner } from "../rendering/texture-ownership.js";
+
+export const SCENE_TEXTURE_FIELDS = Object.freeze({
+    earth: ["earthTexture", "earthPhotoTexture", "earthSpecularTexture", "earthNightTexture"],
+    moon: ["moonMap", "moonDisplacementMap"],
+    sky: ["skyTexture", "skyConstellationTexture"],
+});
+const allTextureFields = Object.values(SCENE_TEXTURE_FIELDS).flat();
+const sceneTextures = scene => allTextureFields.map(key => scene[key]);
+
+export function detachSceneTextureFields(scene, fields) {
+    retainTextureOwner(scene, sceneTextures(scene));
+    const release = holdTextures(fields.map(key => scene[key]));
+    for (const key of fields) scene[key] = null;
+    replaceTextureOwner(scene, sceneTextures(scene));
+    return release;
+}
 
 const moonNormalRefreshGeneration = new WeakMap();
 
@@ -76,15 +93,6 @@ function syncMoonShadowTuning(scene) {
     }
 }
 
-function disposeTextureIfReplaced(previousTexture, nextTexture, sharedTextures = []) {
-    if (!previousTexture || previousTexture === nextTexture) {
-        return;
-    }
-    if (sharedTextures.some((texture) => texture && texture === previousTexture)) {
-        return;
-    }
-    previousTexture.dispose?.();
-}
 
 function scheduleGeneratedMoonNormalMapRefresh(callback, {
     shouldDefer = null,
@@ -150,18 +158,9 @@ export function applyAndRefreshSceneTextures(scene, textures, {
     shouldDeferGeneratedNormalMap = null,
     onAccepted = null,
 } = {}) {
-    const previousTextures = {
-        earthTexture: scene.earthTexture || null,
-        earthPhotoTexture: scene.earthPhotoTexture || null,
-        earthSpecularTexture: scene.earthSpecularTexture || null,
-        earthNightTexture: scene.earthNightTexture || null,
-        moonMap: scene.moonMap || null,
-        moonDisplacementMap: scene.moonDisplacementMap || null,
-        skyTexture: scene.skyTexture || null,
-        skyConstellationTexture: scene.skyConstellationTexture || null,
-    };
-
+    retainTextureOwner(scene, sceneTextures(scene));
     applySceneTextures(scene, textures);
+    replaceTextureOwner(scene, sceneTextures(scene), { disposePrevious });
     // State now owns the input textures, even if a later renderer effect fails.
     onAccepted?.();
     syncLunarMoonFillLights(scene);
@@ -185,7 +184,6 @@ export function applyAndRefreshSceneTextures(scene, textures, {
         moonNormalRefreshGeneration.set(scene, normalRefreshGeneration);
     }
 
-    let earthHandled = false;
     if (hasEarthTextureUpdate && scene.earthRenderer?.updateTextures) {
         scene.earthRenderer.updateTextures(
             scene.earthTexture,
@@ -193,10 +191,8 @@ export function applyAndRefreshSceneTextures(scene, textures, {
             scene.earthNightTexture,
             { disposePrevious },
         );
-        earthHandled = true;
     }
 
-    let moonHandled = false;
     if (hasMoonTextureUpdate && scene.moonRenderer?.updateTextures) {
         scene.moonRenderer.updateTextures(
             scene.moonMap,
@@ -208,7 +204,6 @@ export function applyAndRefreshSceneTextures(scene, textures, {
                 deferGeneratedNormalMap: disposePrevious === true && !!scene.moonDisplacementMap && !scene.moonDisplacementMap.userData?.physicalNormalTexture,
             },
         );
-        moonHandled = true;
         if (
             disposePrevious === true &&
             !scene.moonDisplacementMap?.userData?.physicalNormalTexture &&
@@ -244,35 +239,12 @@ export function applyAndRefreshSceneTextures(scene, textures, {
         }
     }
 
-    let skyHandled = false;
     if (hasSkyTextureUpdate && scene.skyRenderer?.updateTextures) {
         scene.skyRenderer.updateTextures(
             scene.skyTexture,
             scene.skyConstellationTexture,
             { disposePrevious },
         );
-        skyHandled = true;
     }
 
-    // Fallback disposal for pre-init swaps (renderers not created yet).
-    if (disposePrevious) {
-        disposeTextureIfReplaced(previousTextures.earthPhotoTexture, scene.earthPhotoTexture, [
-            scene.earthTexture,
-            scene.earthSpecularTexture,
-            scene.earthNightTexture,
-        ]);
-        if (!earthHandled) {
-            disposeTextureIfReplaced(previousTextures.earthTexture, scene.earthTexture);
-            disposeTextureIfReplaced(previousTextures.earthSpecularTexture, scene.earthSpecularTexture);
-            disposeTextureIfReplaced(previousTextures.earthNightTexture, scene.earthNightTexture);
-        }
-        if (!moonHandled) {
-            disposeTextureIfReplaced(previousTextures.moonMap, scene.moonMap);
-            disposeTextureIfReplaced(previousTextures.moonDisplacementMap, scene.moonDisplacementMap);
-        }
-        if (!skyHandled) {
-            disposeTextureIfReplaced(previousTextures.skyTexture, scene.skyTexture);
-            disposeTextureIfReplaced(previousTextures.skyConstellationTexture, scene.skyConstellationTexture);
-        }
-    }
 }

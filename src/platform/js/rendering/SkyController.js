@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { replaceTextureOwner, updateTextureOwner, detachTextureOwner } from "./texture-ownership.js";
 
 import * as THREE from "three";
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
@@ -88,10 +89,6 @@ function resolvePlanetCenterMode(value, fallback = "earth") {
     return fallback;
 }
 
-function disposeTextureIfNeeded(texture, nextTexture) {
-    if (!texture || texture === nextTexture) return;
-    texture.dispose?.();
-}
 
 function resolveSkyParameters(current, patch) {
     const next = {
@@ -246,32 +243,31 @@ export class SkyController {
         this.viewConstellationLines = false;
     }
 
+    _textureInputs() {
+        return [this.skyTexture, this.constellationTexture,
+            this.skyMesh?.material?.map, this.constellationMesh?.material?.map];
+    }
+
     setTextures(skyTexture, constellationTexture) {
         this.skyTexture = skyTexture;
         this.constellationTexture = constellationTexture;
+        replaceTextureOwner(this, this._textureInputs(), { disposePrevious: false });
     }
 
     updateTextures(skyTexture, constellationTexture, { disposePrevious = true } = {}) {
-        const previousSkyTexture = this.skyTexture;
-        const previousConstellationTexture = this.constellationTexture;
-        this.skyTexture = skyTexture;
-        this.constellationTexture = constellationTexture;
+        return updateTextureOwner(this, () => this._textureInputs(), () => {
+            this.skyTexture = skyTexture;
+            this.constellationTexture = constellationTexture;
 
-        if (this.skyMesh?.material) {
-            this.skyMesh.material.map = this.skyTexture || null;
-            this.skyMesh.material.needsUpdate = true;
-        }
-        if (this.constellationMesh?.material) {
-            this.constellationMesh.material.map = this.constellationTexture || null;
-            this.constellationMesh.material.needsUpdate = true;
-        }
-
-        if (disposePrevious) {
-            disposeTextureIfNeeded(previousSkyTexture, this.skyTexture);
-            if (previousConstellationTexture !== previousSkyTexture) {
-                disposeTextureIfNeeded(previousConstellationTexture, this.constellationTexture);
+            if (this.skyMesh?.material) {
+                this.skyMesh.material.map = this.skyTexture || null;
+                this.skyMesh.material.needsUpdate = true;
             }
-        }
+            if (this.constellationMesh?.material) {
+                this.constellationMesh.material.map = this.constellationTexture || null;
+                this.constellationMesh.material.needsUpdate = true;
+            }
+        }, { disposePrevious });
     }
 
     setParameters(patch = {}) {
@@ -411,37 +407,39 @@ export class SkyController {
     }
 
     dispose() {
-        this.starRenderer?.dispose?.();
-        this.starRenderer = null;
-        this.planetRenderer?.dispose?.();
-        this.planetRenderer = null;
-
-        if (this.skyMesh) {
-            this.skyMesh.material?.dispose?.();
-            this.container?.remove(this.skyMesh);
-            this.skyMesh = null;
-        }
-        if (this.constellationMesh) {
-            this.constellationMesh.material?.dispose?.();
-            this.container?.remove(this.constellationMesh);
-            this.constellationMesh = null;
-        }
-        if (this.atmosphereMesh) {
-            this.atmosphereMesh.material?.dispose?.();
-            this.container?.remove(this.atmosphereMesh);
-            this.atmosphereMesh = null;
-        }
-        if (this.geometry) {
-            this.geometry.dispose?.();
-            this.geometry = null;
-        }
-        if (this.container) {
-            this.parentContainer.remove(this.container);
-            this.container = null;
-        }
-
+        const releaseTextures = detachTextureOwner(this, [this.skyTexture, this.constellationTexture]);
         this.skyTexture = null;
         this.constellationTexture = null;
+        try {
+            this.starRenderer?.dispose?.();
+            this.starRenderer = null;
+            this.planetRenderer?.dispose?.();
+            this.planetRenderer = null;
+
+            if (this.skyMesh) {
+                this.skyMesh.material?.dispose?.();
+                this.container?.remove(this.skyMesh);
+                this.skyMesh = null;
+            }
+            if (this.constellationMesh) {
+                this.constellationMesh.material?.dispose?.();
+                this.container?.remove(this.constellationMesh);
+                this.constellationMesh = null;
+            }
+            if (this.atmosphereMesh) {
+                this.atmosphereMesh.material?.dispose?.();
+                this.container?.remove(this.atmosphereMesh);
+                this.atmosphereMesh = null;
+            }
+            if (this.geometry) {
+                this.geometry.dispose?.();
+                this.geometry = null;
+            }
+            if (this.container) {
+                this.parentContainer.remove(this.container);
+                this.container = null;
+            }
+        } finally { releaseTextures(); }
     }
 
     #applyParameters() {

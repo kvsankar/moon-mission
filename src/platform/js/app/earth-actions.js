@@ -1,3 +1,5 @@
+import { detachSceneTextureFields, SCENE_TEXTURE_FIELDS } from "./scene-texture-actions.js";
+
 export function createEarthActions({ EarthRenderer, render }) {
     function addEarth(scene, {
         earthRadius,
@@ -30,10 +32,9 @@ export function createEarthActions({ EarthRenderer, render }) {
     }
 
     function disposeEarth(scene) {
-        if (scene.earthRenderer) {
-            scene.earthRenderer.dispose();
-            scene.earthRenderer = null;
-        }
+        const renderer = scene.earthRenderer;
+        scene.earthRenderer = null;
+        const releaseInputs = detachSceneTextureFields(scene, SCENE_TEXTURE_FIELDS.earth);
 
         // Clear backward-compatible references
         scene.earth = null;
@@ -48,6 +49,8 @@ export function createEarthActions({ EarthRenderer, render }) {
         scene.earthPhotoTexture = null;
         scene.earthSpecularTexture = null;
         scene.earthNightTexture = null;
+        try { renderer?.dispose(); }
+        finally { releaseInputs(); }
     }
 
     return { addEarth, disposeEarth };

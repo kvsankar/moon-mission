@@ -189,6 +189,38 @@ are brought forward as dependencies; SA-06 will not be closed until a real
 consumer-disposal regression passes. This is an explicit dependency, not a
 claim that the full texture lifecycle is fixed.
 
+## SA-17 — Shared Texture Consumers
+
+Initial RED: eight of nine consumer regressions failed. They cover shared
+Earth/Moon/sky inputs, scene-only Earth/photo aliases, failed renderer adoption,
+profile replacement, alias deduplication and shared generated normals. The
+runtime also uses `SkyController`, so the real composition path and decoded
+DEM/physical-normal dependency require separate coverage.
+
+Root protocol review added tests for replacement ordering, re-entrant cleanup,
+ownership epochs, failure cleanup and dependencies. Independent review then
+found a listener-order defect: registering dependency cleanup before a later
+parent-reacquisition listener freed the child prematurely. The reverse-order
+regression failed (11 other protocol checks passed). Managed disposal now waits
+until native listeners finish before releasing dependencies; both registration
+orders pass. Four further RED tests reproduced repeated texture destruction
+after a geometry/material cleanup failure. Retirement snapshots no longer
+reacquire stale material references when cleanup is retried.
+
+Scene and renderer leases count unique texture identities without cloning DEM
+buffers. Installed scene inputs are held independently of renderer adoption,
+including photo-only inputs and cross-body aliases. The actual runtime
+`SkyController`, the legacy renderer, generated normals and decoded DEM
+dependencies participate. Producer cancellation only destroys unclaimed inputs.
+`disposePrevious:false` preserves its explicit relinquish-without-destruction
+contract. No terminal scene flags or scheduling policy are changed in this slice.
+
+Independent review cleared the final diff; **28 protocol/consumer checks** and
+the broader **111 focused tests across ten files** passed. Final verification:
+**1,778 unit tests passed, six skipped, 231 files**; all **seven browser checks**
+passed across runtime transitions and Artemis II mobile continuity. SA-17 is
+complete. SA-06 remains open until SA-18 receiver retirement is verified.
+
 ## Risk Triage Follow-Up (Not Yet Closed)
 
 Independent probes strengthened the original risk inventory; these still need
@@ -202,7 +234,8 @@ tracked red tests, implementation, review and verification in their turn.
   disposing one disposed all three while the other retained references, and
   disposing the second disposed them again. Use last-consumer resource leases;
   DEM owns its bundled physical normal, generated normals remain renderer-owned.
-  Complete SA-06 before this slice. Avoid JSON-based Texture.clone of DEM metadata.
+  Brought forward after SA-06's producer checkpoint to complete receiver
+  ownership before closing SA-06. Avoid JSON-based Texture.clone of DEM metadata.
 - SA-18: two disposals left initialized3D true, stop false and loading pending,
   with 28 cleanup calls. Treat scene disposal as terminal/idempotent, invalidating
   readiness and only that scene's subscriptions before cleanup. Replacement,
