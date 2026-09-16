@@ -1,6 +1,6 @@
 # Moon Mission Roadmap
 
-Last reviewed: 2026-09-15
+Last reviewed: 2026-09-16
 
 ## Authority
 
@@ -30,18 +30,21 @@ gesture/lifecycle checks: [Swiper evidence](../evidence/reviews/swiper-upgrade-2
 The unused repository MCP dependency and launcher have now been removed after
 usage review, eliminating 82 development-only packages while preserving the
 direct Playwright/browser versions: [removal evidence](../evidence/reviews/mcp-dependency-removal-2026-09-15.md).
-The fresh repository audit reports five affected entries (one high, four
-moderate, zero critical). Production remains unchanged until the user explicitly
+Compatible brace-expansion and fflate updates are complete:
+[transitive update evidence](../evidence/reviews/transitive-dependency-updates-2026-09-16.md).
+The fresh repository audit reports three moderate affected entries, with zero
+high or critical entries. Production remains unchanged until the user explicitly
 authorizes deployment.
 
-Next, resolve compatible brace-expansion/fflate transitive updates and handle
-the major Vitest/coverage/mocker migration as a separate tested slice. Do not
-apply blind audit-fix upgrades or reinstall unused MCP tooling.
+Next, handle the major Vitest/coverage/mocker migration as a separate tested
+slice. Verify test-runner configuration, isolation and coverage compatibility.
+Do not apply blind audit-fix upgrades or reinstall unused MCP tooling.
 
 Evidence and version candidates:
 [Dependency Advisory Triage](../evidence/reviews/dependency-triage-2026-09-15.md).
-Brace-expansion, fflate and Vitest/mocker advisories remain. This is not a clean
-security audit; the live site's Swiper remains pending explicit deployment.
+The Vitest/mocker advisory remains across three affected package entries.
+This is not a clean security audit; the live site's Swiper remains pending
+explicit deployment.
 
 ### 2. Reduce camera-state ownership ambiguity (RTA-06)
 
@@ -76,6 +79,9 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Compatible development-only brace-expansion/fflate patches:
+  [transitive update evidence](../evidence/reviews/transitive-dependency-updates-2026-09-16.md).
 
 - Removed unused repository MCP tooling and its exclusive dependency chain:
   [MCP removal evidence](../evidence/reviews/mcp-dependency-removal-2026-09-15.md).
