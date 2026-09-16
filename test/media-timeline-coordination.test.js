@@ -87,7 +87,7 @@ function createAudioMock() {
         }
     }
     return {
-        AudioMock: vi.fn((src) => new FakeAudio(src)),
+        AudioMock: vi.fn(function (src) { return new FakeAudio(src); }),
         instances,
     };
 }
@@ -439,7 +439,7 @@ describe("createMediaTimelineCoordination", () => {
             destroy: vi.fn(),
             on: vi.fn(),
         };
-        const HlsMock = vi.fn(() => hlsInstance);
+        const HlsMock = vi.fn(function () { return hlsInstance; });
         HlsMock.isSupported = vi.fn(() => true);
         HlsMock.Events = {
             MANIFEST_PARSED: "MANIFEST_PARSED",
@@ -548,7 +548,7 @@ describe("createMediaTimelineCoordination", () => {
             destroy: vi.fn(),
             on: vi.fn(),
         };
-        const HlsMock = vi.fn(() => hlsInstance);
+        const HlsMock = vi.fn(function () { return hlsInstance; });
         HlsMock.isSupported = vi.fn(() => true);
         HlsMock.Events = {
             MANIFEST_PARSED: "MANIFEST_PARSED",

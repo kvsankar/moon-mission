@@ -1282,7 +1282,7 @@ describe("background media panel helpers", () => {
             destroy: vi.fn(),
             on: vi.fn((eventName, handler) => hlsHandlers.set(eventName, handler)),
         };
-        const HlsMock = vi.fn(() => hlsInstance);
+        const HlsMock = vi.fn(function () { return hlsInstance; });
         HlsMock.isSupported = vi.fn(() => true);
         HlsMock.Events = {
             MEDIA_ATTACHED: "MEDIA_ATTACHED",

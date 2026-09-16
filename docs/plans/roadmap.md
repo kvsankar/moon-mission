@@ -19,34 +19,7 @@ The preserved May planning snapshot is
 
 ## Current Priority
 
-### 1. Coordinate remaining dependency remediation
-
-The same-major toolchain slice is complete: Vite 7.3.6, Vitest/coverage 3.2.7,
-loopback-only serving with wildcard CORS disabled, and generated-report watcher
-isolation. See [update evidence](../evidence/reviews/dependency-updates-2026-09-15.md).
-The coordinated Swiper slice is also complete at exact version 12.2.0 across
-npm and authored CDN JavaScript/CSS, with bundle parity and native carousel
-gesture/lifecycle checks: [Swiper evidence](../evidence/reviews/swiper-upgrade-2026-09-15.md).
-The unused repository MCP dependency and launcher have now been removed after
-usage review, eliminating 82 development-only packages while preserving the
-direct Playwright/browser versions: [removal evidence](../evidence/reviews/mcp-dependency-removal-2026-09-15.md).
-Compatible brace-expansion and fflate updates are complete:
-[transitive update evidence](../evidence/reviews/transitive-dependency-updates-2026-09-16.md).
-The fresh repository audit reports three moderate affected entries, with zero
-high or critical entries. Production remains unchanged until the user explicitly
-authorizes deployment.
-
-Next, handle the major Vitest/coverage/mocker migration as a separate tested
-slice. Verify test-runner configuration, isolation and coverage compatibility.
-Do not apply blind audit-fix upgrades or reinstall unused MCP tooling.
-
-Evidence and version candidates:
-[Dependency Advisory Triage](../evidence/reviews/dependency-triage-2026-09-15.md).
-The Vitest/mocker advisory remains across three affected package entries.
-This is not a clean security audit; the live site's Swiper remains pending
-explicit deployment.
-
-### 2. Reduce camera-state ownership ambiguity (RTA-06)
+### 1. Reduce camera-state ownership ambiguity (RTA-06)
 
 With RTA-01 through RTA-05 corrected, move semantic camera state toward
 a narrow authoritative state port, with DOM controls as projections. Define a
@@ -54,7 +27,7 @@ bounded design slice; do not launch another broad refactor.
 
 Owner: [Runtime Architecture Follow-Ups](implementation/runtime-architecture-followups.md).
 
-### 3. Complete transition coverage and disposition the legacy SSIM gate
+### 2. Complete transition coverage and disposition the legacy SSIM gate
 
 Preserve integration protection while mapping old tests to semantic transition,
 controlled loading-order and selected rendering checks. Keep a small reviewed
@@ -62,10 +35,21 @@ CY3 scene set; retire redundant screenshots and the historical score-decrease
 gate only after the coverage disposition. This migration does not block the
 reliability fixes above. Detailed human UX review remains deferred.
 
+Also reconcile the full unit coverage gate. The Vitest migration measured a
+pre-existing failure before changing versions; keep the existing thresholds
+and loaded-file scope intact while prioritizing missing tests. Review the v4
+AST-remapped denominators rather than comparing percentages as if the coverage
+engines were identical. See [migration evidence](../evidence/reviews/vitest4-migration-2026-09-16.md).
+
+Harden browser startup diagnostics/readiness as part of this harness work:
+clean-install Vite optimizer reloads invalidated a retained scene handle, and
+progressive-workspace checks intermittently timed out waiting for eight panels.
+Keep these observed failures visible; do not relax assertions or simply add retries.
+
 Owner: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
 
 
-### 4. Review the recovery baseline
+### 3. Review the recovery baseline
 
 Review the frozen recovery roadmap by workstream. For every proposed action,
 record one disposition:
@@ -79,6 +63,11 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Vitest/coverage/mocker migration to exact 4.1.11, with isolated sequential
+  execution and constructor-compatible test fixtures. The repository npm audit
+  now reports zero vulnerabilities; this does not audit vendored/CDN copies or
+  mean production has changed. [Migration evidence](../evidence/reviews/vitest4-migration-2026-09-16.md).
 
 - Compatible development-only brace-expansion/fflate patches:
   [transitive update evidence](../evidence/reviews/transitive-dependency-updates-2026-09-16.md).

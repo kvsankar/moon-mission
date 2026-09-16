@@ -8,7 +8,7 @@ const {
     const instances = [];
     return {
         auxiliaryManagerInstances: instances,
-        auxiliaryManagerConstructor: vi.fn((options) => {
+        auxiliaryManagerConstructor: vi.fn(function (options) {
             const restoreSharedComposerBodyAmbientLighting = vi.fn();
             const instance = {
                 render: vi.fn(),
@@ -28,9 +28,9 @@ vi.mock("../src/platform/js/app/auxiliary-camera-views.js", () => ({
 }));
 
 vi.mock("../src/platform/js/app/panel-manager.js", () => ({
-    DesktopPanelManager: vi.fn(() => ({
-        dispose: vi.fn(),
-    })),
+    DesktopPanelManager: vi.fn(function () {
+        return { dispose: vi.fn() };
+    }),
 }));
 
 import { createSceneHandlerClass } from "../src/platform/js/app/scene-handler-class.js";

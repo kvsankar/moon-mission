@@ -14,11 +14,11 @@ export default defineConfig({
       '**/dist/**',
     ],
     pool: 'forks',  // Use forks for better isolation
-    poolOptions: {
-      forks: {
-        singleFork: true  // Run tests in a single fork to maintain browser state
-      }
-    },
+    maxWorkers: 1,
+    fileParallelism: false,
+    // v3 singleFork still reset modules/mocks between files. Keep isolation
+    // rather than trading it away to reuse a process; browser state is file-local.
+    isolate: true,
     reporters: ['default'],
     logHeapUsage: true,  // Log memory usage to detect leaks
     // Global test timeout for the entire suite
@@ -29,7 +29,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage/unit',
-      all: false,
+      // With no include pattern, v4 retains the previous loaded-files-only policy.
       exclude: [
         'test/**',
         'scripts/**',
