@@ -74,6 +74,7 @@ function createMissionRuntimeWireupContext(
         animateLoop: ctx.animateLoop,
         isTestMode: ctx.isTestMode,
         statePorts: missionStatePorts,
+        cameraState: ctx.cameraState,
         uiEffects: missionUiEffects,
         clockEffects: missionClockEffects,
         readPlaneSelection: ctx.readPlaneSelection,
@@ -120,6 +121,9 @@ function createMissionRuntimeStaticDepsContext(ctx) {
 
 function createMissionRuntimeEntryContext(ctx, { staticWireupDeps }) {
     return {
+        cameraState: ctx.cameraState,
+        syncViewIdentity: ctx.syncViewIdentity,
+        applyViewForCurrentIdentity: ctx.applyViewForCurrentIdentity,
         d3: ctx.d3,
         missionStateCells: ctx.missionStateCells,
         runtimeFlags: ctx.runtimeFlags,

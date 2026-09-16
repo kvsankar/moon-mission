@@ -12,12 +12,15 @@ import {
 } from "./fov-slider-scale.js";
 import { mountMissionFovControl } from "./mission-fov-control.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
+import { createRuntimeCameraState } from "../core/state/runtime-camera-state.js";
 
 export function createCameraActions({
     animationScenes,
     getConfig,
-    readCameraPositionMode,
-    readCameraLookMode,
+    cameraState = null,
+    getTransitionRevision = () => 0,
+    readCameraPositionMode: readInitialCameraPositionMode = () => "manual",
+    readCameraLookMode: readInitialCameraLookMode = () => "manual",
     applyCameraFromTo,
     readPlaneSelection,
     setPlaneSelection,
@@ -27,6 +30,21 @@ export function createCameraActions({
     getViewSky,
     getViewConstellationLines,
 }) {
+    // Standalone callers may seed once through the compatibility readers. The
+    // application supplies its composition-root port; runtime reads never poll DOM.
+    const cameraIntent = cameraState || createRuntimeCameraState({
+        positionMode: readInitialCameraPositionMode(), lookMode: readInitialCameraLookMode(),
+    });
+    const readCameraPositionMode = () => cameraIntent.get().positionMode;
+    const readCameraLookMode = () => cameraIntent.get().lookMode;
+    let latestApply = 0;
+    let disposed = false;
+    let retainedIntent = { revision: cameraIntent.get().revision, preserveManualRelease: false };
+    let lastAppliedScene = null;
+    let lastAppliedController = null;
+    let lastAppliedGeneration = null;
+    let lastAppliedRevision = -1;
+    let lastAppliedTransition = null;
     const CAMERA_MODE_VALUES = ["manual", "earth", "moon", "spacecraft"];
     const MIN_FOV_DEGREES = 0.1;
     const MAX_FOV_DEGREES = 179;
@@ -37,6 +55,7 @@ export function createCameraActions({
     let lastAppliedLookMode = "manual";
     let lastAppliedConfig = null;
     let desktopMainViewAutoFovEnabled = true;
+    const mountedListenerOwner = {};
     let lastSyncedDesktopMainFov = 50;
     const desktopMainFovControl = mountMissionFovControl(
         typeof document !== "undefined" ? document.getElementById("desktop-main-fov") : null,
@@ -68,7 +87,6 @@ export function createCameraActions({
         earth: { hidden: null },
         moon: { hidden: null },
     };
-    let autoAdjusting = false;
     setDesktopMainFovAutoEnabled(true);
 
     function resolveManualLookTarget(scene) {
@@ -505,6 +523,7 @@ export function createCameraActions({
     }
 
     function changeDesktopMainFov(event) {
+        if (disposed) return;
         const scene = getActiveScene();
         const positionMode = readCameraPositionMode();
         const lookMode = readCameraLookMode();
@@ -526,6 +545,7 @@ export function createCameraActions({
     }
 
     function toggleDesktopMainFovAuto() {
+        if (disposed) return;
         const scene = getActiveScene();
         const positionMode = readCameraPositionMode();
         const lookMode = readCameraLookMode();
@@ -644,11 +664,17 @@ export function createCameraActions({
         const controller = scene?.cameraController;
         const controls = controller?.controls;
         if (!controller || !controls) return;
-        if (controller.__fromToMountedVisibilityListenerAttached) return;
-        controller.__fromToMountedVisibilityListenerAttached = true;
+        const generation = Number(scene.deferred3DInitRunId || 0);
+        const existing = controller.__fromToMountedVisibilityListenerAttached;
+        if (existing?.owner === mountedListenerOwner && existing.generation === generation) return;
+        const binding = { owner: mountedListenerOwner, generation };
+        controller.__fromToMountedVisibilityListenerAttached = binding;
+        const isActiveController = () => !disposed && scene === getActiveScene() && !scene.stopCreationFlag &&
+            scene.cameraController === controller && Number(scene.deferred3DInitRunId || 0) === generation &&
+            controller.__fromToMountedVisibilityListenerAttached === binding;
 
         controls.addEventListener("change", () => {
-            if (autoAdjusting) return;
+            if (!isActiveController()) return;
             const positionMode = readCameraPositionMode();
             const lookMode = readCameraLookMode();
             const currentFov = Number(scene?.camera?.fov);
@@ -665,43 +691,11 @@ export function createCameraActions({
             updateMountedBodyVisibility(scene, positionMode);
             syncDesktopMainFovUi(scene, positionMode, lookMode);
 
-            // If the mounted body is hidden (camera inside), "look at self" becomes meaningless.
-            // Auto-switch to manual aim and orient toward a meaningful target without teleporting.
-            const hiddenState = mountedBodyOverride[positionMode]?.hidden;
-            if ((positionMode === "earth" || positionMode === "moon") && hiddenState === true && lookMode === positionMode) {
-                autoAdjusting = true;
-                try {
-                    applyCameraFromTo?.({ lookMode: "manual" });
-                    controller.setFromToModes?.(positionMode, "manual");
-
-                    const targets = resolveFromToTargets(scene);
-                    controller.updateFromTo?.(targets);
-
-                    const mountPos = controller._resolveTargetWorld?.(positionMode, controller._mountWorld);
-                    if (mountPos) {
-                        const cameraWorld = mountPos.clone().add(controller.mountOffset);
-                        const defaultLookTarget = resolveDefaultLookTarget(scene, positionMode);
-                        const lookWorld = defaultLookTarget?.getWorldPosition?.(controller._lookWorld);
-                        if (lookWorld) {
-                            const dir = lookWorld.clone().sub(cameraWorld).normalize();
-                            const epsilon = Math.max(controller.mountOffset.length() * 0.05, 0.01);
-                            const targetWorld = cameraWorld.clone().add(dir.multiplyScalar(epsilon));
-                            controller.setMountTargetOffset?.(targetWorld.clone().sub(mountPos));
-                            if (controller.controls?.target) {
-                                controller.controls.target.copy(targetWorld);
-                                controller.controls.update();
-                            }
-                        }
-                    }
-
-                    render();
-                } finally {
-                    autoAdjusting = false;
-                }
-            }
+            // Self-looking pairs are excluded by the semantic state port.
         }, { passive: true });
 
         controls.addEventListener("mounted-fov-input", () => {
+            if (!isActiveController()) return;
             const positionMode = readCameraPositionMode();
             const lookMode = readCameraLookMode();
             if (!isDesktopMainFovViewMode(positionMode, lookMode)) {
@@ -775,72 +769,78 @@ export function createCameraActions({
         updateMountedBodyVisibility(scene, positionMode);
     }
 
-    function changeCameraFromTo(event) {
-        const preserveManualRelease = event?.detail?.preserveManualRelease === true;
+    function changeCameraFromTo(event, { projectControls = true, syncViewIdentity = true } = {}) {
+        if (disposed) return;
         const targetName = event?.target?.name;
-        const sourceId = targetName === "camera-position-pill"
-            ? "camera-position"
-            : targetName === "camera-look-pill"
-                ? "camera-look"
+        const sourceId = targetName === "camera-position-pill" ? "camera-position"
+            : targetName === "camera-look-pill" ? "camera-look"
                 : event?.target?.id;
-        const pairSelection = targetName === "camera-pair"
-            ? resolvePairFromEvent(event)
-            : null;
-
-        if (targetName === "camera-position-pill") {
-            applyCameraFromTo?.({ positionMode: event?.target?.value });
-        } else if (targetName === "camera-look-pill") {
-            applyCameraFromTo?.({ lookMode: event?.target?.value });
-        } else if (targetName === "camera-pair") {
-            if (pairSelection) {
-                applyCameraFromTo?.(pairSelection);
-            }
+        let patch = {};
+        if (targetName === "camera-pair") {
+            patch = resolvePairFromEvent(event);
+            if (!patch) return;
+        } else if (sourceId === "camera-position") {
+            patch = { positionMode: event?.target?.value };
+        } else if (sourceId === "camera-look") {
+            patch = { lookMode: event?.target?.value };
         }
-
-        let positionMode = readCameraPositionMode();
-        let lookMode = readCameraLookMode();
-
-        const transitionPlan = planCameraPairTransition({
-            positionMode,
-            lookMode,
-            sourceId,
-        });
-
-        if (
-            transitionPlan.positionMode !== positionMode ||
-            transitionPlan.lookMode !== lookMode
-        ) {
-            applyCameraFromTo?.({
-                positionMode: transitionPlan.positionMode,
-                lookMode: transitionPlan.lookMode,
-            });
-            positionMode = transitionPlan.positionMode;
-            lookMode = transitionPlan.lookMode;
+        if (event) {
+            const committed = cameraIntent.commit(patch, { sourceId });
+            retainedIntent = {
+                revision: committed.revision,
+                preserveManualRelease: event?.detail?.preserveManualRelease === true,
+            };
         }
+        const pair = cameraIntent.get();
+        if (retainedIntent.revision !== pair.revision) {
+            retainedIntent = { revision: pair.revision, preserveManualRelease: false };
+        }
+        const request = {
+            id: ++latestApply, config: getConfig(), scene: getActiveScene(),
+            transition: getTransitionRevision(), pair, retries: 25, ...retainedIntent,
+            generation: Number(getActiveScene()?.deferred3DInitRunId || 0),
+            projectControls, syncViewIdentity,
+        };
+        if (pendingApplyHandle != null) clearTimeout(pendingApplyHandle);
+        pendingApplyHandle = null;
+        applyCameraIntent(request);
+    }
 
+    function applyCameraIntent(request) {
+        const { config, scene, pair, preserveManualRelease } = request;
+        const isCurrent = () => !disposed && request.id === latestApply &&
+            request.pair.revision === cameraIntent.get().revision &&
+            config === getConfig() && request.transition === getTransitionRevision() &&
+            Number(scene?.deferred3DInitRunId || 0) === request.generation &&
+            getActiveScene() === scene && scene?.stopCreationFlag !== true;
+        if (!isCurrent()) return;
+        const { positionMode, lookMode } = pair;
+        const transitionPlan = planCameraPairTransition({ positionMode, lookMode });
+        if (request.projectControls) applyCameraFromTo?.({ positionMode, lookMode });
+        // UI projections can synchronously emit a newer mobile/header intent.
+        if (!isCurrent()) return;
         updateFromToOptionStates(positionMode, lookMode);
         updateCameraModeSelection(positionMode, lookMode, transitionPlan.pairKey);
-
-        const config = getConfig();
-        const scene = animationScenes[config];
         updateLockOnAvailability(scene, positionMode, lookMode);
         syncDesktopMainFovUi(scene, positionMode, lookMode);
 
-        const configChanged = config !== lastAppliedConfig;
+        const generation = scene?.deferred3DInitRunId;
+        if (scene?.initialized3D && lastAppliedScene === scene &&
+            lastAppliedController === scene.cameraController &&
+            lastAppliedGeneration === generation && lastAppliedRevision === pair.revision &&
+            lastAppliedTransition === request.transition) return;
+        const configChanged = config !== lastAppliedConfig || scene !== lastAppliedScene ||
+            generation !== lastAppliedGeneration || scene?.cameraController !== lastAppliedController;
         const positionChanged = positionMode !== lastAppliedPositionMode;
         const lookChanged = lookMode !== lastAppliedLookMode;
-        const shouldSnap =
-            positionMode !== "manual" &&
+        const shouldSnap = positionMode !== "manual" &&
             (positionChanged || lookChanged || configChanged);
         if (!scene || !scene.initialized3D) {
-            // Browser reloads can restore <select> values after scripts start.
-            // Re-try shortly so UI selections always match camera behavior.
-            if (!pendingApplyHandle) {
-                pendingApplyHandle = setTimeout(() => {
-                    pendingApplyHandle = null;
-                    changeCameraFromTo();
-                }, 200);
-            }
+            if (request.retries-- <= 0) return;
+            pendingApplyHandle = setTimeout(() => {
+                pendingApplyHandle = null;
+                applyCameraIntent(request);
+            }, 200);
             return;
         }
 
@@ -897,37 +897,31 @@ export function createCameraActions({
         lastAppliedPositionMode = positionMode;
         lastAppliedLookMode = lookMode;
         lastAppliedConfig = config;
-        if (typeof applyViewForCurrentIdentity === "function" && applyViewForCurrentIdentity()) {
+        lastAppliedScene = scene;
+        lastAppliedController = scene.cameraController;
+        lastAppliedGeneration = generation;
+        lastAppliedRevision = pair.revision;
+        lastAppliedTransition = request.transition;
+        retainedIntent = { revision: pair.revision, preserveManualRelease: false };
+        if (request.syncViewIdentity && typeof applyViewForCurrentIdentity === "function" && applyViewForCurrentIdentity()) {
             return;
         }
         render();
     }
 
     function recenterMountedCamera() {
+        if (disposed) return;
         const positionMode = readCameraPositionMode();
         if (positionMode === "manual") return;
-
-        // Reset aim to manual and snap back to center-feel defaults.
-        applyCameraFromTo?.({ lookMode: "manual" });
-
-        const config = getConfig();
-        const scene = animationScenes[config];
-        if (!scene || !scene.initialized3D) return;
-
-        scene.cameraController?.setFromToModes?.(positionMode, "manual");
-        snapMountedCamera(scene, positionMode, "manual");
-        scene.cameraController?.updateFromTo?.(resolveFromToTargets(scene));
-        if (!scene.cameraController?._freeFlyActive) {
-            scene.cameraController?.controls?.update?.();
-        }
-        updateMountedBodyVisibility(scene, positionMode);
-        if (typeof applyViewForCurrentIdentity === "function" && applyViewForCurrentIdentity()) {
-            return;
-        }
-        render();
+        // Position-first normalization preserves a valid mounted source. Earth
+        // cannot look manually and retains its canonical allowed target.
+        const pair = planCameraPairTransition({ positionMode, lookMode: "manual", sourceId: "camera-position" });
+        lastAppliedScene = null;
+        changeCameraFromTo({ target: { name: "camera-pair", value: pair.pairKey } });
     }
 
     function togglePlane() {
+        if (disposed) return;
         setPlaneSelection(readPlaneSelection());
         handlePlaneChange(false, false);
 
@@ -949,6 +943,13 @@ export function createCameraActions({
     }
 
     return {
+        getCameraState: cameraIntent.get,
+        disposeCameraActions() {
+            disposed = true;
+            latestApply += 1;
+            if (pendingApplyHandle != null) clearTimeout(pendingApplyHandle);
+            pendingApplyHandle = null;
+        },
         changeCameraFromTo,
         changeDesktopMainFov,
         toggleDesktopMainFovAuto,

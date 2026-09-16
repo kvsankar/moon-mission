@@ -51,6 +51,8 @@ function createRuntimeLockControlActions(deps, { navigationActions }) {
 
 function createRuntimeCameraControlActions(deps) {
     return deps.createCameraActions({
+        cameraState: deps.cameraState,
+        getTransitionRevision: deps.getTransitionRevision,
         animationScenes: deps.animationScenes,
         getConfig: deps.getConfig,
         readCameraPositionMode: deps.readCameraPositionMode,

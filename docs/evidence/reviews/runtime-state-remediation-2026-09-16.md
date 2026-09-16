@@ -65,6 +65,45 @@ Final full unit suite: **1,664 passed, six skipped, 222 files**. This terminal
 lifecycle slice has no visual change; the SA-02 browser interaction remains
 separate evidence, not a new browser run for SA-07.
 
+## SA-03 / RTA-06 — Authoritative Main-Camera Intent
+
+Status: complete after final independent review.
+
+Red milestone: 11 ownership regressions failed on the existing action module,
+covering state versus corrupted controls, obsolete retry after newer release,
+retained release metadata, repeated no-argument projection, origin ABA,
+replacement scenes, disposal, invalid pair no-op and re-entrant projection.
+The implementation is bounded to the main camera; auxiliary view cameras keep
+their independent state owners. Delayed startup/BFCache callbacks must project
+current intent rather than resetting Free after a newer user action.
+
+Implementation creates one composition-root state port, routes header/mobile
+intents through it before projecting a complete pair, and derives view identity
+from that port. Explicit commands advance intent revision even for the same
+pair; readiness-only application is idempotent and retains release metadata.
+Polling is bounded to five seconds, with fresh readiness reapplication after
+that budget. Origin/transition, scene, generation and controller ownership guard
+late work. BFCache retains the owner; terminal pagehide cancels work. Auxiliary
+cameras are unchanged.
+
+Review corrections cover terminal guards on all camera/FoV/plane entry points,
+scene-generation ownership, callback forwarding through root/entry composition,
+and an explicit Earth-recenter normalization exception. A readiness-only hook
+avoids recursive projection/identity effects. Two further regressions first
+failed for an old controller on a reused scene and mounted recentering after a
+generation change; both were fixed before final review.
+
+Focused verification: **111 tests / 18 files**. Expanded fast transition suite:
+**241 tests / 26 files**. Browser run: **seven passed**, including corrupted
+restored controls, cold 2D beyond the retry budget, four existing transition
+checks and Artemis II mobile continuity. Final targeted browser and full-unit
+reruns follow the last controller/generation corrections before closure:
+the two ownership browser cases plus mobile continuity passed again (the four
+other already-passing cases were filtered only for this targeted rerun).
+Final full unit suite: **1,705 passed, six skipped, 227 files**. Local build
+passed with the existing classic-script/Three.js/chunk warnings. Final narrow
+review independently passed all 20 intent tests and found no remaining issues.
+
 ## Risk Triage Follow-Up (Not Yet Closed)
 
 Independent probes strengthened the original risk inventory; these still need

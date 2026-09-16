@@ -4,6 +4,7 @@ import {
     bindKeyboardShortcuts,
     bindMainControls,
 } from "../ui/event-handlers.js";
+import { bindCameraStartupProjection } from "../ui/camera-startup-projection.js";
 
 let eventBusWired = false;
 
@@ -47,24 +48,6 @@ export function startMissionApp({ eventBus, handlers }) {
 
     wireEventBus(eventBus, handlers);
 
-    // Reset "from-to" camera UI on reload so behavior is predictable (Manual + Manual).
-    // Browsers can restore <select> state on Ctrl-R/BFCache without firing 'change'.
-    const resetFromToDefaults = () => {
-        const positionSelect = document.getElementById("camera-position");
-        const lookSelect = document.getElementById("camera-look");
-        if (positionSelect) positionSelect.value = "manual";
-        if (lookSelect) lookSelect.value = "manual";
-
-        const setPillValue = (name, value) => {
-            const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
-            if (input) input.checked = true;
-        };
-
-        // Keep pill radios aligned with hidden select state so no restored
-        // mounted-mode radio can re-apply a stale camera mount on startup.
-        setPillValue("camera-position-pill", "manual");
-        setPillValue("camera-look-pill", "manual");
-    };
 
     bindMainControls({
         reset: (event) => eventBus.emit("ui:reset", { event }),
@@ -75,6 +58,7 @@ export function startMissionApp({ eventBus, handlers }) {
         changeCompareAlignment: handlers.changeCompareAlignment,
         getTimelineEventInfos: handlers.getTimelineEventInfos,
         changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
+        getCameraState: handlers.getCameraState,
         changeDesktopMainFov: handlers.changeDesktopMainFov,
         toggleDesktopMainFovAuto: handlers.toggleDesktopMainFovAuto,
         toggleLockSC: (event) => eventBus.emit("camera:lockOn", { target: "SC", event }),
@@ -98,26 +82,15 @@ export function startMissionApp({ eventBus, handlers }) {
     bindControlPanelToggle();
     bindMobileMissionCard({
         changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
+        getCameraState: handlers.getCameraState,
     });
 
     handlers.initAnimation({ reset: true }); // no need to await - kickstarts setup
 
-    const applyFromTo = () => eventBus.emit("camera:fromToChanged", { event: null });
-
-    const enforceDefaultsAndApply = () => {
-        resetFromToDefaults();
-        applyFromTo();
-    };
-
-    // Enforce defaults immediately and also after a short delay to override any late restore.
-    requestAnimationFrame(enforceDefaultsAndApply);
-    setTimeout(enforceDefaultsAndApply, 250);
-    setTimeout(enforceDefaultsAndApply, 750);
-
-    window.addEventListener("pageshow", () => {
-        requestAnimationFrame(enforceDefaultsAndApply);
-        setTimeout(enforceDefaultsAndApply, 250);
-        setTimeout(enforceDefaultsAndApply, 750);
+    bindCameraStartupProjection({
+        windowRef: window,
+        project: () => eventBus.emit("camera:fromToChanged", { event: null }),
+        dispose: handlers.disposeCameraActions,
     });
 
     const onloadEndTime = performance.now() - onloadStartTime;

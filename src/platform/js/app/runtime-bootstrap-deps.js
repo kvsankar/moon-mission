@@ -141,6 +141,8 @@ function createRuntimeUiControlsDepsFromPorts(
         resolveRuntimeBootstrapStateSlices(statePort);
 
     return createRuntimeUiControlsDeps({
+        cameraState: statePort.camera,
+        getTransitionRevision: app.getTransitionRevision,
         createNavigationActions: renderPort.createNavigationActions,
         createRepeatMouseDownHandlers: renderPort.createRepeatMouseDownHandlers,
         createLockActions: renderPort.createLockActions,

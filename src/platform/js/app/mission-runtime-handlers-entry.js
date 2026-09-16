@@ -101,6 +101,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 setPhotoMode,
                 changeCameraFromTo: (event) =>
                     getMissionRuntimeWireup().runtimeBootstrapActions.changeCameraFromTo(event),
+                getCameraState: () => getMissionRuntimeWireup().runtimeBootstrapActions.getCameraState(),
+                disposeCameraActions: () => getMissionRuntimeWireup().runtimeBootstrapActions.disposeCameraActions(),
                 changeDesktopMainFov: (event) =>
                     getMissionRuntimeWireup().runtimeBootstrapActions.changeDesktopMainFov(event),
                 toggleDesktopMainFovAuto: () =>

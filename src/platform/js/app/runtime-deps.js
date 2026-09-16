@@ -120,6 +120,8 @@ function createRuntimeUiControlsDeps(deps) {
     } = deps;
 
     return {
+        cameraState: deps.cameraState,
+        getTransitionRevision: deps.getTransitionRevision,
         createNavigationActions,
         createRepeatMouseDownHandlers,
         createLockActions,

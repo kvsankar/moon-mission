@@ -358,7 +358,9 @@ export function readCameraLookMode() {
 }
 
 export function applyCameraFromTo(patch) {
-    if (!patch) return;
+    // Projection accepts complete committed state; partial DOM merges used to
+    // publish transient invalid pairs before runtime normalization.
+    if (!patch?.positionMode || !patch?.lookMode) return;
     if (patch.positionMode) {
         setSelectValue("camera-position", patch.positionMode);
         setRadioGroupValue("camera-position-pill", patch.positionMode);
@@ -370,8 +372,8 @@ export function applyCameraFromTo(patch) {
     document.dispatchEvent(
         new CustomEvent("camera-from-to-ui-updated", {
             detail: {
-                positionMode: patch.positionMode || readCameraPositionMode(),
-                lookMode: patch.lookMode || readCameraLookMode(),
+                positionMode: patch.positionMode,
+                lookMode: patch.lookMode,
             },
         }),
     );

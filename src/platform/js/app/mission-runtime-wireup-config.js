@@ -281,6 +281,7 @@ function buildStatePort(ctx) {
 
     return {
         app: statePorts?.app || {},
+        camera: ctx.cameraState,
         data: statePorts?.data || {},
         session: statePorts?.session || {},
         sceneView: statePorts?.sceneView || {},

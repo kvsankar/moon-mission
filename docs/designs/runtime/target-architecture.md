@@ -51,6 +51,14 @@ view, interaction, media, panel, scene, data-source, and loop state.
 State ports expose explicit reads and writes. They do not mutate DOM or scene
 objects and do not become broad service locators.
 
+The main camera's normalized position/look intent belongs to a narrow
+composition-root-owned camera state port. Camera actions accept input commands,
+project the complete pair to UI, and apply the retained revision to the active
+scene. Pose/controller internals are derived scene state, while auxiliary
+cameras keep independent owners. Readiness reapplication is distinct from a
+new user command; compatibility input readers must not become a live DOM-backed
+authority.
+
 ### Application Services
 
 `src/platform/js/app/` coordinates domain policy, state ports, and effect

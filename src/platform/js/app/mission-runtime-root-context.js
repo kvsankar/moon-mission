@@ -57,6 +57,7 @@ function createMissionRuntimeHandlersEntryContext({
 }
 
 function createMissionRuntimeWireupEntryContext({
+    cameraState,
     d3,
     d3SelectAll,
     THREE,
@@ -107,6 +108,7 @@ function createMissionRuntimeWireupEntryContext({
 }) {
     return {
         d3,
+        cameraState,
         d3SelectAll,
         THREE,
         Astronomy,

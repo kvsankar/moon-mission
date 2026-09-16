@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { bindMobileMissionCardSync } from "../src/platform/js/ui/mobile-mission-card-sync.js";
+import { createRuntimeCameraState } from "../src/platform/js/core/state/runtime-camera-state.js";
 
 function createClassList(initialValues = []) {
     const values = new Set(initialValues);
@@ -219,8 +220,10 @@ function createHarness() {
 
     const resetSettingsPanelForMobileMode = vi.fn();
     const setHeaderPillStripAutoCollapsedState = vi.fn();
+    const cameraState = createRuntimeCameraState({ positionMode: "spacecraft", lookMode: "moon" });
 
     const result = bindMobileMissionCardSync({
+        getCameraState: cameraState.get,
         documentRef,
         windowRef,
         performanceRef: {},
@@ -231,6 +234,7 @@ function createHarness() {
         setHeaderPillStripAutoCollapsedState,
         createSharedControlBackendImpl: () => ({
             commitCameraPair(positionMode, lookMode) {
+                cameraState.commit({ positionMode, lookMode });
                 committedCameraPairs.push([positionMode, lookMode]);
                 elements.cameraPosition.value = positionMode;
                 elements.cameraLook.value = lookMode;

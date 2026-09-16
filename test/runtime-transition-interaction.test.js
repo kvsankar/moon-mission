@@ -144,6 +144,64 @@ describe("CY3 semantic runtime transitions in the normal Dockview workspace", ()
     });
     afterAll(async () => { await browser?.close(); });
 
+    it("reprojects retained camera intent after restored-page controls are corrupted", async () => {
+        const { context, page, errors } = await openScenario();
+        try {
+            await useViewControl(page, "#view-pill-craft-moon");
+            await page.waitForFunction(() => window.animationScenes.geo?.cameraController?.positionMode === "spacecraft");
+            const before = await snapshot(page);
+            // Fault-inject only the UI projection, never the camera or its state port.
+            await page.evaluate(() => {
+                document.getElementById("camera-position").value = "manual";
+                document.getElementById("camera-look").value = "manual";
+                window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+            });
+            // Include the existing delayed page-restore projections, not only the RAF.
+            await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1000)));
+            const restored = await snapshot(page);
+            expect(restored.positionMode).toBe("spacecraft");
+            expect(restored.lookMode).toBe("moon");
+            expect(restored.uiPosition).toBe("spacecraft");
+            expect(restored.uiLook).toBe("moon");
+            expect(restored.cameraPosition).toEqual(before.cameraPosition);
+            expect(restored.currentTime).toBe(before.currentTime);
+            expect(errors).toEqual([]);
+        } catch (error) {
+            await recordFailure(page, "camera-restored-projection", error);
+            throw error;
+        } finally { await context.close(); }
+    }, TIMEOUT * 2);
+
+    it("applies retained camera intent after a cold 2D scene outlives readiness retries", async () => {
+        const { context, page, errors } = await openScenario();
+        try {
+            await useViewControl(page, "#view-pill-craft-moon");
+            await page.waitForFunction(() => window.animationScenes.geo?.cameraController?.positionMode === "spacecraft");
+            await useViewControl(page, "#dimension-pill-2d");
+            await waitForView(page, "geo", "2D");
+            await useViewControl(page, "#origin-pill-moon");
+            await waitForView(page, "lunar", "2D");
+            expect(await page.evaluate(() => window.animationScenes.lunar?.initialized3D === true)).toBe(false);
+            const before = await snapshot(page);
+            await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 6000)));
+            await useViewControl(page, "#dimension-pill-3d");
+            await waitForView(page, "lunar", "3D");
+            await page.waitForFunction(() => {
+                const camera = window.animationScenes.lunar?.cameraController;
+                return camera?.positionMode === "spacecraft" && camera.lookMode === "moon";
+            });
+            const restored = await snapshot(page);
+            expect(restored.uiPosition).toBe("spacecraft");
+            expect(restored.uiLook).toBe("moon");
+            expect(restored.currentTime).toBe(before.currentTime);
+            expectValidClock(restored);
+            expect(errors).toEqual([]);
+        } catch (error) {
+            await recordFailure(page, "camera-cold-readiness", error);
+            throw error;
+        } finally { await context.close(); }
+    }, TIMEOUT * 2);
+
     it("switches Earth to a cold Moon scene and back to a warm Earth scene with a valid origin clock", async () => {
         const { context, page, errors } = await openScenario();
         try {

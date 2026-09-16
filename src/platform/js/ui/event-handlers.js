@@ -268,6 +268,7 @@ export function bindMainControls(handlers) {
         changeCompareAlignment,
         getTimelineEventInfos,
         changeCameraFromTo,
+        getCameraState,
         changeDesktopMainFov,
         toggleDesktopMainFovAuto,
         togglePlane,
@@ -290,6 +291,7 @@ export function bindMainControls(handlers) {
         toggleMode,
         toggleRelativeMode,
         changeCameraFromTo,
+        getCameraState,
         togglePlane,
         setView,
         setDimensionTop,
@@ -343,9 +345,10 @@ export function bindControlPanelToggle() {
     getControlPanelTimelineController().bind();
 }
 
-export function bindMobileMissionCard({ changeCameraFromTo } = {}) {
+export function bindMobileMissionCard({ changeCameraFromTo, getCameraState } = {}) {
     bindMobileMissionCardSync({
         changeCameraFromTo,
+        getCameraState,
         dispatchSyntheticPress,
         isMobileViewport,
         resetSettingsPanelForMobileMode: () => getSettingsPanelController().resetForMobileMode(),

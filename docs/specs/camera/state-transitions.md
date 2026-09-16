@@ -78,6 +78,26 @@ the resulting pair.
 
 ## Transition Behavior
 
+### Intent ownership and reapplication
+
+- The main camera has one session-wide normalized intent owner. Hidden selects,
+  header pills and mobile controls project that intent; they are not alternate
+  authoritative storage. Auxiliary view cameras remain independent.
+- A new control command reads the value of the initiating input and normalizes
+  it against current intent. Projection publishes only a complete valid pair.
+- Startup/readiness and restored-page callbacks reapply current intent. They
+  must not manufacture a new default/reset command or overwrite a later user
+  selection. A new runtime starts Free; restoring an existing page projects its
+  current state.
+- Delayed application retains command metadata such as pose-preserving release.
+  Newer intent supersedes earlier work even for the same pair or an origin
+  roundtrip. Replaced/disposed scenes and inactive-scene control callbacks cannot
+  publish into the active camera UI.
+- Reapplying an already-applied intent is idempotent. Explicit selection of
+  Free remains a new command and may reset its default pose even if already Free.
+
+### Controller behavior
+
 - A transition to a non-manual position updates the controller's mounted
   source and look modes.
 - Entering or changing a mounted semantic source-to-target view recenters the
@@ -89,8 +109,10 @@ the resulting pair.
   normal mode selection, resets the default camera parameters.
 - Releasing a follow/look pill may preserve the current camera position while
   still restoring the manual pivot and up vector.
-- Recenter on a mounted camera switches look to `manual` and restores the
-  source-specific default aim.
+- Recenter on a mounted camera requests `manual` look with position-first
+  normalization and restores the source-specific default aim. Earth is the
+  exception: `earth/manual` is invalid, so the normal allowed-look fallback
+  keeps a valid `earth/moon` pair rather than introducing a thirteenth pair.
 - Camera state changes must apply immediately while animation is paused.
 
 Mounted-source visibility is derived from camera position. A craft-mounted

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createCameraPillController } from "../src/platform/js/ui/camera-pill-controller.js";
+import { createRuntimeCameraState } from "../src/platform/js/core/state/runtime-camera-state.js";
 
 function createClassList(initial = []) {
     const values = new Set(initial);
@@ -139,7 +140,9 @@ function createHarness() {
         },
     };
 
+    const cameraState = createRuntimeCameraState({ positionMode: "manual", lookMode: "earth" });
     const controlBackend = {
+        getCameraState: cameraState.get,
         commitCameraLookMode: vi.fn(),
         commitCameraPair: vi.fn(),
         commitCameraPositionMode: vi.fn(),
@@ -151,6 +154,7 @@ function createHarness() {
     });
 
     return {
+        cameraState,
         controlBackend,
         controller,
         documentRef,
@@ -170,7 +174,17 @@ function createHarness() {
 }
 
 describe("createCameraPillController", function () {
-    it("syncs the initial follow and view pill state from the camera selects", function () {
+    it("ignores restored hidden control values when projecting or toggling a committed pair", () => {
+        const h = createHarness();
+        h.positionSelect.value = "spacecraft";
+        h.lookSelect.value = "moon";
+        h.controller.bind();
+        expect(h.followEarth.classList.contains("is-active")).toBe(true);
+        expect(h.viewCraftMoon.classList.contains("is-active")).toBe(false);
+        h.followEarth.dispatchEvent({ type: "click" });
+        expect(h.controlBackend.commitCameraPair).toHaveBeenCalledWith("manual", "manual", { preserveManualRelease: true });
+    });
+    it("syncs the initial follow and view pill state from committed camera state", function () {
         const harness = createHarness();
 
         harness.controller.bind();
@@ -218,6 +232,7 @@ describe("createCameraPillController", function () {
         const harness = createHarness();
 
         harness.lookSelect.value = "manual";
+        harness.cameraState.commit({ lookMode: "manual" });
         harness.lookEarth.checked = false;
         harness.lookManual.checked = true;
         harness.controller.bind();
@@ -226,6 +241,7 @@ describe("createCameraPillController", function () {
         expect(harness.followNone["aria-pressed"]).toBe("true");
 
         harness.lookSelect.value = "earth";
+        harness.cameraState.commit({ lookMode: "earth" });
         harness.lookManual.checked = false;
         harness.lookEarth.checked = true;
         harness.documentRef?.dispatchEvent?.({ type: "camera-from-to-ui-updated" });
@@ -251,6 +267,7 @@ describe("createCameraPillController", function () {
 
         harness.positionSelect.value = "spacecraft";
         harness.lookSelect.value = "moon";
+        harness.cameraState.commit({ positionMode: "spacecraft", lookMode: "moon" });
         harness.positionManual.checked = false;
         harness.positionCraft.checked = true;
         harness.lookEarth.checked = false;

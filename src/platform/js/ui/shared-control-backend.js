@@ -1,6 +1,5 @@
 import { resolvePairKey } from "../core/domain/camera-policy.js";
 import {
-    applyCameraFromTo,
     applyDimensionSelection,
     applyOriginMode,
     applyPlaneSelection,
@@ -67,6 +66,7 @@ export function createSharedControlBackend(handlers = {}) {
         toggleMode,
         toggleRelativeMode,
         changeCameraFromTo,
+        getCameraState = () => ({ positionMode: "manual", lookMode: "manual" }),
         togglePlane,
         setView,
         setDimensionTop,
@@ -88,7 +88,6 @@ export function createSharedControlBackend(handlers = {}) {
     }
 
     function commitCameraPositionMode(positionMode, options = {}) {
-        applyCameraFromTo({ positionMode });
         return invoke(
             changeCameraFromTo,
             buildSyntheticControlEvent({
@@ -103,7 +102,6 @@ export function createSharedControlBackend(handlers = {}) {
     }
 
     function commitCameraLookMode(lookMode, options = {}) {
-        applyCameraFromTo({ lookMode });
         return invoke(
             changeCameraFromTo,
             buildSyntheticControlEvent({
@@ -197,6 +195,7 @@ export function createSharedControlBackend(handlers = {}) {
     }
 
     return {
+        getCameraState,
         commitOriginMode,
         commitCameraPositionMode,
         commitCameraLookMode,

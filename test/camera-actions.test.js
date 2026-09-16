@@ -337,7 +337,7 @@ describe("createCameraActions", () => {
 
         actions.changeCameraFromTo({
             detail: { preserveManualRelease: true },
-            target: { id: "camera-pair", name: "camera-pair" },
+            target: { id: "camera-pair", name: "camera-pair", value: "manual__manual" },
         });
 
         expect(scene.setCameraParameters).not.toHaveBeenCalled();

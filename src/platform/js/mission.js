@@ -21,13 +21,12 @@ import {
     resolveFrameModeForRuntimeMode,
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
+import { createRuntimeCameraState } from "./core/state/runtime-camera-state.js";
 import { whenMissionConfigLoaded } from "./data/mission-data.js";
 import { resolveDockviewEnabled } from "./core/domain/dockview-policy.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import {
     applyViewSettings,
-    readCameraLookMode,
-    readCameraPositionMode,
     readDimensionSelection,
     readPlaneSelection,
     readViewSettings,
@@ -192,6 +191,7 @@ let {
 
 export { animationScenes };
 
+const cameraState = createRuntimeCameraState();
 const runtimeViewState = createRuntimeViewState({
     initialConfig,
     initialCurrentDimension,
@@ -363,8 +363,8 @@ const {
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setCurrentViewIdentity({
     originMode: initialMissionViewState.config,
-    cameraPositionMode: readCameraPositionMode(),
-    cameraLookMode: readCameraLookMode(),
+    cameraPositionMode: cameraState.get().positionMode,
+    cameraLookMode: cameraState.get().lookMode,
     planeSelection,
     dimension: runtimeViewState.getCurrentDimension(),
 });
@@ -457,8 +457,8 @@ function dispatchViewSettingsAppliedForIdentity() {
 function readCurrentViewIdentity() {
     return {
         originMode: runtimeViewState.getConfig() || "geo",
-        cameraPositionMode: readCameraPositionMode(),
-        cameraLookMode: readCameraLookMode(),
+        cameraPositionMode: cameraState.get().positionMode,
+        cameraLookMode: cameraState.get().lookMode,
         planeSelection:
             sceneViewStateActions.getPlaneSelectionState?.(runtimeViewState.getConfig()) ||
             readPlaneSelection(),
@@ -485,6 +485,12 @@ function applyViewForCurrentIdentity() {
             detail: {
                 reason: "view-identity-change",
             },
+        });
+        // Origin/dimension readiness replays retained main-camera intent. An
+        // already-applied revision is idempotent, including nested view sync.
+        missionRuntimeWireup?.runtimeBootstrapActions?.changeCameraFromTo(undefined, {
+            projectControls: false,
+            syncViewIdentity: false,
         });
         return true;
     }
@@ -894,6 +900,7 @@ const wireupEntryContext = createMissionRuntimeWireupEntryContext({
     setTimelineMediaMarkers,
     syncViewIdentity: syncRuntimeViewIdentityFromControls,
     applyViewForCurrentIdentity,
+    cameraState,
 });
 
 const {

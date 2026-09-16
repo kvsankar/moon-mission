@@ -36,8 +36,8 @@ SA-01 is complete: configuration initialization is guarded against superseding
 startup, origin/dimension revisions and scene replacement, with explicit
 outcomes, shared loading and bounded latest-view handoff. SA-02 retired-media
 ownership is also complete; [TDD/review evidence](../evidence/reviews/runtime-state-remediation-2026-09-16.md).
-SA-07 terminal media disposal is complete. Next: SA-03/RTA-06 camera intent
-and retry ownership. The scoped plan orders the remaining
+SA-07 terminal media disposal and SA-03/RTA-06 camera intent/retry ownership
+are complete. Next: SA-04 temporary annotation state restoration. The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and
 re-verification. Commit and push each completed slice; no deployment.

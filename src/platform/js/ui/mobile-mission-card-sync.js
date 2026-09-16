@@ -80,6 +80,7 @@ function bindMobileMissionCardSync(deps = {}) {
         resetSettingsPanelForMobileMode = () => {},
         setHeaderPillStripAutoCollapsedState = () => {},
         changeCameraFromTo = () => {},
+        getCameraState = () => ({ positionMode: "manual", lookMode: "manual" }),
         auxiliaryViewCameraPresets = AUXILIARY_VIEW_CAMERA_PRESETS,
         readTimelineEventMetadata = () => extractTimelineEventMetadataFromButtons(documentRef),
         formatLocalDateTimeShortImpl = formatLocalDateTimeShort,
@@ -189,14 +190,15 @@ function bindMobileMissionCardSync(deps = {}) {
     let mobileShellLayoutSync = null;
     const cameraControlBackend = createSharedControlBackendImpl({
         changeCameraFromTo,
+        getCameraState,
     });
 
     function readCurrentCameraPositionMode() {
-        return String(documentRef.getElementById("camera-position")?.value || "manual").trim();
+        return getCameraState().positionMode;
     }
 
     function readCurrentCameraLookMode() {
-        return String(documentRef.getElementById("camera-look")?.value || "manual").trim();
+        return getCameraState().lookMode;
     }
 
     function commitCameraPair(positionMode, lookMode, options = {}) {

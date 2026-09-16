@@ -35,11 +35,12 @@ export function createCameraPillController(deps = {}) {
     let bound = false;
 
     function getSelectedCameraPillValue(name) {
+        const pair = controlBackend.getCameraState?.() || { positionMode: "manual", lookMode: "manual" };
         if (name === "camera-position-pill") {
-            return documentRef.getElementById("camera-position")?.value || "manual";
+            return pair.positionMode;
         }
         if (name === "camera-look-pill") {
-            return documentRef.getElementById("camera-look")?.value || "manual";
+            return pair.lookMode;
         }
         const selected = documentRef.querySelector?.(`input[name="${name}"]:checked`);
         return selected?.value || "manual";
