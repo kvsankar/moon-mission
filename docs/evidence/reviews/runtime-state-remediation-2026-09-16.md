@@ -104,6 +104,28 @@ Final full unit suite: **1,705 passed, six skipped, 227 files**. Local build
 passed with the existing classic-script/Three.js/chunk warnings. Final narrow
 review independently passed all 20 intent tests and found no remaining issues.
 
+## SA-04 — Temporary Annotation State Restoration
+
+Status: complete after independent review and correction of its finding.
+
+Red: seven of eight new cold/delayed-catalog/setup/render-exception cases failed
+on the original helper. Code review added a failing fallback-group case where
+an object without presentation methods was mutated and visibility stayed true.
+The fix restores captured fields regardless of whether a group existed, puts
+setup inside cleanup protection, and preserves the visibility-only fallback.
+
+Independent review then reproduced a gap with the real annotation builder:
+rebuilding geometry normalizes and overwrites the fields just restored. A real
+`createLunarCraterActions` empty-catalog integration test and two mutating/throwing
+restoration tests all failed before the second fix. Restoration now reapplies
+the authored snapshot in `finally` after effect-side rebuild/cleanup, including
+exceptions. No annotation filter policy or baseline was changed.
+
+Focused suite: **42 passed / three files**, including 12 new regression cases.
+Final full unit suite: **1,717 passed, six skipped, 227 files**. Independent
+review reran the 42 focused tests and cleared the final restoration logic.
+No new browser/SSIM run was claimed for this module-level state/exception fix.
+
 ## Risk Triage Follow-Up (Not Yet Closed)
 
 Independent probes strengthened the original risk inventory; these still need

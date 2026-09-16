@@ -33,13 +33,7 @@ function captureCraterPresentation(animationScene) {
     };
 }
 
-function restoreCraterPresentation(animationScene, previous) {
-    if (!animationScene || !previous) return false;
-    if (!previous.hadGroup) {
-        animationScene.disposeLunarCraterAnnotations?.();
-        return true;
-    }
-
+function restoreCraterFields(animationScene, previous) {
     animationScene.lunarCraterDisplayMode = previous.displayMode;
     animationScene.lunarCraterMinDiameterKm = previous.minDiameterKm;
     animationScene.lunarCraterMaxDiameterKm = previous.maxDiameterKm;
@@ -54,10 +48,26 @@ function restoreCraterPresentation(animationScene, previous) {
     animationScene.lunarFeatureHoverTypeFilters = previous.hoverTypeFilters;
     animationScene.lunarFeatureHoverSearchQuery = previous.hoverSearchQuery;
     animationScene.lunarFeatureHoverExcludedKeys = previous.hoverExcludedKeys;
-    animationScene.addLunarCraterAnnotations?.();
-    animationScene.setLunarCraterHoverLabelsEnabled?.(previous.hoverLabelsEnabled);
-    if (animationScene.lunarCraterGroup) {
-        animationScene.lunarCraterGroup.visible = previous.visible;
+    animationScene.lunarCraterHoverLabelsEnabled = previous.hoverLabelsEnabled;
+}
+
+function restoreCraterPresentation(animationScene, previous) {
+    if (!animationScene || !previous) return false;
+    restoreCraterFields(animationScene, previous);
+    try {
+        if (!previous.hadGroup) {
+            animationScene.disposeLunarCraterAnnotations?.();
+            return true;
+        }
+        animationScene.addLunarCraterAnnotations?.();
+        animationScene.setLunarCraterHoverLabelsEnabled?.(previous.hoverLabelsEnabled);
+    } finally {
+        // Building geometry also normalizes fields on the shared scene. Those
+        // effect-side writes must not replace the main view's authored state.
+        restoreCraterFields(animationScene, previous);
+        if (previous.hadGroup && animationScene.lunarCraterGroup) {
+            animationScene.lunarCraterGroup.visible = previous.visible;
+        }
     }
     return true;
 }
@@ -110,34 +120,31 @@ export function renderWithLunarCraterView({
         animationScene?.addLunarCraterAnnotations &&
         animationScene?.setLunarCraterHoverLabelsEnabled
     );
-    if (canApplyPresentation) {
-        animationScene.lunarCraterDisplayMode = craterState.lunarCraterDisplayMode;
-        animationScene.lunarCraterMinDiameterKm = craterState.lunarCraterMinDiameterKm;
-        animationScene.lunarCraterMaxDiameterKm = craterState.lunarCraterMaxDiameterKm;
-        animationScene.lunarCraterShowAllEnabled = craterState.lunarCraterShowAllEnabled;
-        animationScene.lunarCraterHoverEnabled = craterState.lunarCraterHoverEnabled;
-        animationScene.lunarCraterHoverMinDiameterKm = craterState.lunarCraterHoverMinDiameterKm;
-        animationScene.lunarCraterHoverMaxDiameterKm = craterState.lunarCraterHoverMaxDiameterKm;
-        animationScene.lunarFeatureTypeFilters = craterState.lunarFeatureTypeFilters;
-        animationScene.lunarFeatureSearchQuery = craterState.lunarFeatureSearchQuery;
-        animationScene.lunarFeaturePinnedNames = craterState.lunarFeaturePinnedNames;
-        animationScene.lunarFeatureExcludedKeys = craterState.lunarFeatureExcludedKeys;
-        animationScene.lunarFeatureHoverTypeFilters = craterState.lunarFeatureHoverTypeFilters;
-        animationScene.lunarFeatureHoverSearchQuery = craterState.lunarFeatureHoverSearchQuery;
-        animationScene.lunarFeatureHoverExcludedKeys = craterState.lunarFeatureHoverExcludedKeys;
-        animationScene.addLunarCraterAnnotations({
-            camera,
-            rendererDomElement,
-        });
-        animationScene.setLunarCraterHoverLabelsEnabled(craterState.lunarCraterHoverLabels !== false);
-    }
-
-    const craterGroup = resolveCraterGroup({ animationScene, scene });
-    const previousVisible = craterGroup?.visible;
-    if (craterGroup) {
-        craterGroup.visible = true;
-    }
+    let craterGroup = null;
+    let previousVisible;
     try {
+        if (canApplyPresentation) {
+            animationScene.lunarCraterDisplayMode = craterState.lunarCraterDisplayMode;
+            animationScene.lunarCraterMinDiameterKm = craterState.lunarCraterMinDiameterKm;
+            animationScene.lunarCraterMaxDiameterKm = craterState.lunarCraterMaxDiameterKm;
+            animationScene.lunarCraterShowAllEnabled = craterState.lunarCraterShowAllEnabled;
+            animationScene.lunarCraterHoverEnabled = craterState.lunarCraterHoverEnabled;
+            animationScene.lunarCraterHoverMinDiameterKm = craterState.lunarCraterHoverMinDiameterKm;
+            animationScene.lunarCraterHoverMaxDiameterKm = craterState.lunarCraterHoverMaxDiameterKm;
+            animationScene.lunarFeatureTypeFilters = craterState.lunarFeatureTypeFilters;
+            animationScene.lunarFeatureSearchQuery = craterState.lunarFeatureSearchQuery;
+            animationScene.lunarFeaturePinnedNames = craterState.lunarFeaturePinnedNames;
+            animationScene.lunarFeatureExcludedKeys = craterState.lunarFeatureExcludedKeys;
+            animationScene.lunarFeatureHoverTypeFilters = craterState.lunarFeatureHoverTypeFilters;
+            animationScene.lunarFeatureHoverSearchQuery = craterState.lunarFeatureHoverSearchQuery;
+            animationScene.lunarFeatureHoverExcludedKeys = craterState.lunarFeatureHoverExcludedKeys;
+            animationScene.addLunarCraterAnnotations({ camera, rendererDomElement });
+            animationScene.setLunarCraterHoverLabelsEnabled(craterState.lunarCraterHoverLabels !== false);
+        }
+
+        craterGroup = resolveCraterGroup({ animationScene, scene });
+        previousVisible = craterGroup?.visible;
+        if (craterGroup) craterGroup.visible = true;
         if (
             canApplyPresentation &&
             craterState.lunarCraterHoverLabels !== false
@@ -160,7 +167,8 @@ export function renderWithLunarCraterView({
         });
         render();
     } finally {
-        if (!restoreCraterPresentation(animationScene, previousPresentation) && craterGroup) {
+        const restoredPresentation = canApplyPresentation && restoreCraterPresentation(animationScene, previousPresentation);
+        if (!restoredPresentation && craterGroup) {
             craterGroup.visible = previousVisible === true;
         }
     }

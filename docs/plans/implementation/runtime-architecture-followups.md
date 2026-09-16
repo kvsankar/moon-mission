@@ -34,8 +34,8 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 1 | SA-01 | Owned configuration activation, shared loading and bounded supersession recovery | Complete; see audit verification |
 | 2 | SA-02, then SA-07 | Retired media sessions cannot change selection/time; disposal remains terminal | Both complete; separate TDD/review evidence |
 | 3 | SA-03 / RTA-06 | Latest camera intent owns retries; semantic state independent of controls | Complete; normalized state port and reviewed lifecycle guards |
-| 4 | SA-04 | Temporary annotation presentation always restores main-scene state | Next |
-| 5 | SA-05 | Cancelled/replaced curve work cannot publish resources or readiness | Pending |
+| 4 | SA-04 | Temporary annotation presentation always restores main-scene state | Complete; real-builder and exception regressions reviewed |
+| 5 | SA-05 | Cancelled/replaced curve work cannot publish resources or readiness | Next |
 | 6 | SA-06 | Explicit acceptance/disposal ownership at texture handoff | Pending |
 | 7 | SA-09 | Commit restart time before notifying playback consumers | Pending |
 | 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Pending |
