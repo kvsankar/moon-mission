@@ -83,11 +83,12 @@ function resolveViewTransformState({
     key,
     defaultViewState,
     legacyValue = null,
+    useLegacyValue = true,
 }) {
     if (scene && Number.isFinite(scene[key])) {
         return scene[key];
     }
-    if (Number.isFinite(legacyValue)) {
+    if (useLegacyValue && Number.isFinite(legacyValue)) {
         return legacyValue;
     }
     return defaultViewState[key];

@@ -51,7 +51,7 @@ function createSceneViewStateActions(deps) {
         const normalized = normalizePlaneSelection(value);
         const scene = getActiveSceneViewState(cfg);
         if (scene) scene.planeSelection = normalized;
-        setLegacyPlaneSelection(normalized);
+        if (cfg === getConfig()) setLegacyPlaneSelection(normalized);
     }
 
     function setPlaneVariablesState(planeConfig, cfg = getConfig()) {
@@ -70,7 +70,7 @@ function createSceneViewStateActions(deps) {
         }
 
         // Transitional fallback for code paths not yet scene-scoped.
-        setLegacyPlaneVariables(planeConfig);
+        if (cfg === getConfig()) setLegacyPlaneVariables(planeConfig);
     }
 
     function getPlaneVariablesState(cfg = getConfig()) {
@@ -88,13 +88,14 @@ function createSceneViewStateActions(deps) {
             key: "zoomFactor",
             defaultViewState,
             legacyValue: getLegacyZoomFactor(),
+            useLegacyValue: cfg === getConfig(),
         });
     }
 
     function setZoomFactorState(value, cfg = getConfig()) {
         const scene = getActiveSceneViewState(cfg);
         if (scene) scene.zoomFactor = value;
-        setLegacyZoomFactor(value);
+        if (cfg === getConfig()) setLegacyZoomFactor(value);
     }
 
     function getPanXState(cfg = getConfig()) {
@@ -103,13 +104,14 @@ function createSceneViewStateActions(deps) {
             key: "panx",
             defaultViewState,
             legacyValue: getLegacyPanX(),
+            useLegacyValue: cfg === getConfig(),
         });
     }
 
     function setPanXState(value, cfg = getConfig()) {
         const scene = getActiveSceneViewState(cfg);
         if (scene) scene.panx = value;
-        setLegacyPanX(value);
+        if (cfg === getConfig()) setLegacyPanX(value);
     }
 
     function getPanYState(cfg = getConfig()) {
@@ -118,13 +120,14 @@ function createSceneViewStateActions(deps) {
             key: "pany",
             defaultViewState,
             legacyValue: getLegacyPanY(),
+            useLegacyValue: cfg === getConfig(),
         });
     }
 
     function setPanYState(value, cfg = getConfig()) {
         const scene = getActiveSceneViewState(cfg);
         if (scene) scene.pany = value;
-        setLegacyPanY(value);
+        if (cfg === getConfig()) setLegacyPanY(value);
     }
 
     function resetViewTransformState(cfg = getConfig()) {
@@ -135,7 +138,9 @@ function createSceneViewStateActions(deps) {
 
     function syncPlaneStateForConfig(cfg = getConfig()) {
         const selection = getPlaneSelectionState(cfg);
-        const normalizedSelection = syncPlaneSelectionControls(selection, setChecked);
+        const normalizedSelection = cfg === getConfig()
+            ? syncPlaneSelectionControls(selection, setChecked)
+            : normalizePlaneSelection(selection);
         const effectiveSelection = resolveEffectivePlaneSelection({
             selection: normalizedSelection,
             isRelativeMode,

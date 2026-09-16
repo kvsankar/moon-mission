@@ -169,7 +169,16 @@ describe("scene-view-state-core", () => {
             key: "panx",
             defaultViewState,
             legacyValue: 9,
+            useLegacyValue: true,
         })).toBe(9);
+
+        expect(resolveViewTransformState({
+            scene: null,
+            key: "panx",
+            defaultViewState,
+            legacyValue: 9,
+            useLegacyValue: false,
+        })).toBe(5);
 
         expect(resolveViewTransformState({
             scene: null,

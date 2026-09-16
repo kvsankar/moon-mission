@@ -50,6 +50,10 @@ implementation of the contract.
   scene identity is available.
 - Compatibility mirrors must be isolated and removable rather than treated as
   primary state.
+- Explicit inactive-origin view transforms and plane state read/write only that
+  scene. Missing inactive scenes use defaults and cannot mutate active mirrors
+  or visible controls. Legacy startup fallback and compatibility writes apply
+  only to the currently active origin.
 
 ## Application-Service Boundary
 

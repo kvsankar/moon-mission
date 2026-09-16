@@ -481,6 +481,24 @@ Final verification: **31 focused registry/host tests**, **1,957 unit tests
 passed, six skipped, 242 files**, and the real registry-Focus browser check
 passed. SA-20 is complete.
 
+## SA-16 — Scene-Scoped Compatibility Mirrors
+
+Four RED cases reproduced the risk: inactive scene zoom/pan writes changed active
+legacy mirrors, missing inactive reads returned active values, and inactive plane
+synchronization wrote visible controls and legacy plane state. The functional
+transform resolver now accepts explicit legacy ownership; application setters
+and plane variables mirror only when `cfg` is the active origin.
+
+Existing inactive scenes remain writable in their own state. Missing inactive
+scenes read defaults and writes have no active side effect. Missing active scenes
+retain the established startup legacy fallback, and active plane synchronization
+still updates controls plus compatibility mirrors. An added active-path regression
+protects that compatibility behavior.
+
+Final verification: **24 focused scene/plane tests**, **1,962 unit tests passed,
+six skipped, 242 files**, and all **seven runtime-transition browser checks**
+passed. SA-16 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
