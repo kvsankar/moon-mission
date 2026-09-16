@@ -148,6 +148,7 @@ export function applyAndRefreshSceneTextures(scene, textures, {
     disposePrevious = false,
     requestRender = null,
     shouldDeferGeneratedNormalMap = null,
+    onAccepted = null,
 } = {}) {
     const previousTextures = {
         earthTexture: scene.earthTexture || null,
@@ -161,6 +162,8 @@ export function applyAndRefreshSceneTextures(scene, textures, {
     };
 
     applySceneTextures(scene, textures);
+    // State now owns the input textures, even if a later renderer effect fails.
+    onAccepted?.();
     syncLunarMoonFillLights(scene);
     syncMoonShadowTuning(scene);
     const hasEarthTextureUpdate =

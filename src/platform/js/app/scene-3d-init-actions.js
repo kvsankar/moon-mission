@@ -213,11 +213,12 @@ export function createScene3dInitActions({
         return scene.moonTextureLoadPromise;
     }
 
-    function applyLoadedTextures(scene, textures, loadContext = {}) {
+    function applyLoadedTextures(scene, textures, loadContext = {}, acceptOwnership = null) {
         applyAndRefreshSceneTextures(scene, textures, {
             disposePrevious: true,
             requestRender: render,
             shouldDeferGeneratedNormalMap: () => hasRecentInput(TEXTURE_APPLY_IDLE_MS),
+            onAccepted: acceptOwnership,
         });
         render?.();
     }
@@ -237,9 +238,9 @@ export function createScene3dInitActions({
                 token: loadContext.token,
                 runId: loadContext.runId,
             }),
-            onTexturesReady: (textures) => {
+            onTexturesReady: (textures, ownership = {}) => {
                 assertTextureLoadCurrent(scene, loadContext.token, loadContext.runId);
-                applyLoadedTextures(scene, textures, loadContext);
+                applyLoadedTextures(scene, textures, loadContext, ownership.acceptOwnership);
             },
         });
     }

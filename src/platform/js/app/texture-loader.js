@@ -750,6 +750,9 @@ export async function loadSceneTexturesProgressively({
                 promisesByCacheKey,
                 signal,
             });
+            // Consumers may move/delete payload fields while taking ownership.
+            // The receipt must retain the identities supplied by this producer.
+            const groupResources = new Set(textures.filter(texture => typeof texture?.dispose === "function"));
             const byKey = makeTextureResult({
                 THREE,
                 entries,
@@ -767,13 +770,20 @@ export async function loadSceneTexturesProgressively({
             }
             Object.assign(finalByKey, byKey);
             if (typeof onTexturesReady === "function") {
-                Object.values(byKey).forEach(texture => {
-                    if (typeof texture?.dispose === "function") deliveredTextures.add(texture);
-                });
-                await onTexturesReady(byKey, {
-                    ...groupInfo,
-                    done: false,
-                });
+                let accepting = true;
+                const acceptOwnership = () => {
+                    if (!accepting) return false;
+                    groupResources.forEach(texture => deliveredTextures.add(texture));
+                    return true;
+                };
+                try {
+                    await onTexturesReady(byKey, { ...groupInfo, done: false, acceptOwnership });
+                    // Successful legacy callbacks accept their whole group. A
+                    // scene may accept earlier, before subsequent render effects.
+                    acceptOwnership();
+                } finally {
+                    accepting = false;
+                }
                 throwIfAborted(signal);
             }
         }

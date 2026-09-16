@@ -161,6 +161,34 @@ and the full unit suite **1,742 passed, six skipped, 228 files**. All **ten
 browser checks** passed across runtime transitions, load recovery and Artemis II
 mobile continuity. No baselines, thresholds or mission data changed.
 
+## SA-06 — Texture Handoff Ownership
+
+Status: producer boundary implemented and reviewed; **item remains open** until
+SA-17/18 verify eventual receiver cleanup.
+
+Red: five of six initial handoff tests failed, including synchronous/async
+consumer rejection and rejection of a later group. The producer no longer
+marks delivery before acceptance. Successful callbacks retain compatibility;
+an explicit `acceptOwnership()` receipt allows scene assignment to take
+responsibility before subsequent rendering effects. Acceptance closes when
+the callback settles. The real scene-init path forwards the receipt through
+the scene texture assignment boundary.
+
+Independent review found mutable payload enumeration could dispose an accepted
+original texture if its field was moved/deleted. A failing regression now
+protects an immutable private snapshot of the loaded resource identities.
+Focused producer/scene-init tests: **40 passed / four files**.
+Producer checkpoint full suite: **1,750 passed, six skipped, 229 files**;
+independent review cleared the immutable receipt implementation.
+
+The same review exposed an unresolved receiver limitation: if renderer adoption
+throws after scene assignment, existing scene disposal can null the accepted
+texture field without releasing it. Manual fixture cleanup is not evidence of
+production cleanup. SA-17 shared resource ownership and SA-18 scene retirement
+are brought forward as dependencies; SA-06 will not be closed until a real
+consumer-disposal regression passes. This is an explicit dependency, not a
+claim that the full texture lifecycle is fixed.
+
 ## Risk Triage Follow-Up (Not Yet Closed)
 
 Independent probes strengthened the original risk inventory; these still need

@@ -36,7 +36,9 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 3 | SA-03 / RTA-06 | Latest camera intent owns retries; semantic state independent of controls | Complete; normalized state port and reviewed lifecycle guards |
 | 4 | SA-04 | Temporary annotation presentation always restores main-scene state | Complete; real-builder and exception regressions reviewed |
 | 5 | SA-05 | Cancelled/replaced curve work cannot publish resources or readiness | Complete; owned outcomes/resources and re-entrant cleanup reviewed |
-| 6 | SA-06 | Explicit acceptance/disposal ownership at texture handoff | Next |
+| 6 | SA-06 | Explicit acceptance/disposal ownership at texture handoff | Producer checkpoint verified; OPEN until receiver cleanup is verified with SA-17/18 |
+| 6a | SA-17 | Last-consumer ownership for shared Moon textures, including scene-held inputs | Brought forward: prerequisite for complete texture-lifecycle closure |
+| 6b | SA-18 | Terminal/idempotent scene disposal, including accepted textures not adopted by a renderer | Brought forward: closes the SA-06 receiver-cleanup gap |
 | 7 | SA-09 | Commit restart time before notifying playback consumers | Pending |
 | 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Pending |
 | 9 | SA-15 | Required comparison error with Retry, per user decision | Pending; decision recorded in comparison spec |
@@ -45,7 +47,7 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 12 | SA-11 | Persist explicit constrained-layout edits without saving automatic collapse | Pending |
 | 13 | SA-14 | Detached controls use their owning window geometry/lifecycle | Pending |
 | 14 | SA-20 | Panel snapshots do not expose writable registry data | Pending |
-| 15 | SA-16/17/18/19/21/22 | Reproduce/disposition scene mirrors, shared assets, disposal, dormant caches and workspace lifecycle contracts | Risks; do not implement speculative fixes |
+| 15 | SA-16/19/21/22 | Reproduce/disposition scene mirrors, dormant caches and workspace lifecycle contracts | SA-16/19 have follow-up proofs; remaining contract/risk checks stay explicit |
 
 The inventory contains 16 confirmed module/browser defects or approved behavior
 gaps, plus six risk areas. It does not certify an exhaustive absence of other
