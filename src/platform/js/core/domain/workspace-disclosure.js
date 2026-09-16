@@ -26,6 +26,109 @@ function resolveComposerSpaceLevel(width, height) {
     return "minimal";
 }
 
+function collectNodeViews(node, target = []) {
+    if (!node || typeof node !== "object") return target;
+    if (node.type === "leaf") {
+        for (const view of node.data?.views || []) target.push(view);
+        return target;
+    }
+    for (const child of node.data || []) collectNodeViews(child, target);
+    return target;
+}
+
+function workspaceNodeIdentity(node) {
+    if (node?.type === "leaf") {
+        const id = String(node.data?.id || "").trim();
+        return id ? `leaf:${id}` : `leaf-views:${collectNodeViews(node).sort().join("\u0000")}`;
+    }
+    return `branch:${collectNodeViews(node).sort().join("\u0000")}`;
+}
+
+function indexLeavesById(node, target = new Map()) {
+    if (!node || typeof node !== "object") return target;
+    if (node.type === "leaf") {
+        const id = String(node.data?.id || "").trim();
+        if (id) target.set(id, node);
+        return target;
+    }
+    for (const child of node.data || []) indexLeavesById(child, target);
+    return target;
+}
+
+// Apply only an explicitly attributed edit to the expanded reference. Divider
+// edits transfer the user's change in sibling share, not the viewport-induced
+// constrained sizes themselves. Hidden branches keep their expanded geometry.
+function applyWorkspaceUserLayoutEdit(reference, before, after, { kind = "sash" } = {}) {
+    const result = structuredClone(reference);
+    const resultRoot = result?.grid?.root;
+    const beforeRoot = before?.grid?.root;
+    const afterRoot = after?.grid?.root;
+    if (!resultRoot || !beforeRoot || !afterRoot) return result;
+
+    if (kind === "panel-move") {
+        const afterLeaves = indexLeavesById(afterRoot);
+        const afterOwnerByView = new Map();
+        for (const [id, afterLeaf] of afterLeaves) {
+            for (const view of afterLeaf.data?.views || []) afterOwnerByView.set(view, id);
+        }
+        for (const [id, resultLeaf] of indexLeavesById(resultRoot)) {
+            resultLeaf.data.views = (resultLeaf.data?.views || [])
+                .filter(view => !afterOwnerByView.has(view) || afterOwnerByView.get(view) === id);
+            if (!resultLeaf.data.views.includes(resultLeaf.data.activeView)) {
+                resultLeaf.data.activeView = resultLeaf.data.views[0];
+            }
+        }
+        const reconciled = reconcileWorkspaceLayout(result, after);
+        const reconciledLeaves = indexLeavesById(reconciled.grid.root);
+        for (const [id, afterLeaf] of afterLeaves) {
+            const resultLeaf = reconciledLeaves.get(id);
+            if (!resultLeaf) continue;
+            const existing = new Set(resultLeaf.data?.views || []);
+            const views = Array.from(afterLeaf.data?.views || []).filter(view => existing.has(view));
+            resultLeaf.data.views = views;
+            resultLeaf.data.activeView = views.includes(afterLeaf.data?.activeView)
+                ? afterLeaf.data.activeView
+                : views[0];
+        }
+        reconciled.activeGroup = after.activeGroup || reconciled.activeGroup;
+        return reconciled;
+    }
+
+    const applyBranch = (resultBranch, beforeBranch, afterBranch) => {
+        if (resultBranch?.type !== "branch" || beforeBranch?.type !== "branch" || afterBranch?.type !== "branch") return;
+        const resultChildren = new Map((resultBranch.data || []).map(node => [workspaceNodeIdentity(node), node]));
+        const beforeChildren = new Map((beforeBranch.data || []).map(node => [workspaceNodeIdentity(node), node]));
+        const candidates = [];
+        for (const afterChild of afterBranch.data || []) {
+            const key = workspaceNodeIdentity(afterChild);
+            const beforeChild = beforeChildren.get(key);
+            const resultChild = resultChildren.get(key);
+            const beforeSize = Number(beforeChild?.size);
+            const afterSize = Number(afterChild?.size);
+            const resultSize = Number(resultChild?.size);
+            if (afterChild?.visible === false || beforeChild?.visible === false ||
+                !(beforeSize > 0) || !(afterSize > 0) || !(resultSize > 0)) continue;
+            candidates.push({ beforeChild, afterChild, resultChild, beforeSize, afterSize, resultSize });
+        }
+        if (candidates.length >= 2 && candidates.some(entry => Math.abs(entry.afterSize - entry.beforeSize) > 0.01)) {
+            const beforeTotal = candidates.reduce((sum, entry) => sum + entry.beforeSize, 0);
+            const afterTotal = candidates.reduce((sum, entry) => sum + entry.afterSize, 0);
+            const resultTotal = candidates.reduce((sum, entry) => sum + entry.resultSize, 0);
+            const shares = candidates.map(entry => Math.max(0.001,
+                (entry.resultSize / resultTotal) + (entry.afterSize / afterTotal) - (entry.beforeSize / beforeTotal)));
+            const shareTotal = shares.reduce((sum, share) => sum + share, 0);
+            candidates.forEach((entry, index) => {
+                entry.resultChild.size = resultTotal * shares[index] / shareTotal;
+            });
+        }
+        for (const entry of candidates) {
+            if (entry.afterChild.type === "branch") applyBranch(entry.resultChild, entry.beforeChild, entry.afterChild);
+        }
+    };
+    applyBranch(resultRoot, beforeRoot, afterRoot);
+    return result;
+}
+
 // Keep the expanded arrangement while honoring explicit opens, closes, floats
 // and popouts made in a reduced workspace. Never resurrect a closed panel.
 function reconcileWorkspaceLayout(reference, current) {
@@ -99,4 +202,4 @@ function reconcileWorkspaceLayout(reference, current) {
     return result;
 }
 
-export { MAIN_PANEL_ID, MEDIA_PANEL_ID, SPACE_LEVELS, resolveWorkspaceSpaceLevel, resolveWorkspacePanelPriority, resolveComposerSpaceLevel, reconcileWorkspaceLayout };
+export { MAIN_PANEL_ID, MEDIA_PANEL_ID, SPACE_LEVELS, resolveWorkspaceSpaceLevel, resolveWorkspacePanelPriority, resolveComposerSpaceLevel, applyWorkspaceUserLayoutEdit, reconcileWorkspaceLayout };

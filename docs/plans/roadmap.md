@@ -44,8 +44,8 @@ SA-09 playback restart publication and SA-10 mobile FoV ownership are complete.
 SA-15 required comparison error/Retry is complete, including review-driven
 metadata validation. SA-08 media-manifest recovery and SA-13 hidden-panel keyboard
 ownership are complete. SA-21 workspace initialization/lifecycle and SA-12 Reset
-View selection are complete. SA-11 explicit constrained-layout edit persistence
-is next.
+View selection and SA-11 explicit constrained-layout edit persistence are
+complete. SA-14 detached-window geometry/lifecycle is next.
 The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and

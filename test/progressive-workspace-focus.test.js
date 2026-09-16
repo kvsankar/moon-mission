@@ -26,7 +26,8 @@ function element(documentRef, parent = null) {
 
 function harness({ toolVisible = true, toolInert = false, width = 800 } = {}) {
     const frames = new Map(), events = new Map();
-    let nextFrame = 0, filter;
+    let nextFrame = 0, filter, userEditHandler;
+    const savedLayouts = [];
     const documentRef = { dispatchEvent: vi.fn(), activeElement: null };
     documentRef.body = element(documentRef);
     const root = element(documentRef, documentRef.body);
@@ -70,16 +71,39 @@ function harness({ toolVisible = true, toolInert = false, width = 800 } = {}) {
     api.groups = [main, tool]; api.activeGroup = main;
     const layoutHost = {
         api, setPersistenceFilter: vi.fn(value => { filter = value; }),
-        saveLayout: () => filter?.(api.toJSON()), layout: vi.fn(),
+        setUserLayoutEditHandler: vi.fn(value => { userEditHandler = value; }),
+        cancelUserLayoutEdit: vi.fn(),
+        saveLayout: () => { const saved = filter?.(api.toJSON()); savedLayouts.push(saved); return saved; }, layout: vi.fn(),
         applyTransientLayout: vi.fn(() => { for (const current of api.groups) current.api.setVisible(true); }),
     };
     const workspace = createProgressiveWorkspace({ layoutHost, root, documentRef, windowRef });
     const flush = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(callback => callback()); };
     const resize = width => { windowRef.innerWidth = width; events.get("resize")?.(); flush(); };
-    return { workspace, layoutHost, api, main, tool, tools, scene, documentRef, windowRef, frames, subscribers, group, flush, resize };
+    return { workspace, layoutHost, api, main, tool, tools, scene, documentRef, windowRef, frames, subscribers, group, flush, resize,
+        savedLayouts, commitUserEdit: edit => userEditHandler?.(edit) };
 }
 
 describe("progressive workspace keyboard ownership", () => {
+    it("projects an explicit compact divider edit into the saved expanded layout", () => {
+        const h = harness(); h.flush();
+        const before = h.api.toJSON(), after = structuredClone(before);
+        before.grid.root.data[0].size = 600; before.grid.root.data[1].size = 600;
+        after.grid.root.data[0].size = 700; after.grid.root.data[1].size = 500;
+        h.commitUserEdit({ kind: "sash", before, after });
+        const saved = h.savedLayouts.at(-1);
+        expect(saved.grid.width).toBe(1920);
+        expect(saved.grid.root.data[0].size).toBeCloseTo(700, 8);
+        expect(saved.grid.root.data[1].size).toBeCloseTo(500, 8);
+    });
+
+    it("cancels an in-flight explicit edit on viewport resize and disposal", () => {
+        const h = harness(); h.flush(); h.layoutHost.cancelUserLayoutEdit.mockClear();
+        h.resize(1366);
+        expect(h.layoutHost.cancelUserLayoutEdit).toHaveBeenCalledOnce();
+        h.workspace.dispose();
+        expect(h.layoutHost.setUserLayoutEditHandler).toHaveBeenLastCalledWith(null);
+        expect(h.layoutHost.cancelUserLayoutEdit).toHaveBeenCalledTimes(2);
+    });
     it("makes collapsed descendants inert and restores their keyboard access on reveal", () => {
         const h = harness(); h.flush();
         expect(h.tool.api.isVisible).toBe(false);

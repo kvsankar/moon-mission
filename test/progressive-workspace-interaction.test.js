@@ -303,4 +303,98 @@ describe("progressive workspace UX",()=>{
             restored.saved.grid.root.data.forEach((node, i) => expect(Math.abs(node.size - widths[i] * scale), JSON.stringify({ widths, restored: restored.saved.grid })).toBeLessThanOrEqual(2));
         } finally { await page.close(); }
     }, 120000);
+    it("persists an explicit compact divider edit without saving automatic collapse", async () => {
+        const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+        await page.addInitScript(() => {
+            if (sessionStorage.getItem("sa11-layout-initialized") === "true") return;
+            localStorage.clear();
+            sessionStorage.setItem("sa11-layout-initialized", "true");
+        });
+        try {
+            await ready(page);
+            await page.setViewportSize({ width: 1366, height: 768 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "compact");
+            const before = await page.evaluate(() => {
+                const workspace = window.__moonMissionDockviewSpike;
+                const saved = JSON.parse(localStorage.getItem(workspace.storageKey));
+                const contains = (node, view) => node?.type === "leaf"
+                    ? (node.data?.views || []).includes(view)
+                    : (Array.isArray(node?.data) && node.data.some(child => contains(child, view)));
+                const column = (root, view) => root.data.find(node => contains(node, view));
+                return { savedRight: column(saved.grid.root, "aux:earth-rise-composer").size,
+                    savedAux: column(saved.grid.root, "aux:moon").size,
+                    savedWidth: saved.grid.width,
+                    currentRight: column(workspace.api.toJSON().grid.root, "aux:earth-rise-composer").size };
+            });
+            const sash = await page.locator(".dv-sash.dv-enabled").evaluateAll(nodes => nodes
+                .map(node => node.getBoundingClientRect())
+                .map(rect => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height }))
+                .find(rect => rect.height > 200 && rect.x > 500));
+            expect(sash).toBeTruthy();
+            await page.mouse.move(sash.x + sash.width / 2, sash.y + sash.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(sash.x + 70, sash.y + sash.height / 2, { steps: 8 });
+            await page.mouse.up();
+            await page.waitForFunction(previous => {
+                const root = window.__moonMissionDockviewSpike.api.toJSON().grid.root;
+                const contains = (node, view) => node?.type === "leaf"
+                    ? (node.data?.views || []).includes(view)
+                    : (Array.isArray(node?.data) && node.data.some(child => contains(child, view)));
+                return root.data.find(node => contains(node, "aux:earth-rise-composer")).size < previous - 40;
+            }, before.currentRight);
+            const edited = await page.evaluate(() => {
+                const workspace = window.__moonMissionDockviewSpike;
+                const saved = JSON.parse(localStorage.getItem(workspace.storageKey));
+                const contains = (node, view) => node?.type === "leaf"
+                    ? (node.data?.views || []).includes(view)
+                    : (Array.isArray(node?.data) && node.data.some(child => contains(child, view)));
+                const column = (root, view) => root.data.find(node => contains(node, view));
+                return { right: column(saved.grid.root, "aux:earth-rise-composer").size,
+                    aux: column(saved.grid.root, "aux:moon").size,
+                    width: saved.grid.width };
+            });
+            expect(edited.right).toBeLessThan(before.savedRight - 40);
+            expect(edited.aux).toBe(before.savedAux);
+            expect(edited.width).toBeGreaterThan(1680);
+            await page.reload({ waitUntil: "domcontentloaded" });
+            await page.waitForFunction(() => window.__moonMissionDockviewSpike?.api?.panels.length >= 8
+                && window.__moonMissionDockviewSpike.progressiveWorkspace
+                && document.body.dataset.workspaceSpace === "compact");
+            const compactReload = await page.evaluate(() => {
+                const workspace = window.__moonMissionDockviewSpike;
+                const saved = JSON.parse(localStorage.getItem(workspace.storageKey));
+                const contains = (node, view) => node?.type === "leaf"
+                    ? (node.data?.views || []).includes(view)
+                    : (Array.isArray(node?.data) && node.data.some(child => contains(child, view)));
+                const column = (view) => saved.grid.root.data.find(node => contains(node, view));
+                return { right: column("aux:earth-rise-composer").size,
+                    aux: column("aux:moon").size, width: saved.grid.width };
+            });
+            expect(compactReload.right).toBeCloseTo(edited.right, 8);
+            expect(compactReload.aux).toBeCloseTo(edited.aux, 8);
+            expect(compactReload.width).toBe(edited.width);
+            await page.setViewportSize({ width: 1920, height: 1080 });
+            await page.waitForFunction(() => document.body.dataset.workspaceSpace === "full"
+                && window.__moonMissionDockviewSpike.api.groups.every(group => group.api.isVisible));
+            const restored = await page.evaluate(() => {
+                const workspace = window.__moonMissionDockviewSpike;
+                const current = workspace.api.toJSON();
+                const saved = JSON.parse(localStorage.getItem(workspace.storageKey));
+                const root = current.grid.root;
+                const contains = (node, view) => node?.type === "leaf"
+                    ? (node.data?.views || []).includes(view)
+                    : (Array.isArray(node?.data) && node.data.some(child => contains(child, view)));
+                const column = (view) => root.data.find(node => contains(node, view));
+                const savedColumn = (view) => saved.grid.root.data.find(node => contains(node, view));
+                return { right: column("aux:earth-rise-composer").size,
+                    aux: column("aux:moon").size, width: current.grid.width,
+                    savedRight: savedColumn("aux:earth-rise-composer").size,
+                    savedAux: savedColumn("aux:moon").size, savedWidth: saved.grid.width };
+            });
+            expect(restored.right / restored.width)
+                .toBeLessThan(before.savedRight / before.savedWidth - 0.02);
+            expect(restored.aux / restored.width)
+                .toBeCloseTo(before.savedAux / before.savedWidth, 2);
+        } finally { await page.close(); }
+    }, 180000);
 });

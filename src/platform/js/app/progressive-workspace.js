@@ -1,4 +1,4 @@
-import { MAIN_PANEL_ID, reconcileWorkspaceLayout, resolveWorkspacePanelPriority, resolveWorkspaceSpaceLevel } from "../core/domain/workspace-disclosure.js";
+import { applyWorkspaceUserLayoutEdit, MAIN_PANEL_ID, reconcileWorkspaceLayout, resolveWorkspacePanelPriority, resolveWorkspaceSpaceLevel } from "../core/domain/workspace-disclosure.js";
 
 function createProgressiveWorkspace({ layoutHost, root, documentRef = document, windowRef = window, savedExpandedLayout = null }) {
     const api = layoutHost.api;
@@ -71,6 +71,13 @@ function createProgressiveWorkspace({ layoutHost, root, documentRef = document, 
         reference = reconcileWorkspaceLayout(reference, current);
         return reference;
     });
+    layoutHost.setUserLayoutEditHandler?.(({ kind, before, after }) => {
+        if (disposed) return;
+        const edited = applyWorkspaceUserLayoutEdit(reference || expandedSnapshot, before, after, { kind });
+        expandedSnapshot = edited;
+        if (reference) reference = edited;
+        layoutHost.saveLayout();
+    });
     // Recover the raw expanded snapshot after a constrained-window bootstrap.
     layoutHost.saveLayout();
 
@@ -103,6 +110,7 @@ function createProgressiveWorkspace({ layoutHost, root, documentRef = document, 
                 constraintLevel = level;
             }
             if (level === "full" && reference) {
+                layoutHost.cancelUserLayoutEdit?.();
                 const restored = reconcileWorkspaceLayout(reference, api.toJSON());
                 reference = null;
                 hiddenGroups.clear();
@@ -140,7 +148,8 @@ function createProgressiveWorkspace({ layoutHost, root, documentRef = document, 
         frame = windowRef.requestAnimationFrame(update);
     }
     const subscriptions = [api.onDidLayoutChange?.(schedule), api.onDidAddPanel?.(schedule), api.onDidRemovePanel?.(schedule)];
-    windowRef.addEventListener("resize", schedule, { passive: true });
+    const handleResize = () => { layoutHost.cancelUserLayoutEdit?.(); schedule(); };
+    windowRef.addEventListener("resize", handleResize, { passive: true });
     schedule();
 
     return {
@@ -165,6 +174,7 @@ function createProgressiveWorkspace({ layoutHost, root, documentRef = document, 
         },
         captureExpandedLayout() {
             if (disposed) return;
+            layoutHost.cancelUserLayoutEdit?.();
             reference = null;
             expandedSnapshot = api.toJSON();
             hiddenGroups.clear();
@@ -178,7 +188,9 @@ function createProgressiveWorkspace({ layoutHost, root, documentRef = document, 
             for (const element of inertElements) element.inert = false;
             inertElements.clear();
             subscriptions.forEach(subscription => subscription?.dispose());
-            windowRef.removeEventListener("resize", schedule);
+            windowRef.removeEventListener("resize", handleResize);
+            layoutHost.setUserLayoutEditHandler?.(null);
+            layoutHost.cancelUserLayoutEdit?.();
             layoutHost.setPersistenceFilter(null);
             delete documentRef.body.dataset.workspaceSpace;
         },

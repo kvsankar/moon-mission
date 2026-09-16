@@ -416,6 +416,32 @@ Final verification: **41 focused lifecycle tests**, **1,941 unit tests passed,
 six skipped, 241 files**, and all **seven progressive browser checks** passed.
 SA-12 is complete.
 
+## SA-11 — Explicit Constrained-Layout Edits
+
+The confirmed browser case resized the compact Frame-and-Shoot/Media column from
+about 507px to 437px; the prior persistence filter retained the old expanded
+layout, so reload restored the original geometry. Pure RED cases covered nested
+divider edits, hidden sibling geometry, tab transfer/order/active state, and a
+last-tab move that empties its source group. Host RED cases covered explicit sash
+provenance, user tab-drag provenance, passive pointer activity, cancellation and
+disposal with a queued completion.
+
+The layout host now owns bounded sash and Dockview drag transactions. The
+progressive owner applies only those transactions to its expanded reference and
+cancels them on viewport changes, transient restoration, capture and disposal.
+Divider edits transfer the change in visible sibling shares onto the expanded
+size budget, while hidden branches retain their authored geometry. Panel moves
+reconcile membership before applying order and active-tab state, including an
+emptied source group. Ordinary Dockview layout events remain filtered as derived
+responsive state.
+
+Review found and fixed the empty-source transfer case. **43 focused tests** pass
+across reducer, host and progressive ownership suites. The browser test performs
+a real compact `.dv-sash` drag, verifies the expanded reference and hidden
+auxiliary column, reloads while compact, then expands and verifies the persisted
+direction/proportions. All **eight progressive browser checks** and **1,951 unit
+tests passed, six skipped, 241 files**. SA-11 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now

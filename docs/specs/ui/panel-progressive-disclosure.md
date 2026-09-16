@@ -53,6 +53,12 @@ navigation surface.
 - Automatic collapse must not overwrite the user's expanded desktop layout.
   Growing the viewport restores its layout, respecting subsequent explicit
   panel closes/opens. Derived disclosure levels are not saved preferences.
+- Explicit divider and tab-drag edits made in a constrained workspace are user
+  layout intent. Divider changes transfer the user's proportional delta to the
+  expanded layout rather than copying compact pixel sizes; automatically hidden
+  sibling geometry remains unchanged. Tab moves preserve destination order and
+  active tab, including removal of an emptied source group. Only an attributed
+  sash/drag transaction is persisted—passive resize and disclosure are not.
 - Hidden groups must not intercept input or keep rendering auxiliary scenes.
 - Hidden workspace groups and their descendants are excluded from keyboard
   focus and accessibility interaction. If disclosure hides the focused group,

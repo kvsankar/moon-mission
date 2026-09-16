@@ -171,6 +171,10 @@ function createPanelLayoutHost({
     let initialFrameHandle = null;
     let initialTimerHandle = null;
     let windowResizeBound = false;
+    let userLayoutEditHandler = null;
+    let userLayoutEdit = null;
+    let userLayoutEditRevision = 0;
+    const ownerDocument = container.ownerDocument || globalThis?.document || null;
     const api = createDockviewImpl(container, {
         ...(dockviewOptions && typeof dockviewOptions === "object" ? dockviewOptions : {}),
         createComponent() {
@@ -219,9 +223,40 @@ function createPanelLayoutHost({
         }
     }
 
+    function beginUserLayoutEdit(kind) {
+        if (disposed || userLayoutEdit || typeof userLayoutEditHandler !== "function") return;
+        userLayoutEdit = { kind, before: api.toJSON(), revision: ++userLayoutEditRevision };
+    }
+
+    function cancelUserLayoutEdit() {
+        userLayoutEdit = null;
+        userLayoutEditRevision += 1;
+    }
+
+    function finishUserLayoutEdit() {
+        const edit = userLayoutEdit;
+        if (!edit) return;
+        userLayoutEdit = null;
+        queueMicrotask(() => {
+            if (disposed || edit.revision !== userLayoutEditRevision || typeof userLayoutEditHandler !== "function") return;
+            userLayoutEditHandler({ kind: edit.kind, before: edit.before, after: api.toJSON() });
+        });
+    }
+
+    const onPointerDown = event => {
+        if (event?.button != null && event.button !== 0) return;
+        const sash = event?.target?.closest?.(".dv-sash");
+        if (!sash || (typeof container.contains === "function" && !container.contains(sash))) return;
+        beginUserLayoutEdit("sash");
+    };
+    const onPointerUp = () => finishUserLayoutEdit();
+    const onPointerCancel = () => cancelUserLayoutEdit();
+
     function dispose() {
         if (disposed) return;
         disposed = true;
+        cancelUserLayoutEdit();
+        userLayoutEditHandler = null;
         if (initialFrameHandle != null) {
             globalThis?.cancelAnimationFrame?.(initialFrameHandle);
             initialFrameHandle = null;
@@ -258,6 +293,20 @@ function createPanelLayoutHost({
         disposables.push(asDisposable(api.onDidRemovePanel?.((panel) => {
             if (!disposed && panel?.id && !applyingTransientLayout) onPanelClose?.(panel.id);
         })));
+        disposables.push(asDisposable(api.onWillDragPanel?.(() => beginUserLayoutEdit("panel-move"))));
+        disposables.push(asDisposable(api.onWillDragGroup?.(() => beginUserLayoutEdit("panel-move"))));
+        disposables.push(asDisposable(api.onDidMovePanel?.(() => finishUserLayoutEdit())));
+
+        container.addEventListener?.("pointerdown", onPointerDown);
+        ownerDocument?.addEventListener?.("pointerup", onPointerUp);
+        ownerDocument?.addEventListener?.("pointercancel", onPointerCancel);
+        ownerDocument?.addEventListener?.("contextmenu", onPointerCancel);
+        disposables.push({ dispose() {
+            container.removeEventListener?.("pointerdown", onPointerDown);
+            ownerDocument?.removeEventListener?.("pointerup", onPointerUp);
+            ownerDocument?.removeEventListener?.("pointercancel", onPointerCancel);
+            ownerDocument?.removeEventListener?.("contextmenu", onPointerCancel);
+        } });
 
         resizeObserver = typeof ResizeObserver === "function"
             ? new ResizeObserver(layoutToContainer)
@@ -325,6 +374,11 @@ function createPanelLayoutHost({
         setPersistenceFilter(filter) {
             persistenceFilter = typeof filter === "function" ? filter : null;
         },
+        setUserLayoutEditHandler(handler) {
+            userLayoutEditHandler = typeof handler === "function" ? handler : null;
+            if (!userLayoutEditHandler) cancelUserLayoutEdit();
+        },
+        cancelUserLayoutEdit,
         applyTransientLayout(layout) {
             applyingTransientLayout = true;
             try {
