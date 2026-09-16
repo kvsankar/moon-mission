@@ -242,7 +242,10 @@ function createRuntimeInitDepsFromPorts(
     return createRuntimeInitDeps({
         getConfig: app.getConfig,
         getTransitionRevision: app.getTransitionRevision,
-        getScene: (cfg) => app.getAnimationScenes()[cfg],
+        getScene: (cfg) => {
+            const scene = app.getAnimationScenes()[cfg];
+            return scene?.disposed === true ? undefined : scene;
+        },
         getSceneStateInitDone: sceneRuntime.getSceneStateInitDone,
         setSceneState: sceneRuntime.setSceneState,
         resetViewTransformState: uiPort.resetViewTransformState,

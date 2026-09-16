@@ -38,9 +38,9 @@ outcomes, shared loading and bounded latest-view handoff. SA-02 retired-media
 ownership is also complete; [TDD/review evidence](../evidence/reviews/runtime-state-remediation-2026-09-16.md).
 SA-07 terminal media disposal and SA-03/RTA-06 camera intent/retry ownership
 are complete, along with SA-04 annotation restoration and SA-05 owned curve
-construction/cancellation. SA-06's producer handoff checkpoint is verified but
-remains open: SA-17 shared texture ownership is complete, while SA-18 terminal
-scene disposal is next to finish receiver cleanup. The scoped plan orders the remaining
+construction/cancellation. SA-06 texture handoff, SA-17 shared resource ownership
+and SA-18 terminal scene disposal are complete, including real receiver cleanup.
+SA-09 playback restart timing is next. The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and
 re-verification. Commit and push each completed slice; no deployment.

@@ -1,25 +1,45 @@
 import { resolveMoonRenderPipelineState } from "./moon-render-pipeline.js";
 import { detachSceneTextureFields, SCENE_TEXTURE_FIELDS } from "./scene-texture-actions.js";
+import { registerSceneCleanup } from "./scene-lifecycle.js";
 
 function scheduleDeferredNormalMapUpgrade(scene, requestRender) {
+    const renderer = scene.moonRenderer;
+    const generation = scene.deferred3DInitRunId;
+    let cancelled = false;
+    let handle = null;
+    let unregister = () => {};
+    const idle = globalThis?.requestIdleCallback;
+    const cancel = () => {
+        cancelled = true;
+        if (handle != null) {
+            if (typeof idle === "function") globalThis.cancelIdleCallback?.(handle);
+            else globalThis.clearTimeout?.(handle);
+        }
+        unregister();
+    };
+    unregister = registerSceneCleanup(scene, cancel);
+    const isCurrent = () => !cancelled && scene.disposed !== true && scene.stopCreationFlag !== true &&
+        scene.moonRenderer === renderer && scene.deferred3DInitRunId === generation;
     const upgrade = () => {
-        if (!scene.moonRenderer) {
+        handle = null;
+        unregister();
+        if (!isCurrent() || !renderer) {
             return;
         }
-        scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+        renderer.refreshGeneratedNormalMap({ disposePrevious: true });
         // Trigger a redraw when the rebuild lands; the runtime renders
         // on-demand, so without an explicit kick the upgrade would only
         // become visible on the next user interaction.
-        if (typeof requestRender === "function") {
+        if (isCurrent() && typeof requestRender === "function") {
             requestRender();
         }
     };
-    const idle = globalThis?.requestIdleCallback;
+    if (cancelled) return;
     if (typeof idle === "function") {
-        idle(upgrade, { timeout: 1500 });
+        handle = idle(upgrade, { timeout: 1500 });
         return;
     }
-    globalThis?.setTimeout?.(upgrade, 0);
+    handle = globalThis?.setTimeout?.(upgrade, 0);
 }
 
 export function createMoonActions({

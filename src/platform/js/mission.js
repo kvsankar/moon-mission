@@ -234,7 +234,8 @@ function setTimelineMediaMarkers(nextMarkers) {
 }
 
 function getSceneForConfig(cfg = runtimeViewState.getConfig()) {
-    return animationScenes[cfg];
+    const scene = animationScenes[cfg];
+    return scene?.disposed === true ? undefined : scene;
 }
 
 let toggleMode;

@@ -245,8 +245,11 @@ describe("scene-3d-init-actions", () => {
         for (const [, , options] of disposingCalls) {
             expect(options).toMatchObject({
                 disposePrevious: true,
-                requestRender: render,
+                requestRender: expect.any(Function),
             });
+            render.mockClear();
+            options.requestRender();
+            expect(render).toHaveBeenCalledOnce();
         }
     });
 

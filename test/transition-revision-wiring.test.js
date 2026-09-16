@@ -6,6 +6,18 @@ import { createMissionWiringContext, createDataflowWiringDeps, createInitConfigF
 import { createRuntimeInitDepsFromPorts } from "../src/platform/js/app/runtime-bootstrap-deps.js";
 
 describe("runtime transition revision wiring", () => {
+    it("does not return retired scenes from the runtime startup port", () => {
+        const view = createRuntimeViewState({ initialConfig: "geo", initialCurrentDimension: "3D" });
+        const scenes = { geo: { disposed: true }, lunar: { initialized3D: true } };
+        const statePort = createMissionStatePorts({
+            state: createMissionViewStateCells(view, () => "classic"), animationScenes: scenes,
+        });
+        const startup = createRuntimeInitDepsFromPorts({ statePort, uiPort: { d3: {} } },
+            { uiControlsActions: {}, accessors: {} });
+        expect(startup.getScene("geo")).toBeUndefined();
+        expect(startup.getScene("lunar")).toBe(scenes.lunar);
+    });
+
     it("carries the live state revision through the state port into dataflow and startup", () => {
         const view = createRuntimeViewState({ initialConfig: "geo", initialCurrentDimension: "3D" });
         const cells = createMissionViewStateCells(view, () => "classic");

@@ -69,6 +69,18 @@ function buildSceneSetupDeps(overrides = {}) {
 }
 
 describe("init config scene setup", () => {
+    it("replaces a terminal scene and its controllers rather than reusing it", () => {
+        const oldScene = { disposed: true }, old3D = {}, old2D = {};
+        const deps = buildSceneSetupDeps({ animationScenes: { geo: oldScene },
+            animation3DControllers: { geo: old3D }, animation2DControllers: { geo: old2D } });
+        createInitConfigSceneSetupActions(deps).configureSceneForOrigin({ originKey: "geo", configData: {
+            geo: { planets: ["EARTH", "MOON", "SC"], step_size_in_seconds: 60 },
+        } });
+        expect(deps.animationScenes.geo).not.toBe(oldScene);
+        expect(deps.animation3DControllers.geo).not.toBe(old3D);
+        expect(deps.animation2DControllers.geo).not.toBe(old2D);
+    });
+
     it("extends compare playback bounds to the longer overlay mission window", () => {
         const bounds = resolveScenePlaybackBounds({
             configData: {

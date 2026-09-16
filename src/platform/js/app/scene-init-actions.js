@@ -1,6 +1,7 @@
 export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }) {
     function shouldContinueDeferredSceneDecoration(scene, runId) {
         return !!scene &&
+            scene.disposed !== true &&
             scene.stopCreationFlag !== true &&
             scene.initialized3D === true &&
             scene.deferred3DInitRunId === runId &&
@@ -25,6 +26,7 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
                 return;
             }
             step();
+            if (!shouldContinueDeferredSceneDecoration(scene, runId)) return;
             render();
         }
 
@@ -37,6 +39,7 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
     }
 
     function init3dRest(scene) {
+        if (scene.disposed === true) return;
         const runId = Number.isFinite(scene.deferred3DInitRunId)
             ? scene.deferred3DInitRunId + 1
             : 1;
@@ -45,50 +48,26 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
         scene.scene = new THREE.Scene();
         scene.motherContainer = new THREE.Group();
 
-        scene.computeDimensions();
-        render();
-        wait20().then();
+        const isCurrent = () => scene.disposed !== true && scene.stopCreationFlag !== true &&
+            scene.deferred3DInitRunId === runId;
+        for (const method of ["computeDimensions", "addLight", "addSky", "addSun", "addMoon", "addEarth",
+            "setPrimaryAndSecondaryBodies", "addSpacecraft", "addCamera"]) {
+            if (!isCurrent()) return;
+            scene[method]();
+            if (!isCurrent()) return;
+            render();
+        }
 
-        scene.addLight();
-        render();
-        wait20().then();
-
-        scene.addSky();
-        render();
-        wait20().then();
-
-        scene.addSun();
-        render();
-        wait20().then();
-
-        scene.addMoon();
-        render();
-        wait20().then();
-
-        scene.addEarth();
-        render();
-        wait20().then();
-
-        scene.setPrimaryAndSecondaryBodies();
-        render();
-        wait20().then();
-
-        scene.addSpacecraft();
-        render();
-        wait20().then();
-
-        scene.addCamera();
-        render();
-        wait20().then();
-
+        if (!isCurrent()) return;
         scene.initialized3D = true;
         render();
 
+        if (!isCurrent()) return;
         scene.addSpacecraftCurve();
+        if (!isCurrent()) return;
         render();
-        wait20().then();
 
-        void runDeferredSceneDecorations(scene, runId);
+        if (isCurrent()) void runDeferredSceneDecorations(scene, runId);
     }
 
     return { init3dRest };

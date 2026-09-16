@@ -69,10 +69,10 @@ function isStartupViewSceneReady({
     scene,
     isSceneOrbitRenderable,
 }) {
-    return !needs3DReady || (
+    return scene?.disposed !== true && (!needs3DReady || (
         !!scene?.initialized3D &&
         isSceneOrbitRenderable(scene)
-    );
+    ));
 }
 
 function planStartupViewReapply({

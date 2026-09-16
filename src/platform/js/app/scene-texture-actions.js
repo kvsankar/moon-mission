@@ -1,5 +1,6 @@
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 import { holdTextures, replaceTextureOwner, retainTextureOwner } from "../rendering/texture-ownership.js";
+import { registerSceneCleanup } from "./scene-lifecycle.js";
 
 export const SCENE_TEXTURE_FIELDS = Object.freeze({
     earth: ["earthTexture", "earthPhotoTexture", "earthSpecularTexture", "earthNightTexture"],
@@ -24,6 +25,9 @@ function hasTextureKey(textures, key) {
 }
 
 export function applySceneTextures(scene, textures) {
+    if (scene.disposed === true) {
+        throw Object.assign(new Error("Cannot install textures into a disposed scene."), { name: "TextureLoadStaleError" });
+    }
     if (hasTextureKey(textures, "earthTexture")) {
         scene.earthTexture = textures.earthTexture;
     }
@@ -95,6 +99,7 @@ function syncMoonShadowTuning(scene) {
 
 
 function scheduleGeneratedMoonNormalMapRefresh(callback, {
+    scene,
     shouldDefer = null,
     maxDeferrals = 40,
     retryDelayMs = 250,
@@ -105,6 +110,17 @@ function scheduleGeneratedMoonNormalMapRefresh(callback, {
     }
 
     let deferrals = 0;
+    let cancelled = false;
+    let timeoutHandle = null;
+    let idleHandle = null;
+    let unregister = () => {};
+    const cancel = () => {
+        cancelled = true;
+        if (timeoutHandle != null) globalThis.clearTimeout?.(timeoutHandle);
+        if (idleHandle != null) globalThis.cancelIdleCallback?.(idleHandle);
+        unregister();
+    };
+    unregister = registerSceneCleanup(scene, cancel);
     const shouldWaitLonger = (deadline) => {
         if (typeof shouldDefer === "function" && shouldDefer(deadline)) {
             return true;
@@ -120,28 +136,36 @@ function scheduleGeneratedMoonNormalMapRefresh(callback, {
         return false;
     };
     const scheduleRetry = () => {
-        globalThis?.setTimeout?.(schedule, retryDelayMs);
+        timeoutHandle = globalThis?.setTimeout?.(schedule, retryDelayMs);
     };
     const run = (deadline) => {
+        idleHandle = null;
+        timeoutHandle = null;
+        if (cancelled || scene.disposed === true) return;
         if (deferrals < maxDeferrals && shouldWaitLonger(deadline)) {
             deferrals += 1;
             scheduleRetry();
             return;
         }
+        unregister();
         callback(deadline);
     };
     const schedule = () => {
+        timeoutHandle = null;
+        if (cancelled || scene.disposed === true) return;
         if (typeof globalThis?.requestIdleCallback === "function") {
-            globalThis.requestIdleCallback(run, { timeout: 1500 });
+            idleHandle = globalThis.requestIdleCallback(run, { timeout: 1500 });
             return;
         }
-        globalThis?.setTimeout?.(() => run({
+        timeoutHandle = globalThis?.setTimeout?.(() => run({
             didTimeout: true,
             timeRemaining: () => 0,
         }), retryDelayMs);
     };
 
     if (typeof globalThis?.setTimeout !== "function") {
+        unregister();
+        if (cancelled || scene.disposed === true) return;
         callback({
             didTimeout: true,
             timeRemaining: () => minIdleTimeMs,
@@ -161,8 +185,12 @@ export function applyAndRefreshSceneTextures(scene, textures, {
     retainTextureOwner(scene, sceneTextures(scene));
     applySceneTextures(scene, textures);
     replaceTextureOwner(scene, sceneTextures(scene), { disposePrevious });
+    if (scene.disposed === true) {
+        throw Object.assign(new Error("Scene retired while replacing textures."), { name: "TextureLoadStaleError" });
+    }
     // State now owns the input textures, even if a later renderer effect fails.
     onAccepted?.();
+    if (scene.disposed === true) return;
     syncLunarMoonFillLights(scene);
     syncMoonShadowTuning(scene);
     const hasEarthTextureUpdate =
@@ -193,6 +221,7 @@ export function applyAndRefreshSceneTextures(scene, textures, {
         );
     }
 
+    if (scene.disposed === true) return;
     if (hasMoonTextureUpdate && scene.moonRenderer?.updateTextures) {
         scene.moonRenderer.updateTextures(
             scene.moonMap,
@@ -218,6 +247,7 @@ export function applyAndRefreshSceneTextures(scene, textures, {
             const capturedMoonRenderer = scene.moonRenderer;
             scheduleGeneratedMoonNormalMapRefresh(() => {
                 if (
+                    scene.disposed === true ||
                     scene.moonRenderer !== capturedMoonRenderer ||
                     moonNormalRefreshGeneration.get(scene) !== normalRefreshGeneration
                 ) {
@@ -230,15 +260,17 @@ export function applyAndRefreshSceneTextures(scene, textures, {
                 // until the next user interaction wakes the loop. Without
                 // this, switching Standard <-> Detailed appeared to hang
                 // until the user moved the cursor or clicked.
-                if (typeof requestRender === "function") {
+                if (scene.disposed !== true && typeof requestRender === "function") {
                     requestRender();
                 }
             }, {
+                scene,
                 shouldDefer: shouldDeferGeneratedNormalMap,
             });
         }
     }
 
+    if (scene.disposed === true) return;
     if (hasSkyTextureUpdate && scene.skyRenderer?.updateTextures) {
         scene.skyRenderer.updateTextures(
             scene.skyTexture,

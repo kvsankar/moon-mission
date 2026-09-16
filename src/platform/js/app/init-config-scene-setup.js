@@ -222,7 +222,7 @@ function createInitConfigSceneSetupActions(deps) {
     } = deps;
 
     function ensureSceneAndControllers(sceneConfig) {
-        if (!animationScenes[sceneConfig]) {
+        if (!animationScenes[sceneConfig] || animationScenes[sceneConfig].disposed === true) {
             animationScenes[sceneConfig] = new AnimationScene(sceneConfig);
             animation3DControllers[sceneConfig] = new Animation3DController(sceneConfig, animationScenes[sceneConfig]);
             animation2DControllers[sceneConfig] = new Animation2DController(sceneConfig, {

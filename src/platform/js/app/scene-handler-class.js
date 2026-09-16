@@ -232,7 +232,7 @@ function createSceneHandlerClass(deps) {
         }
 
         render(animationScene) {
-            if (!animationScene?.initialized3D) {
+            if (!animationScene?.initialized3D || animationScene.disposed === true) {
                 return;
             }
 

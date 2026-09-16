@@ -49,6 +49,22 @@ describe("SceneHandler auxiliary panels", () => {
         };
     });
 
+    it("never renders a terminal scene even if a stale caller presents old readiness", () => {
+        const renderer = { render: vi.fn(), clearDepth: vi.fn() };
+        const SceneHandler = createSceneHandlerClass({ THREE, d3: {},
+            initSceneHandlerDom: () => ({ renderer, canvasNode: {} }),
+            isTestMode: false, updateCraftScale: vi.fn(),
+            getRuntimeState: () => ({ viewAuxiliaryPanels: false, timelineEventInfos: [] }),
+        });
+        const handler = new SceneHandler();
+        handler.render({ disposed: true, initialized3D: true,
+            scene: new THREE.Scene(), camera: new THREE.PerspectiveCamera(),
+            earthContainer: new THREE.Object3D(), moonContainer: new THREE.Object3D(),
+            refreshBodyHalos: vi.fn() });
+        expect(renderer.render).not.toHaveBeenCalled();
+        expect(handler.lastAnimationScene).toBeNull();
+    });
+
     it("does not recursively construct auxiliary panel managers during requestRender re-entry", () => {
         const renderer = {
             autoClear: true,

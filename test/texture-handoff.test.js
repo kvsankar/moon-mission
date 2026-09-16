@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { loadSceneTexturesProgressively } from "../src/platform/js/app/texture-loader.js";
 import { applyAndRefreshSceneTextures } from "../src/platform/js/app/scene-texture-actions.js";
 import { createScene3dInitActions } from "../src/platform/js/app/scene-3d-init-actions.js";
+import { createSceneDisposeActions } from "../src/platform/js/app/scene-dispose-actions.js";
 
 function harness() {
     const textures = [];
@@ -68,8 +69,9 @@ describe("progressive texture ownership handoff", () => {
             expect(h.textures[0].dispose).not.toHaveBeenCalled();
         } finally {
             logged.mockRestore();
-            scene.earthTexture?.dispose();
+            createSceneDisposeActions().dispose(scene);
         }
+        expect(h.textures[0].dispose).toHaveBeenCalledOnce();
     });
 
     for (const asyncFailure of [false, true]) {

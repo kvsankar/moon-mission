@@ -163,8 +163,8 @@ mobile continuity. No baselines, thresholds or mission data changed.
 
 ## SA-06 — Texture Handoff Ownership
 
-Status: producer boundary implemented and reviewed; **item remains open** until
-SA-17/18 verify eventual receiver cleanup.
+Status: **complete**, following the reviewed SA-17/18 receiver-ownership and
+terminal-disposal work below. The producer checkpoint alone was not closure.
 
 Red: five of six initial handoff tests failed, including synchronous/async
 consumer rejection and rejection of a later group. The producer no longer
@@ -185,9 +185,9 @@ The same review exposed an unresolved receiver limitation: if renderer adoption
 throws after scene assignment, existing scene disposal can null the accepted
 texture field without releasing it. Manual fixture cleanup is not evidence of
 production cleanup. SA-17 shared resource ownership and SA-18 scene retirement
-are brought forward as dependencies; SA-06 will not be closed until a real
-consumer-disposal regression passes. This is an explicit dependency, not a
-claim that the full texture lifecycle is fixed.
+were brought forward as dependencies. The real producer/init/disposal path now
+verifies eventual cleanup, including an accepted texture whose renderer update
+failed; the terminal cleanup and shared-consumer regressions below also pass.
 
 ## SA-17 — Shared Texture Consumers
 
@@ -219,24 +219,52 @@ Independent review cleared the final diff; **28 protocol/consumer checks** and
 the broader **111 focused tests across ten files** passed. Final verification:
 **1,778 unit tests passed, six skipped, 231 files**; all **seven browser checks**
 passed across runtime transitions and Artemis II mobile continuity. SA-17 is
-complete. SA-06 remains open until SA-18 receiver retirement is verified.
+complete. SA-06 was kept open at this checkpoint pending SA-18 receiver retirement.
 
-## Risk Triage Follow-Up (Not Yet Closed)
+## SA-18 — Terminal Scene Lifetime
 
-Independent probes strengthened the original risk inventory; these still need
-tracked red tests, implementation, review and verification in their turn.
+Initial root RED: eight terminal/disposal/replacement regressions failed, then
+two render/startup-lookup regressions and five deferred-work/initialization
+regressions failed. The async texture suite separately reproduced ten failures.
+Scene retirement must be terminal: revoke readiness, publication tokens and
+pending metadata before invoking any abort or cleanup callback. A scene-local
+cleanup registry prevents retiring one scene from aborting another scene's
+loads. Cancelled idle/frame waits must settle without another browser tick;
+uncooperative loaders still have their eventual unclaimed results cleaned up.
+
+Root review added failing cases for post-retirement decoration rendering and
+shared profile installation iterating a scene retired by an earlier consumer.
+Independent review exposed a composition gap: real curve disposal raised the
+terminal numeric state from -1 back to 2. A tracked real-adapter regression
+now protects terminal readiness. These regressions pass after their fixes.
+
+The producer/init handoff regression now invokes actual scene disposal instead
+of manually destroying its accepted texture, closing that test-evidence gap.
+Combined independent review is clear. The new texture-init lifecycle suite has
+15 cases; focused async checks passed 65 tests across six files. Full unit
+verification passed **1,812 tests, six skipped, 234 files**. The local production
+build passed with the existing classic-script, Three.js `sRGBEncoding` and
+large-chunk warnings. All **ten browser checks** passed across runtime
+transitions, load recovery and Artemis II mobile continuity. SA-18 and the
+linked SA-06 receiver-cleanup dependency are complete. No baselines, thresholds
+or mission data were changed; no deployment was performed.
+
+## Risk Triage Follow-Up
+
+Independent probes strengthened the original risk inventory. SA-17/18 are now
+closed above; other entries still require tracked tests, review and verification.
 
 - SA-16: inactive lunar zoom writes changed the active legacy mirror to 9 and
   an absent-origin read returned 9. Keep mirrors active-origin-only; retain
   startup fallback only for the active missing scene, and use defaults for
   missing inactive scenes. Inactive plane synchronization must not write UI.
-- SA-17: two real MoonRenderers shared albedo/DEM/physical-normal textures;
+- SA-17 (complete above): two real MoonRenderers shared albedo/DEM/physical-normal textures;
   disposing one disposed all three while the other retained references, and
   disposing the second disposed them again. Use last-consumer resource leases;
   DEM owns its bundled physical normal, generated normals remain renderer-owned.
   Brought forward after SA-06's producer checkpoint to complete receiver
   ownership before closing SA-06. Avoid JSON-based Texture.clone of DEM metadata.
-- SA-18: two disposals left initialized3D true, stop false and loading pending,
+- SA-18 (complete above): two disposals left initialized3D true, stop false and loading pending,
   with 28 cleanup calls. Treat scene disposal as terminal/idempotent, invalidating
   readiness and only that scene's subscriptions before cleanup. Replacement,
   not same-instance resurrection, matches current origin-switch behavior.

@@ -130,13 +130,14 @@ export function createMoonRenderProfileActions({
             }
 
             const initializedScenes = Object.values(sceneMap)
-                .filter((scene) => !!scene?.initialized3D);
+                .filter((scene) => !!scene?.initialized3D && scene.disposed !== true);
             if (!initializedScenes.length) {
                 disposeLoadedMoonTextures(textures);
                 return persistMoonRenderAssetProfile(globalObject, normalized);
             }
 
             initializedScenes.forEach((scene) => {
+                if (scene.disposed === true || !scene.initialized3D) return;
                 // Pass `render` so that when the deferred normal-map rebuild
                 // completes (asynchronously, via requestIdleCallback), it can
                 // trigger a redraw. Without this the new textures wouldn't show

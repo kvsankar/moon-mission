@@ -90,6 +90,7 @@ export function createSpacecraftCurveActions({
     }
 
     function lowerReadiness(scene) {
+        if (scene.disposed === true) return;
         const initDone = scene.constructor?.SCENE_STATE_INIT_DONE;
         if (Number.isFinite(initDone)) scene.state = initDone;
     }

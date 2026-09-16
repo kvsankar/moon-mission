@@ -14,6 +14,19 @@ function createHarness(globalObject = {}) {
 }
 
 describe("moon-render-profile-actions", () => {
+    it("skips a scene retired by an earlier consumer during shared profile installation", async () => {
+        const first = { initialized3D: true }, second = { initialized3D: true };
+        const apply = vi.fn(scene => {
+            if (scene === first) { second.disposed = true; second.initialized3D = false; }
+        });
+        const actions = createMoonRenderProfileActions({ THREE: {}, animationScenes: { geo: first, lunar: second },
+            loadMoonRenderProfileTextures: async () => ({ moonRenderProfile: "low" }),
+            applyAndRefreshSceneTextures: apply, render: vi.fn(), globalObject: {} });
+        await actions.setMoonRenderProfile("low");
+        expect(apply).toHaveBeenCalledOnce();
+        expect(apply.mock.calls[0][0]).toBe(first);
+    });
+
     it("replaces launch profile parameters when the user selects another tier", () => {
         const globalObject = { location: { href: "http://localhost/artemis2/?moonProfile=quality&time=123#view" }, history: { replaceState: vi.fn() }, localStorage: { setItem: vi.fn() } };
         persistMoonRenderAssetProfile(globalObject, "low");

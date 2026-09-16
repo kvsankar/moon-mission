@@ -142,6 +142,7 @@ function createAnimationSceneClass(deps) {
 
         constructor(name) {
             this.name = name;
+            this.disposed = false;
             this.orbits = {};
             this.initialized3D = false;
             this.earth = null;

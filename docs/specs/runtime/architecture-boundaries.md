@@ -109,6 +109,22 @@ inputs are explicit and the behavior is independently testable.
 - Warm activation can reuse cached data and must restore its provenance and
   authored style state without allowing old callbacks to select the view.
 
+### Scene Retirement And Resource Ownership
+
+- Scene disposal is terminal and idempotent. Readiness and publication authority
+  are revoked before abort, resource-disposal or application callbacks run.
+- A disposed instance cannot be initialized again or returned as a live scene;
+  activation creates a replacement scene and its controllers.
+- Retirement cancels only the scene's owned work. Waiting promises settle even
+  when no further frame occurs or an underlying loader ignores cancellation.
+- Late completions cannot publish readiness, mutate a replacement renderer or
+  schedule a render. Unclaimed results are still cleaned up.
+- Texture acceptance transfers responsibility to scene-held inputs before
+  renderer effects. Shared textures and generated dependencies remain alive
+  until the final owner releases them; failed adoption cannot strand inputs.
+- Cleanup continues after an individual cleanup failure. Reentrant or repeated
+  disposal cannot restore readiness or release another consumer's resources.
+
 ### Required Data Readiness And Recovery
 
 - Required orbit startup resolves explicitly to `ready`, `failed` or
