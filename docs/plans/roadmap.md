@@ -34,9 +34,10 @@ in scope; prior RTA-01 through RTA-05 fixes must remain protected.
 
 SA-01 is complete: configuration initialization is guarded against superseding
 startup, origin/dimension revisions and scene replacement, with explicit
-outcomes, shared loading and bounded latest-view handoff. Next: SA-02 retired
-foreground-media session ownership, then SA-07 terminal disposal. The scoped
-plan orders the remaining 15 confirmed gaps and six risk areas, each
+outcomes, shared loading and bounded latest-view handoff. SA-02 retired-media
+ownership is also complete; [TDD/review evidence](../evidence/reviews/runtime-state-remediation-2026-09-16.md).
+Next: SA-07 terminal media disposal. The scoped plan orders the remaining
+confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and
 re-verification. Commit and push each completed slice; no deployment.
 

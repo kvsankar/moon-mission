@@ -4204,6 +4204,7 @@ describe("createMediaTimelineCoordination", () => {
         const coordination = createMediaTimelineCoordination({
             playAnimation,
             pauseAnimation,
+            getAnimationRunning: () => playAnimation.mock.calls.length > pauseAnimation.mock.calls.length,
             getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
             getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
         });
@@ -4223,17 +4224,15 @@ describe("createMediaTimelineCoordination", () => {
         });
         expect(playAnimation).toHaveBeenCalledTimes(1);
 
+        const bufferingVideo = { ended: false, readyState: 2, networkState: 2, seeking: false };
+        globalThis.document.getElementById = vi.fn(id => id === "timeline-slider" ? slider
+            : id === "media-browser-video" ? bufferingVideo : null);
         mocks.panelIntentHandler?.({
             type: "mediaPlaybackPaused",
             value: "clip.mp4",
             mediaKind: "videoClip",
             currentTime: 7,
-            mediaElement: {
-                ended: false,
-                readyState: 2,
-                networkState: 2,
-                seeking: false,
-            },
+            mediaElement: bufferingVideo,
         });
 
         expect(pauseAnimation).not.toHaveBeenCalled();

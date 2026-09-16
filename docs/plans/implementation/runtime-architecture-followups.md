@@ -32,7 +32,7 @@ Delivery order (one bounded fix, independent review and verification per row):
 | Order | Audit IDs | Outcome | Status |
 | --- | --- | --- | --- |
 | 1 | SA-01 | Owned configuration activation, shared loading and bounded supersession recovery | Complete; see audit verification |
-| 2 | SA-02, then SA-07 | Retired media sessions cannot change selection/time; disposal remains terminal | Next; preserve separate regressions/statuses |
+| 2 | SA-02, then SA-07 | Retired media sessions cannot change selection/time; disposal remains terminal | SA-02 complete; SA-07 next |
 | 3 | SA-03 / RTA-06 | Latest camera intent owns retries; semantic state independent of controls | Pending |
 | 4 | SA-04 | Temporary annotation presentation always restores main-scene state | Pending |
 | 5 | SA-05 | Cancelled/replaced curve work cannot publish resources or readiness | Pending |
@@ -53,6 +53,15 @@ state defects. Keep new findings in the same audit/plan rather than creating
 another roadmap. Any new product choice needed by a risk must be resolved
 before implementing it. The broader architecture list below remains context,
 not a competing priority queue.
+
+On 2026-09-16 the user explicitly authorized fixing all items with TDD and
+code review before closing each item. For every slice: record a failing
+behavioral regression, implement the smallest fix, independently review it,
+reproduce/fix review findings, rerun focused and proportional broader checks,
+then close, commit and push. Risk items first require a reproduction or an
+explicitly justified no-change disposition. Record outcomes in the
+[remediation log](../../evidence/reviews/runtime-state-remediation-2026-09-16.md).
+Do not stop at a plan or close an item solely because a first test run passes.
 
 ### Broader architectural context
 

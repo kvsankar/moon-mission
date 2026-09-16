@@ -34,7 +34,19 @@ describe("Mission Media foreground playback interactions", () => {
                 localStorage.clear();
                 window.__missionMediaPlayCalls = [];
                 window.__missionMediaPauseCalls = [];
+                const transport = new WeakMap();
+                Object.defineProperty(HTMLMediaElement.prototype, "paused", {
+                    configurable: true, get() { return transport.get(this)?.paused !== false; },
+                });
+                Object.defineProperty(HTMLMediaElement.prototype, "ended", {
+                    configurable: true, get() { return transport.get(this)?.ended === true; },
+                });
+                window.__missionMediaFinish = media => {
+                    transport.set(media, { paused: true, ended: true });
+                    media.dispatchEvent(new Event("ended"));
+                };
                 HTMLMediaElement.prototype.play = function play() {
+                    transport.set(this, { paused: false, ended: false });
                     window.__missionMediaPlayCalls.push({
                         id: this.id,
                         src: this.currentSrc || this.src || this.dataset?.mediaSourceUrl || "",
@@ -45,6 +57,7 @@ describe("Mission Media foreground playback interactions", () => {
                     return Promise.resolve();
                 };
                 HTMLMediaElement.prototype.pause = function pause() {
+                    transport.set(this, { ...transport.get(this), paused: true });
                     window.__missionMediaPauseCalls.push({
                         id: this.id,
                         src: this.currentSrc || this.src || this.dataset?.mediaSourceUrl || "",
@@ -135,19 +148,14 @@ describe("Mission Media foreground playback interactions", () => {
                     ?.click();
             });
             await page.waitForFunction(
-                () => document.getElementById("media-browser-filter-summary")?.textContent?.includes("2 videos"),
+                // Background-role streams are not foreground carousel candidates.
+                () => document.getElementById("media-browser-filter-summary")?.textContent?.includes("(1 video)"),
                 { timeout: 30000 },
             );
-            const foregroundCard = page.locator("#media-browser-thumbnail-list .media-browser-panel__thumbnail-card", {
-                hasText: "Foreground Flyby Clip",
-            });
+            const foregroundCard = page.locator('#media-browser-thumbnail-list [data-thumbnail-item-id="foreground-flyby.mp4"]');
             await foregroundCard.waitFor({ state: "visible", timeout: 30000 });
 
-            await page.evaluate(() => {
-                [...document.querySelectorAll("#media-browser-thumbnail-list .media-browser-panel__thumbnail-card")]
-                    .find((button) => button.textContent.includes("Foreground Flyby Clip"))
-                    ?.click();
-            });
+            await foregroundCard.click();
             await page.waitForFunction(
                 () => window.__missionMediaPlayCalls?.some((call) => call.id === "media-browser-video"),
                 { timeout: 10000 },
@@ -182,7 +190,7 @@ describe("Mission Media foreground playback interactions", () => {
                 const foregroundVideo = document.getElementById("media-browser-video");
                 if (foregroundVideo) {
                     foregroundVideo.currentTime = 180;
-                    foregroundVideo.dispatchEvent(new Event("ended"));
+                    window.__missionMediaFinish(foregroundVideo);
                 }
             });
             await page.waitForFunction(

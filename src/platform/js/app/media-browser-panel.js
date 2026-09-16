@@ -2992,6 +2992,7 @@ function createMediaBrowserPanelActions({
                 onIntent?.({
                     type: "mediaPlaybackFailed",
                     value: activeItem.id || "",
+                    mediaElement: video,
                     mediaKind: "videoClip",
                 });
                 return;
@@ -3014,6 +3015,7 @@ function createMediaBrowserPanelActions({
                 onIntent?.({
                     type: "mediaVideoSourceReady",
                     value: activeItem.id || "",
+                    mediaElement: video,
                     mediaKind: "videoClip",
                     currentTime: Number(video?.currentTime),
                 });
@@ -3025,6 +3027,7 @@ function createMediaBrowserPanelActions({
                     onIntent?.({
                         type: "mediaPlaybackFailed",
                         value: activeItem.id || "",
+                        mediaElement: video,
                         mediaKind: "videoClip",
                     });
                     return;
@@ -3494,6 +3497,7 @@ function createMediaBrowserPanelActions({
             onIntent?.({
                 type: "mediaPlaybackStarted",
                 value: getVideoItemId(),
+                mediaElement: video,
                 mediaKind: "videoClip",
                 currentTime: Number(video?.currentTime),
             });
@@ -3503,6 +3507,7 @@ function createMediaBrowserPanelActions({
                 onIntent?.({
                     type: "mediaPlaybackBuffering",
                     value: getVideoItemId(),
+                    mediaElement: video,
                     mediaKind: "videoClip",
                     currentTime: Number(video?.currentTime),
                 });
@@ -3519,13 +3524,14 @@ function createMediaBrowserPanelActions({
             });
         });
         video?.addEventListener?.("ended", () => {
-            onIntent?.({ type: "mediaPlaybackEnded", value: getVideoItemId(), mediaKind: "videoClip" });
+            onIntent?.({ type: "mediaPlaybackEnded", value: getVideoItemId(), mediaKind: "videoClip", mediaElement: video });
         });
         for (const eventName of ["abort", "error"]) {
             video?.addEventListener?.(eventName, () => {
                 onIntent?.({
                     type: "mediaPlaybackFailed",
                     value: getVideoItemId(),
+                    mediaElement: video,
                     mediaKind: "videoClip",
                 });
             });
@@ -3534,6 +3540,7 @@ function createMediaBrowserPanelActions({
             onIntent?.({
                 type: "mediaPlaybackTimeUpdate",
                 value: getVideoItemId(),
+                mediaElement: video,
                 mediaKind: "videoClip",
                 currentTime: Number(video?.currentTime),
             });
@@ -3559,6 +3566,7 @@ function createMediaBrowserPanelActions({
             onIntent?.({
                 type: "mediaVideoSourceReady",
                 value: getVideoItemId(),
+                mediaElement: video,
                 mediaKind: "videoClip",
                 currentTime: Number(video?.currentTime),
             });

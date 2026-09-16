@@ -611,6 +611,9 @@ function createMediaTimelineCoordination({
     let playbackAuthority = PLAYBACK_AUTHORITY_ANIMATION;
     let currentAudio = null;
     let currentAudioClipId = "";
+    let playbackSession = null;
+    let pendingPlayRequest = null;
+    let releaseAudioPlaybackEvents = null;
     let missionMediaMuted = readStoredBooleanPreference(MISSION_MEDIA_MUTED_STORAGE_KEY, false);
     let thumbnailWindowStartIndex = 0;
     let mediaPlaybackState = {
@@ -1117,6 +1120,8 @@ function createMediaTimelineCoordination({
     }
 
     function stopAudioPlayback() {
+        releaseAudioPlaybackEvents?.();
+        releaseAudioPlaybackEvents = null;
         if (currentAudio && typeof currentAudio.pause === "function") {
             suppressMediaEvents = true;
             currentAudio.loop = false;
@@ -1138,6 +1143,8 @@ function createMediaTimelineCoordination({
     }
 
     function stopPlayableMedia({ pauseClock = false } = {}) {
+        playbackSession = null;
+        invalidatePlayRequest();
         clearMissionDrivenMediaSeekState();
         stopAudioPlayback();
         stopVideoPlayback();
@@ -1149,7 +1156,9 @@ function createMediaTimelineCoordination({
     }
 
     function pausePlayableMediaForAnimationPause() {
-        if (mediaPlaybackState.playing !== true) return false;
+        if (mediaPlaybackState.playing !== true && mediaPlaybackState.buffering !== true &&
+            mediaPlayRequestPending !== true) return false;
+        suspendPlaybackTransport();
         suppressMediaEvents = true;
         if (mediaPlaybackState.kind === "audioClip") {
             callMediaMethod(currentAudio, "pause");
@@ -1169,6 +1178,7 @@ function createMediaTimelineCoordination({
 
     function pauseActivePlayableMedia() {
         if (mediaPlaybackState.playing !== true && mediaPlaybackState.buffering !== true) return false;
+        suspendPlaybackTransport();
         suppressMediaEvents = true;
         if (mediaPlaybackState.kind === "audioClip") {
             callMediaMethod(currentAudio, "pause");
@@ -1342,6 +1352,7 @@ function createMediaTimelineCoordination({
         const syncedTimeMs = activeItem.startTimeMs + offsetSeconds * 1000;
 
         if (nextFrameScrubMode) {
+            suspendPlaybackTransport();
             suppressMediaEvents = true;
             callMediaMethod(currentAudio, "pause");
             callMediaMethod(getVideoElement(), "pause");
@@ -1598,6 +1609,7 @@ function createMediaTimelineCoordination({
             return;
         }
         const mediaItem = findCurrentManifestItemById(normalizedId) || mediaPlaybackState;
+        suspendPlaybackTransport();
         const durationSeconds = resolvePlayableDurationSeconds(mediaItem);
         const endedTimeMs = Number.isFinite(durationSeconds)
             ? syncMissionTimeToMediaOffset(mediaItem, durationSeconds, true)
@@ -1632,6 +1644,7 @@ function createMediaTimelineCoordination({
         if (suppressMediaEvents) return;
         const normalizedId = String(itemId || "").trim();
         if (normalizedId && normalizedId !== mediaPlaybackState.itemId) return;
+        suspendPlaybackTransport();
         if (mediaElement && mediaElement === currentAudio) {
             currentAudio = null;
             currentAudioClipId = "";
@@ -1757,27 +1770,44 @@ function createMediaTimelineCoordination({
 
     function attachAudioPlaybackEvents(audio, item) {
         if (!audio || typeof audio.addEventListener !== "function" || !item) return;
-        audio.addEventListener("playing", () => handlePlayableMediaStarted(item.id, "audioClip", Number(audio.currentTime)));
+        releaseAudioPlaybackEvents?.();
+        const session = ensurePlaybackSession(audio, item.id, "audioClip");
+        const listeners = [];
+        const listen = (type, callback, transport = true) => {
+            const handler = () => {
+                if (!isCurrentPlaybackSession(session) || (transport && !session.transportAllowed)) return;
+                callback();
+            };
+            listeners.push([type, handler]);
+            audio.addEventListener(type, handler);
+        };
+        releaseAudioPlaybackEvents = () => {
+            for (const [type, handler] of listeners) audio.removeEventListener?.(type, handler);
+        };
+        listen("playing", () => {
+            if (audio.paused === true) return;
+            handlePlayableMediaStarted(item.id, "audioClip", Number(audio.currentTime));
+        });
         for (const eventName of ["loadedmetadata", "durationchange"]) {
-            audio.addEventListener(eventName, () => {
+            listen(eventName, () => {
                 applyMeasuredPlayableDurationSeconds(item.id, Number(audio.duration));
-            });
+            }, false);
         }
-        audio.addEventListener("pause", () => {
+        listen("pause", () => {
             if (audio.ended === true) return;
             handlePlayableMediaPaused(item.id, audio, Number(audio.currentTime));
         });
-        audio.addEventListener("ended", () => handlePlayableMediaEnded(item.id));
-        audio.addEventListener("timeupdate", () => {
+        listen("ended", () => handlePlayableMediaEnded(item.id));
+        listen("timeupdate", () => {
             syncMissionTimeFromMedia(item.id, Number(audio.currentTime));
         });
         for (const eventName of ["waiting", "stalled"]) {
-            audio.addEventListener(eventName, () => {
+            listen(eventName, () => {
                 handlePlayableMediaBuffering(item.id, Number(audio.currentTime));
             });
         }
         for (const eventName of ["abort", "error"]) {
-            audio.addEventListener(eventName, () => {
+            listen(eventName, () => {
                 handlePlayableMediaFailed(item.id, audio);
             });
         }
@@ -1854,6 +1884,30 @@ function createMediaTimelineCoordination({
             && rateContext.simSecondsPerRealSecond <= MEDIA_TRANSPORT_MAX_SIM_SECONDS_PER_REAL_SECOND;
     }
 
+    function invalidatePlayRequest() {
+        pendingPlayRequest = null;
+        mediaPlayRequestPending = false;
+    }
+
+    function suspendPlaybackTransport() {
+        if (playbackSession) playbackSession.transportAllowed = false;
+        invalidatePlayRequest();
+    }
+
+    function isCurrentPlaybackSession(session) {
+        return session === playbackSession && session &&
+            session.element === (session.kind === "audioClip" ? currentAudio : getVideoElement());
+    }
+
+    function ensurePlaybackSession(element, itemId, kind) {
+        if (!playbackSession || playbackSession.element !== element ||
+            playbackSession.itemId !== itemId || playbackSession.kind !== kind) {
+            invalidatePlayRequest();
+            playbackSession = { element, itemId, kind, transportAllowed: true };
+        }
+        return playbackSession;
+    }
+
     function playMediaElement(mediaElement, itemId = "", kind = "", {
         force = false,
     } = {}) {
@@ -1884,16 +1938,26 @@ function createMediaTimelineCoordination({
             kind: normalizedKind,
             atMs: nowMs,
         };
+        const session = ensurePlaybackSession(mediaElement, itemId, kind);
+        session.transportAllowed = true;
+        const request = {};
+        pendingPlayRequest = request;
+        const ownsRequest = () => pendingPlayRequest === request &&
+            isCurrentPlaybackSession(session) && session.transportAllowed;
         mediaPlayRequestPending = true;
         try {
             const playResult = mediaElement?.play?.();
             if (playResult && typeof playResult.then === "function") {
                 Promise.resolve(playResult).then(() => {
+                    if (!ownsRequest()) return;
+                    pendingPlayRequest = null;
                     mediaPlayRequestPending = false;
                     if (mediaPlaybackState.itemId !== itemId || mediaPlaybackState.playing === true) return;
                     if (mediaElement?.paused === true) return;
                     handlePlayableMediaStarted(itemId, kind, Number(mediaElement?.currentTime) || 0);
                 }).catch((error) => {
+                    if (!ownsRequest()) return;
+                    pendingPlayRequest = null;
                     mediaPlayRequestPending = false;
                     if (isAbortLikeMediaPlayError(error)) {
                         return;
@@ -1902,9 +1966,10 @@ function createMediaTimelineCoordination({
                 });
                 return;
             }
-            mediaPlayRequestPending = false;
+            if (ownsRequest()) invalidatePlayRequest();
         } catch {
-            mediaPlayRequestPending = false;
+            if (!ownsRequest()) return;
+            invalidatePlayRequest();
             handlePlayableMediaFailed(itemId, mediaElement);
         }
     }
@@ -2763,9 +2828,33 @@ function createMediaTimelineCoordination({
         return true;
     }
 
+    function isCurrentVideoIntent(intent) {
+        const item = getCurrentFocusedMediaItem();
+        if (!item || item.kind !== "videoClip" || item.id !== intent.value) return false;
+        const video = getVideoElement();
+        if (intent.mediaElement && intent.mediaElement !== video) return false;
+        if (video?.dataset?.mediaItemId && video.dataset.mediaItemId !== item.id) return false;
+        if (intent.type !== "mediaPlaybackStarted" && playbackSession?.element === video &&
+            playbackSession?.kind === "videoClip" && playbackSession.transportAllowed !== true) return false;
+        // Dataset identity alone cannot identify queued native events on a reused node.
+        if (intent.mediaElement) {
+            if (intent.type === "mediaPlaybackStarted" && video.paused === true) return false;
+            if (intent.type === "mediaPlaybackEnded" && video.ended === false) return false;
+        }
+        if (intent.type === "mediaPlaybackStarted") {
+            if (mediaPlaybackState.itemId !== item.id || mediaPlaybackState.active !== true) {
+                setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
+            }
+            if (video) ensurePlaybackSession(video, item.id, "videoClip").transportAllowed = true;
+        }
+        return true;
+    }
+
     function handlePanelIntent(intent) {
         const type = String(intent?.type || "").trim();
         if (!type) return;
+        if ((type.startsWith("mediaPlayback") || type === "mediaVideoSourceReady") &&
+            !isCurrentVideoIntent(intent)) return;
 
         if (type === "setAudienceFilter") {
             const value = String(intent.value || "").trim();
