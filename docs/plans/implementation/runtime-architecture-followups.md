@@ -40,7 +40,7 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 6a | SA-17 | Last-consumer ownership for shared Moon textures, including scene-held inputs | Complete; shared leases, real-consumer and cleanup-reentry regressions reviewed |
 | 6b | SA-18 | Terminal/idempotent scene disposal, including accepted textures not adopted by a renderer | Complete; scene-owned cancellation and real-adapter readiness reviewed |
 | 7 | SA-09 | Commit restart time before notifying playback consumers | Complete; real callback and synchronous browser event ordering verified |
-| 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Pending |
+| 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Complete; queued work and real viewport round-trip verified |
 | 9 | SA-15 | Required comparison error with Retry, per user decision | Pending; decision recorded in comparison spec |
 | 10 | SA-08 | Distinguish absent/error manifest state and permit explicit recovery | Pending |
 | 11 | SA-13, then SA-12 | Hidden panels surrender keyboard ownership; Reset View clears tool selection | Pending |

@@ -41,6 +41,7 @@ function createMobileViewFovSync(deps) {
     let composeDefaultFovApplied = false;
     let pinchState = null;
     let tapCandidate = null;
+    let autoFovRefreshRevision = 0;
 
     function updateDisplay(fovDegrees) {
         const displayState = buildMobileViewFovDisplayState(fovDegrees);
@@ -159,7 +160,9 @@ function createMobileViewFovSync(deps) {
     }
 
     function applyFov(fovDegrees) {
+        if (!isMobileViewport?.()) return false;
         const scene = resolveActiveScene?.();
+        if (scene?.disposed === true) return false;
         const controller = scene?.cameraController;
         const nextFov = clampMobileViewFov(fovDegrees);
         if (!controller?.setFov) {
@@ -177,7 +180,9 @@ function createMobileViewFovSync(deps) {
     }
 
     function applyAutoFov(fovDegrees) {
+        if (!isMobileViewport?.()) return false;
         const scene = resolveActiveScene?.();
+        if (scene?.disposed === true) return false;
         const controller = scene?.cameraController;
         const nextFov = clampMobileViewFov(fovDegrees);
         if (!controller?.setFov) {
@@ -190,7 +195,9 @@ function createMobileViewFovSync(deps) {
     }
 
     function requestSceneRender() {
+        if (!isMobileViewport?.()) return;
         const scene = resolveActiveScene?.();
+        if (scene?.disposed === true) return;
         const controller = scene?.cameraController;
         if (!controller) return;
         if (!controller._freeFlyActive) {
@@ -200,6 +207,7 @@ function createMobileViewFovSync(deps) {
     }
 
     function setAutoFovEnabled(enabled) {
+        autoFovRefreshRevision += 1;
         autoFovEnabled = !!enabled;
         [mobileViewsFovAuto, mobileComposeFovAuto].forEach((button) => {
             if (!button) return;
@@ -224,7 +232,7 @@ function createMobileViewFovSync(deps) {
     }
 
     function applyAutoFovForActivePreset() {
-        if (!autoFovEnabled) return false;
+        if (!autoFovEnabled || !isMobileViewport?.()) return false;
         const preset = resolveActivePreset();
         if (!preset) return false;
 
@@ -269,21 +277,26 @@ function createMobileViewFovSync(deps) {
     }
 
     function scheduleAutoFovRefresh() {
-        if (!autoFovEnabled) return;
+        const revision = ++autoFovRefreshRevision;
+        const ownsRefresh = () => revision === autoFovRefreshRevision && autoFovEnabled && isMobileViewport?.();
+        if (!ownsRefresh()) return;
         windowRef?.requestAnimationFrame?.(() => {
+            if (!ownsRefresh()) return;
             windowRef?.requestAnimationFrame?.(() => {
-                if (!autoFovEnabled) return;
+                if (!ownsRefresh()) return;
                 const activeTab = getActiveTab?.();
                 if (activeTab !== "views" && activeTab !== "compose") return;
                 applyAutoFovForActivePreset();
+                if (!ownsRefresh()) return;
                 requestSceneRender();
+                if (!ownsRefresh()) return;
                 onMoonVisibilityRefresh({ force: true });
             });
         });
     }
 
     function ensureComposeDefaultFov() {
-        if (composeDefaultFovApplied) return false;
+        if (composeDefaultFovApplied || !isMobileViewport?.()) return false;
         setAutoFovEnabled(false);
         applyFov(composeDefaultFov);
         composeDefaultFovApplied = true;
@@ -322,6 +335,7 @@ function createMobileViewFovSync(deps) {
         [mobileViewsFovAuto, mobileComposeFovAuto].forEach((button) => {
             if (!button) return;
             button.addEventListener("click", function () {
+                if (!isMobileViewport?.()) return;
                 setAutoFovEnabled(!autoFovEnabled);
                 applyAutoFovForActivePreset();
                 onMoonVisibilityRefresh({ force: true });
@@ -331,6 +345,7 @@ function createMobileViewFovSync(deps) {
         [mobileViewsFovSlider, mobileComposeFovSlider].forEach((slider) => {
             if (!slider) return;
             const onManualFovChange = (event) => {
+                if (!isMobileViewport?.()) return;
                 const sourceSlider = event?.currentTarget;
                 setAutoFovEnabled(false);
                 applyFov(Number(sourceSlider?.value));

@@ -40,8 +40,9 @@ SA-07 terminal media disposal and SA-03/RTA-06 camera intent/retry ownership
 are complete, along with SA-04 annotation restoration and SA-05 owned curve
 construction/cancellation. SA-06 texture handoff, SA-17 shared resource ownership
 and SA-18 terminal scene disposal are complete, including real receiver cleanup.
-SA-09 playback restart publication is complete; SA-10 mobile FoV ownership is
-next. The scoped plan orders the remaining
+SA-09 playback restart publication and SA-10 mobile FoV ownership are complete.
+SA-15 comparison error/Retry is next, following the recorded user decision.
+The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and
 re-verification. Commit and push each completed slice; no deployment.

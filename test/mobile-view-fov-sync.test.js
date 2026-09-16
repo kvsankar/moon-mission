@@ -139,6 +139,7 @@ function createHarness({
         activeViewPresetId: "moon",
         activeComposePresetId: "earth",
         composeFeatureEnabled: true,
+        isMobile: true,
     };
     const mobileViewsFovSlider = createSliderStub({ value: "60" });
     const mobileComposeFovSlider = createSliderStub({ value: "60" });
@@ -213,7 +214,7 @@ function createHarness({
         getActiveViewPresetId: () => state.activeViewPresetId,
         getActiveComposePresetId: () => state.activeComposePresetId,
         getComposeFeatureEnabled: () => state.composeFeatureEnabled,
-        isMobileViewport: () => true,
+        isMobileViewport: () => state.isMobile,
         getTapPlaybackEnabled: () => tapPlaybackEnabled,
         onTapPlaybackToggle: () => {
             log.push("tap-playback");
@@ -230,6 +231,7 @@ function createHarness({
     });
 
     return {
+        windowRef,
         state,
         log,
         scene,
@@ -245,6 +247,63 @@ function createHarness({
 }
 
 describe("createMobileViewFovSync", () => {
+    it("does not apply a retained mobile preset to a desktop camera", () => {
+        const h = createHarness(); h.state.isMobile = false;
+        expect(h.sync.applyAutoFovForActivePreset()).toBe(false);
+        expect(h.scene.camera.fov).toBe(60);
+        expect(h.log).toEqual([]);
+    });
+
+    it("does not enqueue mobile auto FoV work on desktop", () => {
+        const h = createHarness(), frames = [];
+        h.windowRef.requestAnimationFrame = callback => frames.push(callback);
+        h.state.isMobile = false;
+        h.sync.scheduleAutoFovRefresh();
+        expect(frames).toHaveLength(0);
+    });
+
+    for (const crossedAfterFirstFrame of [false, true]) {
+        it(`drops queued auto FoV work after widening (${crossedAfterFirstFrame ? "second" : "first"} frame)`, () => {
+            const h = createHarness(), frames = [];
+            h.windowRef.requestAnimationFrame = callback => frames.push(callback);
+            h.sync.scheduleAutoFovRefresh();
+            if (crossedAfterFirstFrame) frames.shift()();
+            h.state.isMobile = false;
+            while (frames.length) frames.shift()();
+            expect(h.scene.camera.fov).toBe(60);
+            expect(h.log).toEqual([]);
+        });
+    }
+
+    it("ignores late manual mobile inputs on desktop", () => {
+        const h = createHarness(); h.sync.bind(); h.state.isMobile = false;
+        h.mobileViewsFovSlider.value = "5";
+        h.mobileViewsFovSlider.dispatch("input");
+        expect(h.scene.camera.fov).toBe(60);
+        expect(h.sync.isAutoFovEnabled()).toBe(true);
+        expect(h.log).toEqual([]);
+    });
+
+    it("invalidates old mobile frames across a desktop-to-mobile round trip", () => {
+        const h = createHarness(), frames = [];
+        h.windowRef.requestAnimationFrame = callback => frames.push(callback);
+        h.sync.scheduleAutoFovRefresh();
+        h.state.isMobile = false; h.sync.scheduleAutoFovRefresh();
+        h.state.isMobile = true; h.sync.scheduleAutoFovRefresh();
+        while (frames.length) frames.shift()();
+        expect(h.log.filter(entry => Array.isArray(entry) && entry[0] === "moon-visibility")).toHaveLength(1);
+    });
+
+    it("does not consume the mobile compose default while desktop owns the view", () => {
+        const h = createHarness({ activeTab: "compose" }); h.state.isMobile = false;
+        expect(h.sync.ensureComposeDefaultFov()).toBe(false);
+        expect(h.scene.camera.fov).toBe(60);
+        expect(h.sync.isAutoFovEnabled()).toBe(true);
+        h.state.isMobile = true;
+        expect(h.sync.ensureComposeDefaultFov()).toBe(true);
+        expect(h.scene.camera.fov).toBe(110);
+    });
+
     it("skips sub-tenth-degree auto FoV churn from minor mobile viewport jitter", () => {
         expect(shouldSkipMobileAutoFovUpdate({
             currentFov: 25,

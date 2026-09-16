@@ -262,6 +262,21 @@ and Play controls and observes the timeline at the synchronous Play event;
 it passed without waiting for a correcting animation frame. Full-unit
 verification: **1,816 passed, six skipped, 235 files**. SA-09 is complete.
 
+## SA-10 — Mobile FoV Ownership
+
+Seven RED regressions reproduced desktop writes from retained mobile presets,
+queued first/second animation frames, late manual inputs, an incorrectly consumed
+Compose default, and stale mobile-to-desktop-to-mobile refresh work. Mobile FoV
+mutation/render paths now require mobile viewport ownership. Scheduling and
+both frame stages check ownership, while a monotonic refresh revision revokes
+superseded work (including desktop resize notifications).
+
+Independent UI review cleared the guards and real resize/preset integration.
+**28 focused tests / five files** and the full suite **1,823 passed, six skipped,
+235 files** passed. Both Artemis II browser tests passed: mobile tab/clock
+continuity and desktop FoV restoration followed by another desktop resize.
+SA-10 is complete; no visual baselines or disclosure policy were changed.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
