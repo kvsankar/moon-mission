@@ -32,8 +32,8 @@ Delivery order (one bounded fix, independent review and verification per row):
 | Order | Audit IDs | Outcome | Status |
 | --- | --- | --- | --- |
 | 1 | SA-01 | Owned configuration activation, shared loading and bounded supersession recovery | Complete; see audit verification |
-| 2 | SA-02, then SA-07 | Retired media sessions cannot change selection/time; disposal remains terminal | SA-02 complete; SA-07 next |
-| 3 | SA-03 / RTA-06 | Latest camera intent owns retries; semantic state independent of controls | Pending |
+| 2 | SA-02, then SA-07 | Retired media sessions cannot change selection/time; disposal remains terminal | Both complete; separate TDD/review evidence |
+| 3 | SA-03 / RTA-06 | Latest camera intent owns retries; semantic state independent of controls | Next |
 | 4 | SA-04 | Temporary annotation presentation always restores main-scene state | Pending |
 | 5 | SA-05 | Cancelled/replaced curve work cannot publish resources or readiness | Pending |
 | 6 | SA-06 | Explicit acceptance/disposal ownership at texture handoff | Pending |

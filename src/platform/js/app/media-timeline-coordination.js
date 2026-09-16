@@ -568,6 +568,7 @@ function createMediaTimelineCoordination({
     setTimelineMediaMarkers = () => {},
 } = {}) {
     const runtimeMediaState = createRuntimeMediaState();
+    let disposed = false;
     const panelActions = createMediaBrowserPanelActions({
         onIntent: handlePanelIntent,
     });
@@ -577,6 +578,7 @@ function createMediaTimelineCoordination({
         getAnimationRealtime,
         getMissionStartTime: getStartTime,
         onJumpToTime(timeMs) {
+            if (disposed) return;
             if (!Number.isFinite(Number(timeMs))) return;
             seekMissionTimelineTime(Number(timeMs), true);
             if (lastRenderContext) {
@@ -588,11 +590,13 @@ function createMediaTimelineCoordination({
             rerender();
         },
         onRequestPlay() {
+            if (disposed) return;
             if (getAnimationRunning() !== true) {
                 playAnimation();
             }
         },
         onRequestPause() {
+            if (disposed) return;
             if (getAnimationRunning() === true) {
                 pauseAnimation();
             }
@@ -947,12 +951,14 @@ function createMediaTimelineCoordination({
         }
 
         const readDuration = () => {
+            if (disposed) return;
             const changed = applyMeasuredPlayableDurationSeconds(item.id, Number(mediaElement.duration));
             if (changed) {
                 releaseDurationProbe();
             }
         };
         const onFailure = () => {
+            if (disposed) return;
             if (durationProbeState.itemId === item.id) {
                 releaseDurationProbe();
             }
@@ -2301,6 +2307,7 @@ function createMediaTimelineCoordination({
         if (typeof document?.addEventListener !== "function") return;
         timelineEventBound = true;
         onTimelineMarkerSelect = (event) => {
+            if (disposed) return;
             const markerId = String(event?.detail?.marker?.id || "").trim();
             const markerTimeMs = Number(event?.detail?.timeMs);
             panelActions.setPanelState?.("open");
@@ -2333,9 +2340,11 @@ function createMediaTimelineCoordination({
             });
         };
         onTimelineUserSeek = (event) => {
+            if (disposed) return;
             handleTimelineUserSeek(event?.detail || {});
         };
         onMediaPanelStateChanged = (event) => {
+            if (disposed) return;
             const panelState = String(event?.detail?.state || "").trim().toLowerCase();
             if (!panelState) return;
             mediaPanelOpen = panelState === "open";
@@ -2353,6 +2362,7 @@ function createMediaTimelineCoordination({
         if (typeof document?.addEventListener !== "function") return;
         animationPlayStateEventBound = true;
         onAnimationPlayStateUpdated = (event) => {
+            if (disposed) return;
             if (handlingAnimationPlayStateEvent) return;
             handlingAnimationPlayStateEvent = true;
             try {
@@ -2439,6 +2449,7 @@ function createMediaTimelineCoordination({
     }
 
     async function ensureManifestLoaded() {
+        if (disposed) return null;
         const loadState = runtimeMediaState.getLoadState();
         if (loadState === "ready" || loadState === "unavailable") {
             return runtimeMediaState.getManifest();
@@ -2450,6 +2461,7 @@ function createMediaTimelineCoordination({
         runtimeMediaState.setLoadState("loading");
         manifestPromise = loadMissionMediaManifest()
             .then((manifestData) => {
+                if (disposed) return null;
                 if (!manifestData) {
                     runtimeMediaState.setManifest(null);
                     runtimeMediaState.setLoadState("unavailable");
@@ -2465,6 +2477,7 @@ function createMediaTimelineCoordination({
                 return normalizedManifest;
             })
             .catch(() => {
+                if (disposed) return null;
                 runtimeMediaState.setManifest(null);
                 runtimeMediaState.setLoadState("unavailable");
                 invalidateMediaDataCaches();
@@ -2478,7 +2491,7 @@ function createMediaTimelineCoordination({
     }
 
     function rerender() {
-        if (!lastRenderContext) return;
+        if (disposed || !lastRenderContext) return;
         update(lastRenderContext);
     }
 
@@ -2851,6 +2864,7 @@ function createMediaTimelineCoordination({
     }
 
     function handlePanelIntent(intent) {
+        if (disposed) return;
         const type = String(intent?.type || "").trim();
         if (!type) return;
         if ((type.startsWith("mediaPlayback") || type === "mediaVideoSourceReady") &&
@@ -3398,6 +3412,7 @@ function createMediaTimelineCoordination({
     }
 
     function update(context = {}) {
+        if (disposed) return;
         lastRenderContext = context;
 
         const globalConfig = context.globalConfig || null;
@@ -3526,13 +3541,17 @@ function createMediaTimelineCoordination({
     }
 
     function dispose() {
+        if (disposed) return;
+        disposed = true;
+        const lastTimeMs = Number(lastRenderContext?.animTime);
+        lastRenderContext = null;
         releaseTimelineEventBinding();
         releaseAnimationPlayStateBinding();
         releaseDurationProbe();
         stopPlayableMedia({ pauseClock: isMediaPlaybackBusy() });
         backgroundPanelActions.render({
             items: [],
-            timeMs: Number(lastRenderContext?.animTime),
+            timeMs: lastTimeMs,
             animationRunning: false,
             foregroundMediaState: buildForegroundMediaState(),
         });
