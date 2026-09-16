@@ -261,6 +261,7 @@ function createAnimationSceneClass(deps) {
 
         stopCreation() {
             sceneCreationActions.stopCreation(this);
+            spacecraftCurveActions.cancelSpacecraftCurveBuild?.(this);
         }
 
         setCameraPosition(x, y, z) {
@@ -642,7 +643,7 @@ function createAnimationSceneClass(deps) {
         }
 
         addSpacecraftCurve() {
-            spacecraftCurveActions.addSpacecraftCurve(this);
+            return spacecraftCurveActions.addSpacecraftCurve(this);
         }
 
         addLandingCurve() {

@@ -126,6 +126,41 @@ Final full unit suite: **1,717 passed, six skipped, 227 files**. Independent
 review reran the 42 focused tests and cleared the final restoration logic.
 No new browser/SSIM run was claimed for this module-level state/exception fix.
 
+## SA-05 — Owned Curve Construction
+
+Status: complete after independent review and correction of its findings.
+
+Red milestone: 13 real-Three.js lifecycle regressions fail on the original
+builder. Cancellation cases expose stale completion; the observable-promise
+contract gates injected allocation failures so fire-and-forget baseline errors
+do not become uncontrolled test-process rejections. Coverage includes stop,
+dispose, same-scene replacement, generation/container changes, failure cleanup,
+retry, landing independence and wrapper forwarding.
+
+Implementation uses per-scene entry/build identities, captured generation and
+container, input-array snapshots and a geometry/material/line ownership ledger.
+The `AnimationScene` wrapper forwards a non-rejecting outcome promise; starting
+a new build revokes previous curve readiness without clearing prepared inputs.
+Landing installation remains synchronous and independently owned.
+
+Review/TDD follow-ups before closure include cancellation status after stop,
+cleanup-listener exceptions, snapshot inputs, allocation failure in landing
+construction, and synchronous replacement during `childadded`, entry cleanup
+and explicit disposal. These callbacks can run before the outer operation
+returns, so ownership must be checked around effects as well as awaits.
+Old references are unpublished before cleanup; newer output/landing owners
+must survive, and re-entrant disposal must not release resources twice.
+
+The final root review added a failing ready-build cleanup/cancel ordering case:
+geometry disappeared while old readiness remained. Terminal state is now
+revoked before cleanup callbacks, with subsequent diagnostic writes guarded by
+ownership. Independent review cleared this final ordering correction.
+
+Verification: **25 curve lifecycle regressions**, **30 curve/landing tests**,
+and the full unit suite **1,742 passed, six skipped, 228 files**. All **ten
+browser checks** passed across runtime transitions, load recovery and Artemis II
+mobile continuity. No baselines, thresholds or mission data changed.
+
 ## Risk Triage Follow-Up (Not Yet Closed)
 
 Independent probes strengthened the original risk inventory; these still need
