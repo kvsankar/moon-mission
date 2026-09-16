@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ manifest: vi.fn(), render: vi.fn(), backgroundRender: vi.fn(), intent: null, background: null }));
-vi.mock("../src/platform/js/data/mission-media.js", () => ({ getMissionMediaDataPath: () => "assets/artemis2/data/", loadMissionMediaManifest: mocks.manifest }));
+vi.mock("../src/platform/js/data/mission-media.js", () => ({ getMissionMediaManifestUrl: () => "assets/artemis2/data/media-manifest.json", getMissionMediaDataPath: () => "assets/artemis2/data/", loadMissionMediaManifest: mocks.manifest }));
 vi.mock("../src/platform/js/app/media-browser-panel.js", () => ({
     MEDIA_BROWSER_PANEL_ID: "workflow:media-browser",
     createMediaBrowserPanelActions: options => { mocks.intent = options.onIntent; return { render: mocks.render, setMissionContext: vi.fn(), setPanelState: vi.fn() }; },

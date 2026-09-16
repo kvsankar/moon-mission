@@ -42,7 +42,7 @@ Delivery order (one bounded fix, independent review and verification per row):
 | 7 | SA-09 | Commit restart time before notifying playback consumers | Complete; real callback and synchronous browser event ordering verified |
 | 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Complete; queued work and real viewport round-trip verified |
 | 9 | SA-15 | Required comparison error with Retry, per user decision | Complete; strict loading/validation, cached primary reuse and browser Retry verified |
-| 10 | SA-08 | Distinguish absent/error manifest state and permit explicit recovery | Pending |
+| 10 | SA-08 | Distinguish absent/error manifest state and permit explicit recovery | Complete; URL-owned caches, explicit Retry and browser recovery verified |
 | 11 | SA-13, then SA-12 | Hidden panels surrender keyboard ownership; Reset View clears tool selection | Pending |
 | 12 | SA-11 | Persist explicit constrained-layout edits without saving automatic collapse | Pending |
 | 13 | SA-14 | Detached controls use their owning window geometry/lifecycle | Pending |

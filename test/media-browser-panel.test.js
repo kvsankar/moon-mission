@@ -233,6 +233,34 @@ class FakeElement {
 }
 
 describe("media browser panel timeline", () => {
+    function retryFixture() {
+        const retry = new FakeRangeInput(), panelElement = new FakePanel(), intents = [];
+        global.window = { innerWidth: 1280, innerHeight: 800 };
+        global.document = { getElementById(id) {
+            if (id === "media-browser-panel") return panelElement;
+            if (id === "media-browser-manifest-retry") return retry;
+            return null;
+        }, addEventListener() {}, dispatchEvent() {} };
+        return { retry, intents, panel: createMediaBrowserPanelActions({ onIntent: intent => intents.push(intent) }) };
+    }
+
+    it("routes the visible manifest Retry button through the panel intent boundary", () => {
+        const h = retryFixture();
+        h.panel.render({ manifestRetryAvailable: true, statusText: "Could not load" });
+        expect(h.retry.hidden).toBe(false);
+        expect(h.retry.disabled).toBe(false);
+        h.retry.dispatchEvent({ type: "click" });
+        expect(h.intents).toEqual([{ type: "retryManifest" }]);
+    });
+
+    it("hides and disables Retry when only its availability changes", () => {
+        const h = retryFixture();
+        h.panel.render({ manifestRetryAvailable: true, statusText: "Status" });
+        h.panel.render({ manifestRetryAvailable: false, statusText: "Status" });
+        expect(h.retry.hidden).toBe(true);
+        expect(h.retry.disabled).toBe(true);
+    });
+
     afterEach(() => {
         delete global.document;
         delete global.CustomEvent;

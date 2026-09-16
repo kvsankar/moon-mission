@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ render: vi.fn(), intent: null, manifest: vi.fn() }));
 vi.mock("../src/platform/js/data/mission-media.js", () => ({
+    getMissionMediaManifestUrl: () => "assets/artemis2/data/media-manifest.json",
     getMissionMediaDataPath: () => "assets/artemis2/data/", loadMissionMediaManifest: mocks.manifest,
 }));
 vi.mock("../src/platform/js/app/media-browser-panel.js", () => ({

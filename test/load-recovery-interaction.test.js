@@ -19,6 +19,45 @@ async function waitForReady(page, origin = "geo") {
 }
 
 describe("mission load recovery", () => {
+    it("recovers a transient Mission Media manifest failure through visible keyboard Retry", async () => {
+        await browserScenario(async page => {
+            let fail = true, requests = 0;
+            await page.route(/\/artemis2\/data\/media-manifest\.json(?:\?.*)?$/, async route => {
+                requests += 1;
+                if (fail) return route.fulfill({ status: 503, body: "Temporarily unavailable" });
+                return route.fulfill({ contentType: "application/json", body: JSON.stringify({
+                    mediaBase: `${getEffectiveTestBaseUrl()}/src/platform/assets/`, timelineTimezoneOffset: "+00:00",
+                    photos: [{ file: "moon-preview.jpg", title: "Recovered Moon", time: "2026-04-06 17:13:14", enabled: true }],
+                }) });
+            });
+            await page.goto(`${getEffectiveTestBaseUrl()}/artemis2/?testMode=true`, { waitUntil: "domcontentloaded" });
+            await page.waitForFunction(() => document.querySelector("#mission-loading-overlay")?.dataset.blocking === "false");
+            await page.waitForFunction(() => document.getElementById("media-browser-status")?.textContent.includes("could not be loaded"));
+            const mediaTab = page.getByRole("tab", { name: /Mission Media/ }).first();
+            if (await mediaTab.isVisible()) await mediaTab.click();
+            else if (!await page.getByRole("button", { name: "Retry loading mission media", exact: true }).isVisible())
+                await page.locator("#panel-pill-media").click();
+            const retry = page.getByRole("button", { name: "Retry loading mission media", exact: true });
+            await retry.waitFor({ state: "visible" });
+            await page.evaluate(() => new Promise(resolve => {
+                let frames = 10;
+                const step = () => --frames ? requestAnimationFrame(step) : resolve();
+                requestAnimationFrame(step);
+            }));
+            expect(requests).toBe(1);
+            const captures = join(process.cwd(), "test/screenshots/current/load-recovery");
+            mkdirSync(captures, { recursive: true });
+            await page.screenshot({ path: join(captures, "media-manifest-error.png") });
+            fail = false;
+            await retry.focus(); await page.keyboard.press("Enter");
+            await page.locator('#media-browser-thumbnail-list [data-thumbnail-item-id="moon-preview.jpg"]')
+                .waitFor({ state: "visible", timeout: 30000 });
+            expect(requests).toBe(2);
+            expect(await retry.isVisible()).toBe(false);
+            expect(await page.locator("#media-browser-status").textContent()).not.toContain("could not be loaded");
+        });
+    }, 120000);
+
     it("shows a required comparison error and retries the second mission without reloading the primary", async () => {
         await browserScenario(async page => {
             let fail = true, primaryRequests = 0, secondaryRequests = 0;

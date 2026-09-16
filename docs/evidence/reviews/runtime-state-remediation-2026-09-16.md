@@ -313,6 +313,27 @@ primary and overlay curves present. Final full-unit verification: **1,860 passed
 six skipped, 237 files**. SA-15 is complete after fixing and rereviewing both
 validation findings.
 
+## SA-08 — Media Manifest Recovery
+
+Data-layer RED: **19 failed / seven passed** before implementation. URL-keyed
+success/absence and in-flight caches now distinguish genuine HTTP 404 from
+retryable HTTP/network/parse/shape errors. Failed requests are not cached, and
+deferred A/B/ABA completions cannot contaminate another URL's entries. Existing
+formats and the compiled Artemis II manifest remain supported.
+
+Root RED: three coordinator cases exposed permanent unavailable state, missing
+Retry and cross-mission completion; two panel tests exposed absent intent wiring
+and cached Retry visibility. The coordinator now owns request-time URL/data path
+and attempt identity, keeps recoverable failures accessible, and waits for an
+explicit Retry. Disabled media, compare mode and disposed coordinators reject
+Retry; successful and genuinely absent manifests are not repeatedly fetched.
+
+Independent review cleared the complete diff; **129 tests / six focused suites**
+passed. Browser HTTP 503 -> visible keyboard Retry -> recovered thumbnail passed,
+with one request before Retry and two afterward. The error panel screenshot was
+visually inspected. Final full-unit verification: **1,892 passed, six skipped,
+238 files**. SA-08 is complete.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now

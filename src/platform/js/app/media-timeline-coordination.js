@@ -26,7 +26,7 @@ import {
 } from "../core/domain/media-playback-policy.js";
 import { createRuntimeMediaState } from "../core/state/runtime-media-state.js";
 import { getMissionDataPath } from "../data/mission-data.js";
-import { getMissionMediaDataPath, loadMissionMediaManifest } from "../data/mission-media.js";
+import { getMissionMediaDataPath, getMissionMediaManifestUrl, loadMissionMediaManifest } from "../data/mission-media.js";
 import {
     formatDateTimeLocal,
     formatDateTimeUTC,
@@ -603,6 +603,8 @@ function createMediaTimelineCoordination({
         },
     });
     let manifestPromise = null;
+    let manifestOwner = null;
+    let manifestAttempt = null;
     let lastRenderContext = null;
     let timelineEventBound = false;
     let onTimelineMarkerSelect = null;
@@ -2448,20 +2450,45 @@ function createMediaTimelineCoordination({
         onAnimationPlayStateUpdated = null;
     }
 
-    async function ensureManifestLoaded() {
+    function syncManifestOwner() {
+        const url = getMissionMediaManifestUrl() || "";
+        if (manifestOwner?.url === url) return;
+        const previousOwner = manifestOwner;
+        manifestOwner = { url, dataPath: getMissionMediaDataPath() || getMissionDataPath() || "" };
+        manifestAttempt = null;
+        manifestPromise = null;
+        runtimeMediaState.setManifest(null);
+        runtimeMediaState.setLoadState("idle");
+        runtimeMediaState.setActiveItemId("");
+        invalidateMediaDataCaches();
+        if (previousOwner) {
+            stopPlayableMedia({ pauseClock: false });
+            applyTimelineMediaMarkers([]);
+            backgroundPanelActions.render({ items: [], timeMs: Number(lastRenderContext?.animTime),
+                animationRunning: false, foregroundMediaState: buildForegroundMediaState() });
+        }
+    }
+
+    async function ensureManifestLoaded({ retry = false } = {}) {
         if (disposed) return null;
+        syncManifestOwner();
         const loadState = runtimeMediaState.getLoadState();
-        if (loadState === "ready" || loadState === "unavailable") {
+        if (loadState === "ready" || loadState === "unavailable" || (loadState === "error" && !retry)) {
             return runtimeMediaState.getManifest();
         }
         if (manifestPromise) {
             return manifestPromise;
         }
 
+        const owner = manifestOwner;
+        const attempt = {};
+        manifestAttempt = attempt;
+        const isCurrent = () => !disposed && manifestOwner === owner && manifestAttempt === attempt &&
+            (getMissionMediaManifestUrl() || "") === owner.url;
         runtimeMediaState.setLoadState("loading");
         manifestPromise = loadMissionMediaManifest()
             .then((manifestData) => {
-                if (disposed) return null;
+                if (!isCurrent()) return null;
                 if (!manifestData) {
                     runtimeMediaState.setManifest(null);
                     runtimeMediaState.setLoadState("unavailable");
@@ -2469,7 +2496,7 @@ function createMediaTimelineCoordination({
                     return null;
                 }
                 const normalizedManifest = normalizeMissionMediaManifest(manifestData, {
-                    dataPath: getMissionMediaDataPath() || getMissionDataPath() || "",
+                    dataPath: owner.dataPath,
                 });
                 runtimeMediaState.setManifest(normalizedManifest);
                 runtimeMediaState.setLoadState("ready");
@@ -2477,14 +2504,14 @@ function createMediaTimelineCoordination({
                 return normalizedManifest;
             })
             .catch(() => {
-                if (disposed) return null;
+                if (!isCurrent()) return null;
                 runtimeMediaState.setManifest(null);
-                runtimeMediaState.setLoadState("unavailable");
+                runtimeMediaState.setLoadState("error");
                 invalidateMediaDataCaches();
                 return null;
             })
             .finally(() => {
-                manifestPromise = null;
+                if (manifestAttempt === attempt) manifestPromise = null;
             });
 
         return manifestPromise;
@@ -2867,6 +2894,13 @@ function createMediaTimelineCoordination({
         if (disposed) return;
         const type = String(intent?.type || "").trim();
         if (!type) return;
+        if (type === "retryManifest") {
+            if (!lastRenderContext || getIsCompareMode() === true ||
+                !isMediaBrowserEnabled(lastRenderContext.globalConfig) || runtimeMediaState.getLoadState() !== "error") return;
+            ensureManifestLoaded({ retry: true }).then(() => rerender());
+            rerender();
+            return;
+        }
         if ((type.startsWith("mediaPlayback") || type === "mediaVideoSourceReady") &&
             !isCurrentVideoIntent(intent)) return;
 
@@ -3437,6 +3471,7 @@ function createMediaTimelineCoordination({
             return;
         }
 
+        syncManifestOwner();
         ensureTimelineEventBinding();
         ensureAnimationPlayStateBinding();
         const loadState = runtimeMediaState.getLoadState();
@@ -3469,6 +3504,20 @@ function createMediaTimelineCoordination({
                 stageEmptyText: "Loading mission media manifest...",
                 filterModel: buildMediaFilterModel([], runtimeMediaState.getFilters()),
                 thumbnailItems: [],
+            });
+            lastPanelRenderSignature = "";
+            return;
+        }
+
+        if (loadState === "error") {
+            applyTimelineMediaMarkers([]);
+            panelActions.render({
+                panelTitle: "Mission Media", mediaCountLabel: "--",
+                statusText: "Mission media could not be loaded.",
+                descriptionEmptyText: "Check your connection and retry loading mission media.",
+                stageEmptyText: "Mission media could not be loaded.",
+                manifestRetryAvailable: true,
+                filterModel: buildMediaFilterModel([], runtimeMediaState.getFilters()), thumbnailItems: [],
             });
             lastPanelRenderSignature = "";
             return;

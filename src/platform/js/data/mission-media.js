@@ -1,10 +1,62 @@
 import { resolveMissionMediaManifestUrl } from "../core/domain/mission-asset-resolver.js";
-import { getMissionDataPath, loadJson } from "./mission-data.js";
+import { getMissionDataPath } from "./mission-data.js";
 
-let mediaManifestLoaded = false;
-let mediaManifestValue = null;
-let mediaManifestPromise = null;
-let mediaManifestUrl = "";
+// Only known absence and valid manifests are durable. Failed requests remain
+// retryable, and a completion can populate only its captured URL's entry.
+const mediaManifestValues = new Map();
+const mediaManifestPromises = new Map();
+
+class MediaManifestLoadError extends Error {
+    constructor(kind, { status = null, cause } = {}) {
+        super("Mission media could not be loaded.", { cause });
+        this.name = "MediaManifestLoadError";
+        this.kind = kind;
+        this.status = status;
+    }
+}
+
+function validateMediaManifest(manifest) {
+    const isRecord = value => value !== null && typeof value === "object" && !Array.isArray(value);
+    const invalid = field => {
+        throw new MediaManifestLoadError("shape", { cause: new Error(`Invalid media manifest field: ${field}`) });
+    };
+    if (!isRecord(manifest)) invalid("manifest");
+    // Validate supplied collection containers, preserving the normalizer's
+    // tolerant per-item handling and its supported camera-profile formats.
+    for (const field of ["mediaItems", "audioItems", "mediaStreams", "photos", "audio", "mediaMetadata"]) {
+        if (Object.hasOwn(manifest, field) && !Array.isArray(manifest[field])) invalid(field);
+    }
+    for (const field of ["ui", "filters", "provenance", "thumbnails"]) {
+        if (Object.hasOwn(manifest, field) && !isRecord(manifest[field])) invalid(field);
+    }
+    if (Object.hasOwn(manifest, "cameraProfiles") &&
+        !isRecord(manifest.cameraProfiles) && !Array.isArray(manifest.cameraProfiles)) {
+        invalid("cameraProfiles");
+    }
+    return manifest;
+}
+
+async function fetchMediaManifest(url) {
+    let response;
+    try {
+        response = await fetch(url, { cache: "no-store" });
+    } catch (cause) {
+        throw new MediaManifestLoadError("network", { cause });
+    }
+    if (response?.status === 404) return null;
+    if (!response?.ok) {
+        const status = Number.isInteger(response?.status) ? response.status : null;
+        throw new MediaManifestLoadError("http", { status,
+            cause: new Error("Media manifest request was unsuccessful.") });
+    }
+    let manifest;
+    try {
+        manifest = await response.json();
+    } catch (cause) {
+        throw new MediaManifestLoadError("parse", { cause });
+    }
+    return validateMediaManifest(manifest);
+}
 
 function isLocalDevHost(hostname) {
     const normalized = String(hostname || "").trim().toLowerCase();
@@ -42,41 +94,28 @@ function getMissionMediaDataPath() {
 }
 
 async function loadMissionMediaManifest() {
-    const nextUrl = getMissionMediaManifestUrl();
-    if (!nextUrl) {
-        mediaManifestLoaded = true;
-        mediaManifestValue = null;
-        mediaManifestPromise = null;
-        mediaManifestUrl = "";
-        return null;
-    }
+    const url = getMissionMediaManifestUrl();
+    if (!url) return null;
+    if (mediaManifestValues.has(url)) return mediaManifestValues.get(url);
+    if (mediaManifestPromises.has(url)) return mediaManifestPromises.get(url);
 
-    if (mediaManifestLoaded && mediaManifestUrl === nextUrl) {
-        return mediaManifestValue;
-    }
-    if (mediaManifestPromise && mediaManifestUrl === nextUrl) {
-        return mediaManifestPromise;
-    }
-
-    mediaManifestUrl = nextUrl;
-    mediaManifestPromise = loadJson(nextUrl)
-        .catch((error) => {
-            console.debug("Could not load media-manifest.json:", error);
-            return null;
+    // Install the pending owner before invoking the fetch effect.
+    const promise = Promise.resolve().then(() => fetchMediaManifest(url))
+        .then(manifest => {
+            mediaManifestValues.set(url, manifest);
+            return manifest;
         })
-        .then((manifestData) => {
-            mediaManifestValue = manifestData;
-            mediaManifestLoaded = true;
-            mediaManifestPromise = null;
-            return mediaManifestValue;
+        .finally(() => {
+            if (mediaManifestPromises.get(url) === promise) mediaManifestPromises.delete(url);
         });
-
-    return mediaManifestPromise;
+    mediaManifestPromises.set(url, promise);
+    return promise;
 }
 
 export {
     getMissionMediaDataPath,
     getMissionMediaManifestUrl,
     loadMissionMediaManifest,
+    MediaManifestLoadError,
     resolveLocalDevMediaManifestUrl,
 };

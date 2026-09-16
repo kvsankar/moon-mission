@@ -630,6 +630,7 @@ function createMediaBrowserPanelActions({
             panelTitle: viewModel.panelTitle || panelTitle,
             mediaCountLabel: viewModel.mediaCountLabel || mediaCountLabel,
             statusText: String(viewModel.statusText || "").trim(),
+            manifestRetryAvailable: viewModel.manifestRetryAvailable === true,
             activeItem: viewModel.activeItem || null,
             descriptionEmptyText: viewModel.descriptionEmptyText || "",
             emptyText: viewModel.emptyText || "",
@@ -3091,6 +3092,11 @@ function createMediaBrowserPanelActions({
         const statusText = String(viewModel.statusText || "").trim();
         setText("media-browser-status", statusText);
         setHidden("media-browser-status", !statusText);
+        const manifestRetry = getNode("media-browser-manifest-retry");
+        if (manifestRetry) {
+            manifestRetry.hidden = viewModel.manifestRetryAvailable !== true;
+            manifestRetry.disabled = viewModel.manifestRetryAvailable !== true;
+        }
         const fullTimeLabel = viewModel.activeItem?.timeLabel || "--";
         setText("media-browser-time", resolveCompactTimeLabel(fullTimeLabel));
         setText("media-browser-full-time", fullTimeLabel);
@@ -3368,6 +3374,10 @@ function createMediaBrowserPanelActions({
         expandButton?.addEventListener("click", () => setPanelExpanded(panelExpanded !== true, panel));
         closeButton?.addEventListener("click", () => setPanelState("closed"));
         deleteButton?.addEventListener("click", () => confirmDeletePanel());
+
+        getNode("media-browser-manifest-retry")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "retryManifest" });
+        });
 
         getNode("media-browser-filter-prev")?.addEventListener?.("click", () => {
             onIntent?.({ type: "selectAdjacentItem", value: "previous" });

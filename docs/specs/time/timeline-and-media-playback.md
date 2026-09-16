@@ -327,6 +327,22 @@ from the new mission time.
 
 ## Mission Media Selection
 
+### Manifest availability and recovery
+
+Manifest loading distinguishes loading, ready, known absence (HTTP 404), and
+recoverable failure. A temporary network/server failure or malformed response
+must not be presented or cached as permanent absence. The Mission Media panel
+stays available on failure and exposes a keyboard-accessible Retry action;
+ordinary frame updates must not start an automatic retry loop.
+
+Retry shares any current request. Valid manifests and known absence are cached
+by resolved URL, while failures remain retryable. Completion and normalization
+belong to the initiating URL/data path; older mission requests cannot overwrite
+current media state. Disabled media, comparison mode and disposed coordinators
+must not start a retry or revive retired playback.
+
+### Selection behavior
+
 Mission Media focus can come from:
 
 - explicit user selection in the media panel

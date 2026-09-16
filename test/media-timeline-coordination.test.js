@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../src/platform/js/data/mission-media.js", () => ({
+    getMissionMediaManifestUrl: () => `${mocks.getMissionMediaDataPath()}media-manifest.json`,
     getMissionMediaDataPath: mocks.getMissionMediaDataPath,
     loadMissionMediaManifest: mocks.loadMissionMediaManifest,
 }));
@@ -125,6 +126,79 @@ describe("createMediaTimelineCoordination", () => {
         globalThis.window = originalWindow;
         globalThis.Audio = originalAudio;
         globalThis.Hls = originalHls;
+    });
+
+    it("keeps transient manifest failure retryable without an automatic request loop", async () => {
+        let finishRetry;
+        mocks.loadMissionMediaManifest.mockRejectedValueOnce(new Error("503"))
+            .mockImplementationOnce(() => new Promise(resolve => { finishRetry = resolve; }));
+        const coordination = createMediaTimelineCoordination();
+        const context = { globalConfig: createMissionConfig({ mediaEnabled: true }), animTime: 1234 };
+        coordination.update(context);
+        await flushPromises(8);
+        expect(mocks.panelRender.mock.calls.at(-1)[0]).toMatchObject({
+            statusText: "Mission media could not be loaded.", manifestRetryAvailable: true,
+        });
+        expect(mocks.panelSetMissionContext.mock.calls.at(-1)[0].available).toBe(true);
+        for (let i = 0; i < 3; i++) coordination.update(context);
+        await flushPromises(8);
+        expect(mocks.loadMissionMediaManifest).toHaveBeenCalledOnce();
+        mocks.panelIntentHandler({ type: "retryManifest" });
+        mocks.panelIntentHandler({ type: "retryManifest" });
+        expect(mocks.loadMissionMediaManifest).toHaveBeenCalledTimes(2);
+        expect(mocks.panelRender.mock.calls.at(-1)[0].manifestRetryAvailable).not.toBe(true);
+        finishRetry({ ui: { panelTitle: "Recovered Mission Media" } });
+        await flushPromises(8);
+        expect(mocks.panelRender.mock.calls.at(-1)[0].panelTitle).toBe("Recovered Mission Media");
+        expect(mocks.panelRender.mock.calls.at(-1)[0].manifestRetryAvailable).not.toBe(true);
+        coordination.dispose();
+    });
+
+    it("keeps genuine manifest absence distinct from a retryable failure", async () => {
+        mocks.loadMissionMediaManifest.mockResolvedValue(null);
+        const coordination = createMediaTimelineCoordination();
+        const context = { globalConfig: createMissionConfig({ mediaEnabled: true }), animTime: 1234 };
+        coordination.update(context); await flushPromises(8);
+        expect(mocks.panelRender.mock.calls.at(-1)[0].statusText).toMatch(/No media manifest/);
+        expect(mocks.panelRender.mock.calls.at(-1)[0].manifestRetryAvailable).not.toBe(true);
+        mocks.panelIntentHandler({ type: "retryManifest" });
+        coordination.update(context); await flushPromises(8);
+        expect(mocks.loadMissionMediaManifest).toHaveBeenCalledOnce();
+        coordination.dispose();
+    });
+
+    it("ignores a late manifest from the previous mission URL", async () => {
+        let finishA, finishB;
+        mocks.loadMissionMediaManifest
+            .mockImplementationOnce(() => new Promise(resolve => { finishA = resolve; }))
+            .mockImplementationOnce(() => new Promise(resolve => { finishB = resolve; }));
+        const coordination = createMediaTimelineCoordination();
+        const context = { globalConfig: createMissionConfig({ mediaEnabled: true }), animTime: 1234 };
+        coordination.update(context);
+        mocks.getMissionMediaDataPath.mockReturnValue("assets/second/data/");
+        coordination.update(context);
+        expect(mocks.loadMissionMediaManifest).toHaveBeenCalledTimes(2);
+        finishB({ ui: { panelTitle: "Second Mission" } }); await flushPromises(8);
+        finishA({ ui: { panelTitle: "First Mission" } }); await flushPromises(8);
+        expect(mocks.panelRender.mock.calls.at(-1)[0].panelTitle).toBe("Second Mission");
+        coordination.dispose();
+    });
+
+    it("does not publish a retried manifest after coordinator disposal", async () => {
+        let finishRetry;
+        mocks.loadMissionMediaManifest.mockRejectedValueOnce(new Error("offline"))
+            .mockImplementationOnce(() => new Promise(resolve => { finishRetry = resolve; }));
+        const coordination = createMediaTimelineCoordination();
+        coordination.update({ globalConfig: createMissionConfig({ mediaEnabled: true }), animTime: 1234 });
+        await flushPromises(8);
+        mocks.panelIntentHandler({ type: "retryManifest" });
+        expect(mocks.loadMissionMediaManifest).toHaveBeenCalledTimes(2);
+        coordination.dispose();
+        mocks.panelRender.mockClear();
+        finishRetry({ ui: { panelTitle: "Late" } }); await flushPromises(8);
+        mocks.panelIntentHandler({ type: "retryManifest" });
+        expect(mocks.panelRender).not.toHaveBeenCalled();
+        expect(mocks.loadMissionMediaManifest).toHaveBeenCalledTimes(2);
     });
 
     it("does not load or bind mission media when the workflow panel is not enabled by config", () => {
