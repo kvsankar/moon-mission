@@ -18,6 +18,44 @@ the current queue owns delivery.
 
 ## Current Verified Queue
 
+### State ownership campaign — 2026-09-16
+
+The user requested a full state-problem inventory and sequential remediation.
+The [state audit](../../evidence/reviews/runtime-state-audit-2026-09-16.md)
+owns findings and proof; the [roadmap](../roadmap.md) remains the only
+cross-workstream priority queue. This campaign takes precedence over the
+generic historical cleanup list below. Do not implement multiple findings in
+one undifferentiated refactor.
+
+Delivery order (one bounded fix, independent review and verification per row):
+
+| Order | Audit IDs | Outcome | Status |
+| --- | --- | --- | --- |
+| 1 | SA-01 | Owned configuration activation, shared loading and bounded supersession recovery | Complete; see audit verification |
+| 2 | SA-02, then SA-07 | Retired media sessions cannot change selection/time; disposal remains terminal | Next; preserve separate regressions/statuses |
+| 3 | SA-03 / RTA-06 | Latest camera intent owns retries; semantic state independent of controls | Pending |
+| 4 | SA-04 | Temporary annotation presentation always restores main-scene state | Pending |
+| 5 | SA-05 | Cancelled/replaced curve work cannot publish resources or readiness | Pending |
+| 6 | SA-06 | Explicit acceptance/disposal ownership at texture handoff | Pending |
+| 7 | SA-09 | Commit restart time before notifying playback consumers | Pending |
+| 8 | SA-10 | Mobile FoV work cannot write after desktop takes ownership | Pending |
+| 9 | SA-15 | Required comparison error with Retry, per user decision | Pending; decision recorded in comparison spec |
+| 10 | SA-08 | Distinguish absent/error manifest state and permit explicit recovery | Pending |
+| 11 | SA-13, then SA-12 | Hidden panels surrender keyboard ownership; Reset View clears tool selection | Pending |
+| 12 | SA-11 | Persist explicit constrained-layout edits without saving automatic collapse | Pending |
+| 13 | SA-14 | Detached controls use their owning window geometry/lifecycle | Pending |
+| 14 | SA-20 | Panel snapshots do not expose writable registry data | Pending |
+| 15 | SA-16/17/18/19/21/22 | Reproduce/disposition scene mirrors, shared assets, disposal, dormant caches and workspace lifecycle contracts | Risks; do not implement speculative fixes |
+
+The inventory contains 16 confirmed module/browser defects or approved behavior
+gaps, plus six risk areas. It does not certify an exhaustive absence of other
+state defects. Keep new findings in the same audit/plan rather than creating
+another roadmap. Any new product choice needed by a risk must be resolved
+before implementing it. The broader architecture list below remains context,
+not a competing priority queue.
+
+### Broader architectural context
+
 The user requested a new transition/lifecycle audit alongside test-harness
 modernization on 2026-09-15. See the
 [paired plan](runtime-transition-audit-and-tests.md) and

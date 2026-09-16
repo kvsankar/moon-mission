@@ -56,6 +56,40 @@ function buildDeps(overrides = {}) {
 }
 
 describe("createInitConfigOrchestrationActions", () => {
+    it("releases a failed shared load so an explicit retry can publish", async () => {
+        let reject;
+        const pending = new Promise((resolve, fail) => { reject = fail; });
+        const config = { origins: ["geo"] };
+        const deps = buildDeps({ loadMissionConfig: vi.fn().mockReturnValueOnce(pending).mockResolvedValue(config) });
+        const actions = createInitConfigOrchestrationActions(deps);
+        const attempts = Promise.allSettled([actions.ensureGlobalConfigLoaded(), actions.ensureGlobalConfigLoaded()]);
+        reject(new Error("offline"));
+        expect((await attempts).map(result => result.status)).toEqual(["rejected", "rejected"]);
+        expect(deps.loadMissionConfig).toHaveBeenCalledOnce();
+        expect(deps.setGlobalConfig).not.toHaveBeenCalled();
+        await actions.ensureGlobalConfigLoaded();
+        expect(deps.loadMissionConfig).toHaveBeenCalledTimes(2);
+        expect(deps.setGlobalConfig).toHaveBeenCalledExactlyOnceWith(config);
+    });
+
+    it("shares pending configuration work and publishes mission defaults only once", async () => {
+        let release;
+        const loaded = new Promise(resolve => { release = resolve; });
+        const config = { ui: { viewDefaults: { viewSky: false } } };
+        const deps = buildDeps({ loadMissionConfig: vi.fn(() => loaded) });
+        const actions = createInitConfigOrchestrationActions(deps);
+        const first = actions.ensureGlobalConfigLoaded();
+        const second = actions.ensureGlobalConfigLoaded();
+        release(config);
+        await Promise.all([first, second]);
+        expect(deps.loadMissionConfig).toHaveBeenCalledOnce();
+        expect(deps.setGlobalConfig).toHaveBeenCalledExactlyOnceWith(config);
+        expect(deps.applyViewSettings).toHaveBeenCalledOnce();
+        expect(deps.bindInfoPanelControls).toHaveBeenCalledOnce();
+        await actions.ensureGlobalConfigLoaded();
+        expect(deps.applyViewSettings).toHaveBeenCalledOnce();
+    });
+
     it("fails required configuration without publishing defaults and allows explicit retry", async () => {
         const loadedConfig = { ui: { dockviewEnabled: false } };
         const deps = buildDeps({

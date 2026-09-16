@@ -66,6 +66,8 @@ function createInitConfigOrchestrationActions(deps) {
         applyViewSettings?.(effectiveViewDefaults);
     }
 
+    let pendingConfigLoad = null;
+
     async function ensureGlobalConfigLoaded() {
         const hasGlobalConfig = getGlobalConfig() != null;
 
@@ -87,6 +89,15 @@ function createInitConfigOrchestrationActions(deps) {
             return;
         }
 
+        if (!pendingConfigLoad) {
+            pendingConfigLoad = loadAndPublishGlobalConfig().finally(() => {
+                pendingConfigLoad = null;
+            });
+        }
+        return pendingConfigLoad;
+    }
+
+    async function loadAndPublishGlobalConfig() {
         const loadedBaseConfig = await loadMissionConfig();
         if (!loadedBaseConfig) {
             throw new Error("Required mission configuration failed to load");

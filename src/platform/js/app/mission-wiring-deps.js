@@ -228,6 +228,7 @@ function createInitConfigWiringDeps(ctx, { getStartAndEndTimes, loadProgress }) 
 function createInitConfigFlowDeps(ctx, { initConfigWiring }) {
     return {
         getConfig: ctx.getConfig,
+        getTransitionRevision: ctx.getTransitionRevision,
         getAnimationScene: (cfg) => ctx.animationScenes[cfg],
         AnimationScene: ctx.AnimationScene,
         shouldSkipInitConfig: ctx.shouldSkipInitConfig,

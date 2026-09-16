@@ -63,6 +63,18 @@ to the runtime through a synthetic ID:
 CMP_<MISSION>_<CRAFT>
 ```
 
+## Required Comparison Loading And Recovery
+
+When comparison mode is requested, the secondary mission is required. If its
+configuration cannot be loaded or validated, initialization must show a visible
+comparison error with a Retry action. It must not silently report base-only
+initialization as a successful comparison or present an implicit partial mode.
+
+Retry may reuse valid primary-mission data, but a failed secondary load must
+not be cached as successful comparison readiness. Ordinary non-compare startup
+is unaffected. This failure policy was selected by the user on 2026-09-16;
+implementation is tracked as SA-15 in the runtime state audit.
+
 ## Comparison Clock
 
 Conceptually, compare mode uses fictional anchor-relative parameter `tau`. It

@@ -19,11 +19,26 @@ The preserved May planning snapshot is
 
 ## Current Priority
 
-### 1. Reduce camera-state ownership ambiguity (RTA-06)
+### 1. Audit runtime state ownership and remediate sequentially
 
-With RTA-01 through RTA-05 corrected, move semantic camera state toward
-a narrow authoritative state port, with DOM controls as projections. Define a
-bounded design slice; do not launch another broad refactor.
+On 2026-09-16 the user expanded RTA-06 into an audit of all state-related
+problem areas, followed by one-at-a-time remediation. Survey session/view,
+camera, clock/media, loading/cache/resource lifetime, panels/mobile/persistence,
+comparison and compatibility mirrors. Separate reproduced defects from design
+risks; do not equate every mutable object or derived UI value with a defect.
+
+The [state audit](../evidence/reviews/runtime-state-audit-2026-09-16.md) records
+the inventory, evidence and review limits. Prioritize confirmed stale-publication
+and cross-session contamination before broad ownership cleanup. RTA-06 stays
+in scope; prior RTA-01 through RTA-05 fixes must remain protected.
+
+SA-01 is complete: configuration initialization is guarded against superseding
+startup, origin/dimension revisions and scene replacement, with explicit
+outcomes, shared loading and bounded latest-view handoff. Next: SA-02 retired
+foreground-media session ownership, then SA-07 terminal disposal. The scoped
+plan orders the remaining 15 confirmed gaps and six risk areas, each
+with a failing regression, minimal implementation, independent review and
+re-verification. Commit and push each completed slice; no deployment.
 
 Owner: [Runtime Architecture Follow-Ups](implementation/runtime-architecture-followups.md).
 
@@ -63,6 +78,9 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- State audit inventory and SA-01 configuration publication ownership:
+  [audit and verification](../evidence/reviews/runtime-state-audit-2026-09-16.md).
 
 - Vitest/coverage/mocker migration to exact 4.1.11, with isolated sequential
   execution and constructor-compatible test fixtures. The repository npm audit

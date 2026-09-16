@@ -8,10 +8,11 @@ import * as overlay from "../src/platform/js/ui/mission-loading-overlay.js";
 import { createInitOrchestrationActions } from "../src/platform/js/app/init-orchestration.js";
 
 function harness() {
+    const initConfig = vi.fn().mockResolvedValue(undefined);
     const init = vi.fn().mockResolvedValue({ status: "ready", config: "geo" });
     const render = vi.fn(), raf = vi.fn(), schedule = vi.fn(), setDimension = vi.fn();
     const actions = createInitOrchestrationActions({
-        initConfig: vi.fn().mockResolvedValue(undefined), init, getConfig: () => "geo",
+        initConfig, init, getConfig: () => "geo",
         isOrbitDataProcessed: () => false,
         missionStart: vi.fn(), setLocation: vi.fn(), setDimension,
         getSetView: () => vi.fn(), getChangeCameraFromTo: () => vi.fn(),
@@ -21,12 +22,36 @@ function harness() {
         getStartTime: () => 0, getLatestEndTime: () => 1000,
     });
     const retry = () => overlay.setMissionLoadingRetry.mock.calls.map(([handler]) => handler).filter(Boolean).at(-1);
-    return { init, render, raf, schedule, setDimension, actions, retry };
+    return { initConfig, init, render, raf, schedule, setDimension, actions, retry };
 }
 beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal("document", undefined); vi.spyOn(console, "error").mockImplementation(() => {}); });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("terminal startup outcomes and retry", () => {
+    it("hands superseded configuration to the latest view before starting orbit work", async () => {
+        const h = harness();
+        h.initConfig.mockResolvedValueOnce({ status: "superseded", config: "geo" });
+        await h.actions.initAnimation({ reset: false });
+        expect(h.initConfig).toHaveBeenCalledTimes(2);
+        expect(h.initConfig.mock.calls[0][0].isCurrent()).toBe(false);
+        expect(h.initConfig.mock.calls[1][0].isCurrent()).toBe(true);
+        expect(h.init).toHaveBeenCalledOnce();
+        expect(h.setDimension).toHaveBeenCalledOnce();
+        expect(h.raf).toHaveBeenCalledOnce();
+        expect(overlay.failMissionLoadingOverlay).not.toHaveBeenCalled();
+    });
+
+    it("bounds repeated configuration supersession and offers Retry", async () => {
+        const h = harness();
+        h.initConfig.mockResolvedValue({ status: "superseded", config: "geo" });
+        await h.actions.initAnimation({ reset: false });
+        expect(h.initConfig).toHaveBeenCalledTimes(2);
+        expect(h.init).not.toHaveBeenCalled();
+        expect(h.raf).not.toHaveBeenCalled();
+        expect(overlay.failMissionLoadingOverlay).toHaveBeenCalledOnce();
+        expect(h.retry()).toBeTypeOf("function");
+    });
+
     it("shows a retryable error instead of polling a failed load forever", async () => {
         const h = harness();
         h.init.mockResolvedValueOnce({ status: "failed", config: "geo", error: new Error("503") });

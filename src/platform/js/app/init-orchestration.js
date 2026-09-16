@@ -258,10 +258,12 @@ function createInitOrchestrationActions(deps) {
         };
         try {
             setMissionLoadingMessage("Loading mission configuration...");
-            await initConfig();
+            let outcome = await initConfig({ isCurrent: () => runId === latestInitRunId });
             if (runId !== latestInitRunId) return;
-            setMissionLoadingMessage("Preparing orbit data...");
-            const outcome = await init(() => {}, { isCurrent: () => runId === latestInitRunId });
+            if (outcome?.status !== "superseded") {
+                setMissionLoadingMessage("Preparing orbit data...");
+                outcome = await init(() => {}, { isCurrent: () => runId === latestInitRunId });
+            }
             if (runId !== latestInitRunId) return;
             if (outcome?.status === "superseded") {
                 // A plane/dimension request can supersede data work without

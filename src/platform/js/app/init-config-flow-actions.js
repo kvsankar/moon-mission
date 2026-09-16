@@ -1,6 +1,7 @@
 function createInitConfigFlowActions(deps) {
     const {
         getConfig,
+        getTransitionRevision = () => 0,
         getAnimationScene,
         AnimationScene,
         shouldSkipInitConfig,
@@ -20,9 +21,19 @@ function createInitConfigFlowActions(deps) {
         consoleRef,
     } = deps;
 
-    async function initConfig() {
+    let latestAttempt = 0;
+
+    async function initConfig({ isCurrent: isCallerCurrent = () => true } = {}) {
         const config = getConfig();
+        if (!isCallerCurrent()) return { status: "superseded", config };
+        const attempt = ++latestAttempt;
+        const revision = getTransitionRevision();
         const existingScene = getAnimationScene(config);
+        const isCurrent = () => attempt === latestAttempt && isCallerCurrent() &&
+            config === getConfig() && revision === getTransitionRevision() &&
+            getAnimationScene(config) === existingScene;
+        const superseded = () => ({ status: "superseded", config });
+        if (!isCurrent()) return superseded();
         if (shouldSkipInitConfig({ animationScene: existingScene, AnimationScene })) {
             applyInitConfigAlreadyInitialized({
                 config,
@@ -37,10 +48,18 @@ function createInitConfigFlowActions(deps) {
                     syncPlaneSelectionControls(normalized, setChecked);
                 },
             });
-            return;
+            return { status: "ready", config };
         }
 
-        await initConfigOrchestrationActions.ensureGlobalConfigLoaded();
+        try {
+            // Mission-wide loading is shared; activation effects belong only to
+            // this origin/scene/revision and the latest startup owner.
+            await initConfigOrchestrationActions.ensureGlobalConfigLoaded();
+        } catch (error) {
+            if (!isCurrent()) return superseded();
+            throw error;
+        }
+        if (!isCurrent()) return superseded();
 
         const configData = getGlobalConfig();
         initConfigOrchestrationActions.applyConfigDerivedUpdates();
@@ -56,6 +75,7 @@ function createInitConfigFlowActions(deps) {
 
         setSceneState(config, AnimationScene.SCENE_STATE_INIT_CONFIG_DONE);
         consoleRef.debug(`initConfig(${config}) returning - state at SCENE_STATE_ADD_CURVE_DONE`);
+        return { status: "ready", config };
     }
 
     return {
