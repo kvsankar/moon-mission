@@ -28,6 +28,20 @@ beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal("document", undefined); vi.
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("terminal startup outcomes and retry", () => {
+    it("shows a comparison-specific error and retries without starting a partial mission", async () => {
+        const h = harness();
+        h.initConfig.mockRejectedValueOnce(Object.assign(new Error("secondary unavailable"), { name: "ComparisonLoadError" }));
+        await h.actions.initAnimation({ reset: false });
+        expect(overlay.failMissionLoadingOverlay).toHaveBeenCalledExactlyOnceWith(
+            "Comparison mission could not be loaded.", undefined, { kind: "comparison" });
+        expect(h.init).not.toHaveBeenCalled();
+        expect(h.raf).not.toHaveBeenCalled();
+        await h.retry()();
+        expect(h.initConfig).toHaveBeenCalledTimes(2);
+        expect(h.init).toHaveBeenCalledOnce();
+        expect(h.raf).toHaveBeenCalledOnce();
+    });
+
     it("hands superseded configuration to the latest view before starting orbit work", async () => {
         const h = harness();
         h.initConfig.mockResolvedValueOnce({ status: "superseded", config: "geo" });

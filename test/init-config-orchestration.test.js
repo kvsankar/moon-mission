@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createInitConfigOrchestrationActions } from "../src/platform/js/app/init-config-orchestration.js";
+import { loadComparisonOverlayConfig } from "../src/platform/js/app/comparison-overlay-loader.js";
+import { readFileSync } from "node:fs";
 
 function buildDeps(overrides = {}) {
     let globalConfig = null;
@@ -56,6 +58,50 @@ function buildDeps(overrides = {}) {
 }
 
 describe("createInitConfigOrchestrationActions", () => {
+    it("retries required comparison without refetching or mutating the cached primary configuration", async () => {
+        vi.resetModules();
+        const primary = JSON.parse(readFileSync(new URL("../assets/chandrayaan3/data/config.json", import.meta.url), "utf8"));
+        const secondary = JSON.parse(readFileSync(new URL("../assets/artemis1/data/config.json", import.meta.url), "utf8"));
+        let failSecondary = true, primaryRequests = 0, secondaryRequests = 0;
+        const windowRef = { location: { search: "?mode=compare&compareMission=artemis1" },
+            missionConfig: { dataPath: "assets/chandrayaan3/data/" } };
+        const fetchImpl = vi.fn(async url => {
+            if (url === "assets/chandrayaan3/data/config.json") {
+                primaryRequests += 1;
+                return { ok: true, json: async () => structuredClone(primary) };
+            }
+            if (url === "assets/artemis1/data/config.json") {
+                secondaryRequests += 1;
+                return failSecondary ? { ok: false, status: 503 } : { ok: true, json: async () => structuredClone(secondary) };
+            }
+            return { ok: false, status: 404 };
+        });
+        vi.stubGlobal("window", windowRef);
+        vi.stubGlobal("fetch", fetchImpl);
+        const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+        try {
+            const { loadMissionConfig } = await import("../src/platform/js/data/mission-data.js");
+            const deps = buildDeps({ loadMissionConfig, loadComparisonOverlay: baseConfig => loadComparisonOverlayConfig({
+                baseConfig, windowRef, fetchImpl, createUTCTimestamp: () => 0,
+            }) });
+            const actions = createInitConfigOrchestrationActions(deps);
+            await expect(actions.ensureGlobalConfigLoaded()).rejects.toMatchObject({ name: "ComparisonLoadError" });
+            expect(deps.setGlobalConfig).not.toHaveBeenCalled();
+            expect(deps.bindInfoPanelControls).not.toHaveBeenCalled();
+            const cached = await loadMissionConfig();
+            const snapshot = structuredClone(cached);
+            failSecondary = false;
+            await actions.ensureGlobalConfigLoaded();
+            expect(primaryRequests).toBe(1);
+            expect(secondaryRequests).toBe(2);
+            expect(deps.setGlobalConfig).toHaveBeenCalledOnce();
+            expect(deps.getGlobalConfig().comparisonOverlay.compareCraftId).toMatch(/^CMP_ARTEMIS1_/);
+            expect(cached).toEqual(snapshot);
+            expect(cached.comparisonOverlay).toBeUndefined();
+            expect(await loadMissionConfig()).toBe(cached);
+        } finally { debug.mockRestore(); vi.unstubAllGlobals(); }
+    });
+
     it("releases a failed shared load so an explicit retry can publish", async () => {
         let reject;
         const pending = new Promise((resolve, fail) => { reject = fail; });

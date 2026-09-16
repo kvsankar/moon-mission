@@ -68,7 +68,7 @@ function hideMissionLoadingOverlay(documentRef) {
     doc.documentElement?.classList?.add("mission-loading-complete");
 }
 
-function failMissionLoadingOverlay(message, documentRef) {
+function failMissionLoadingOverlay(message, documentRef, { kind = "mission" } = {}) {
     const doc = resolveDocument(documentRef);
     if (!doc) return;
     const overlay = getLoadingOverlay(doc);
@@ -79,7 +79,9 @@ function failMissionLoadingOverlay(message, documentRef) {
     overlay.dataset.blocking = "false";
     overlay.setAttribute?.("aria-busy", "false");
     const hint = doc.getElementById?.("mission-loading-overlay-hint");
-    if (hint) hint.textContent = "Check your connection, retry, or choose another origin.";
+    if (hint) hint.textContent = kind === "comparison"
+        ? "Check your connection and retry the comparison."
+        : "Check your connection, retry, or choose another origin.";
 }
 
 export {

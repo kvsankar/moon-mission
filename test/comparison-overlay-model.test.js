@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     buildComparisonOverlayAugmentation,
+    buildComparisonTimeRanges,
     mergeComparisonOverlayIntoBaseConfig,
 } from "../src/platform/js/app/comparison-overlay-model.js";
 
@@ -86,6 +87,25 @@ function createCompareMissionConfig() {
 }
 
 describe("comparison overlay model", () => {
+    it("does not coerce missing range endpoints into epoch-zero comparison coverage", () => {
+        const { sourceTimeRangesByOrigin } = buildComparisonTimeRanges({
+            primaryConfig: createBaseConfig(), primaryCraftId: "PM",
+            comparisonConfig: { origins: ["geo"], geo: {} }, comparisonCraftId: "CM",
+        });
+        expect(sourceTimeRangesByOrigin).toEqual({});
+    });
+
+    it("preserves a real epoch-zero range without inventing absent origin ranges", () => {
+        const zeroConfig = {
+            origins: ["geo"], spacecraft_mnemonic: "CM",
+            geo: { startTime: "1970-01-01T00:00:00Z", endTime: "1970-01-01T00:00:01Z" },
+        };
+        const ranges = buildComparisonTimeRanges({ primaryConfig: zeroConfig, primaryCraftId: "CM",
+            comparisonConfig: zeroConfig, comparisonCraftId: "CM" });
+        expect(ranges.sourceTimeRangesByOrigin).toEqual({ geo: { startMs: 0, endMs: 1000 } });
+        expect(ranges.displayTimeRangesByOrigin).toEqual({ geo: { startMs: 0, endMs: 1000 } });
+    });
+
     it("builds a pure compare overlay augmentation that can be merged into runtime config", () => {
         const baseConfig = createBaseConfig();
         const augmentation = buildComparisonOverlayAugmentation({

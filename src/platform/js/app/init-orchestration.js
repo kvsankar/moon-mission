@@ -319,10 +319,14 @@ function createInitOrchestrationActions(deps) {
             applyReady();
         } catch (error) {
             if (runId !== latestInitRunId) return;
-            const message = "Mission data could not be loaded.";
+            const message = error?.name === "ComparisonLoadError"
+                ? "Comparison mission could not be loaded."
+                : "Mission data could not be loaded.";
             d3.select("#eventinfo").text(message);
             releaseStartupButtonDisable();
-            failMissionLoadingOverlay(message);
+            failMissionLoadingOverlay(message, undefined, {
+                kind: error?.name === "ComparisonLoadError" ? "comparison" : "mission",
+            });
             setMissionLoadingRetry(() => {
                 if (runId !== latestInitRunId) return;
                 setMissionLoadingRetry(null);

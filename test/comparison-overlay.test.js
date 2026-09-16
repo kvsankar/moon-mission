@@ -296,6 +296,7 @@ describe("comparison overlay", () => {
             if (url === "assets/artemis1/data/ephemeris-manifest.json") {
                 return {
                     ok: false,
+                    status: 404,
                     json: async () => null,
                 };
             }
@@ -383,6 +384,7 @@ describe("comparison overlay", () => {
             if (url === "assets/artemis1/data/ephemeris-manifest.json") {
                 return {
                     ok: false,
+                    status: 404,
                     json: async () => null,
                 };
             }
@@ -419,6 +421,7 @@ describe("comparison overlay", () => {
             if (url === "assets/artemis1/data/ephemeris-manifest.json") {
                 return {
                     ok: false,
+                    status: 404,
                     json: async () => null,
                 };
             }

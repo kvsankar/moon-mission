@@ -41,7 +41,8 @@ are complete, along with SA-04 annotation restoration and SA-05 owned curve
 construction/cancellation. SA-06 texture handoff, SA-17 shared resource ownership
 and SA-18 terminal scene disposal are complete, including real receiver cleanup.
 SA-09 playback restart publication and SA-10 mobile FoV ownership are complete.
-SA-15 comparison error/Retry is next, following the recorded user decision.
+SA-15 required comparison error/Retry is complete, including review-driven
+metadata validation. SA-08 media-manifest failure recovery is next.
 The scoped plan orders the remaining
 confirmed gaps and risk areas, each
 with a failing regression, minimal implementation, independent review and

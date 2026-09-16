@@ -75,6 +75,12 @@ not be cached as successful comparison readiness. Ordinary non-compare startup
 is unaffected. This failure policy was selected by the user on 2026-09-16;
 implementation is tracked as SA-15 in the runtime state audit.
 
+A secondary ephemeris manifest may be absent (HTTP 404), in which case normal
+configuration-derived asset paths apply. An unavailable or malformed manifest
+is not proof of absence and requires the same explicit Retry. Errors identify
+comparison loading without exposing raw network response details. Comparison
+recovery guidance must not suggest origin switching, which this mode disables.
+
 ## Comparison Clock
 
 Conceptually, compare mode uses fictional anchor-relative parameter `tau`. It

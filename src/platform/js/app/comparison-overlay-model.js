@@ -20,6 +20,10 @@ function asTrimmedString(value, fallback = "") {
 }
 
 function buildTimeRangeObject(rangeTuple) {
+    if ([rangeTuple?.[0], rangeTuple?.[1]].some(value =>
+        value == null || (typeof value === "string" && value.trim() === ""))) {
+        return null;
+    }
     const startMs = Number(rangeTuple?.[0]);
     const endMs = Number(rangeTuple?.[1]);
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) {

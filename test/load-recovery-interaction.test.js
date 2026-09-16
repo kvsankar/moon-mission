@@ -19,6 +19,49 @@ async function waitForReady(page, origin = "geo") {
 }
 
 describe("mission load recovery", () => {
+    it("shows a required comparison error and retries the second mission without reloading the primary", async () => {
+        await browserScenario(async page => {
+            let fail = true, primaryRequests = 0, secondaryRequests = 0;
+            await page.route(/\/chandrayaan3\/data\/config\.json(?:\?.*)?$/, async route => {
+                primaryRequests += 1;
+                await route.continue();
+            });
+            await page.route(/\/artemis1\/data\/config\.json(?:\?.*)?$/, async route => {
+                secondaryRequests += 1;
+                if (fail) await route.fulfill({ status: 503, body: "Comparison temporarily unavailable" });
+                else await route.continue();
+            });
+            await page.goto(`${getEffectiveTestBaseUrl()}/chandrayaan3/?testMode=true&mode=compare&compareMission=artemis1`,
+                { waitUntil: "domcontentloaded" });
+            await page.waitForFunction(() => document.querySelector("#mission-loading-overlay")?.dataset.state === "error",
+                null, { timeout: 45000 });
+            expect(await page.locator("#mission-loading-overlay-message").textContent()).toMatch(/comparison/i);
+            expect(await page.locator("#mission-loading-overlay").getAttribute("aria-busy")).toBe("false");
+            expect(await page.evaluate(() => Object.values(window.animationScenes || {}).some(scene => scene?.initialized3D))).toBe(false);
+            const primaryBeforeRetry = primaryRequests;
+            expect(primaryBeforeRetry).toBeGreaterThan(0);
+            fail = false;
+            const retry = page.getByRole("button", { name: "Retry loading mission", exact: true });
+            await retry.focus(); await page.keyboard.press("Enter");
+            await page.waitForFunction(() => document.querySelector("#mission-loading-overlay")?.dataset.state === "ready"
+                && Object.values(window.animationScenes || {}).some(scene => scene?.initialized3D
+                    && Object.entries(scene.orbitLinesByBodyId || {}).some(([id, lines]) => id.startsWith("CMP_ARTEMIS1_") && lines.length > 0)),
+                null, { timeout: 60000 });
+            expect(await page.locator("#mission-loading-retry").isVisible()).toBe(false);
+            expect(await page.locator("#canvas-wrapper canvas").isVisible()).toBe(true);
+            const visibleCraftIds = await page.evaluate(() => {
+                const scene = Object.values(window.animationScenes || {}).find(scene =>
+                    scene?.initialized3D && Object.keys(scene.orbitLinesByBodyId || {}).some(id => id.startsWith("CMP_ARTEMIS1_")));
+                return { primary: scene?.primaryCraftId,
+                    rendered: Object.entries(scene?.orbitLinesByBodyId || {}).filter(([, lines]) => lines.length > 0).map(([id]) => id) };
+            });
+            expect(visibleCraftIds.rendered).toContain(visibleCraftIds.primary);
+            expect(visibleCraftIds.rendered.some(id => id.startsWith("CMP_ARTEMIS1_"))).toBe(true);
+            expect(primaryRequests).toBe(primaryBeforeRetry);
+            expect(secondaryRequests).toBeGreaterThanOrEqual(2);
+        });
+    }, 120000);
+
     it("recovers from a real orbit HTTP failure through the keyboard Retry action", async () => {
         await browserScenario(async page => {
             let fail = true, failures = 0;

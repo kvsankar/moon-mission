@@ -277,6 +277,42 @@ Independent UI review cleared the guards and real resize/preset integration.
 continuity and desktop FoV restoration followed by another desktop resize.
 SA-10 is complete; no visual baselines or disclosure policy were changed.
 
+## SA-15 — Required Comparison Error And Retry
+
+Loader RED: **16 failures / two passes** before implementation. Required config
+HTTP/network/JSON/schema failures, missing/unsafe selection, unavailable setup,
+unusable overlay metadata and unavailable manifest data now raise a typed
+`ComparisonLoadError`; compare mode cannot silently publish base-only success.
+Optional manifest 404 remains absence, while other HTTP/network/malformed
+responses are retryable failures. Non-compare startup remains a no-op here.
+
+The real cached-primary/configuration-publication regression also failed before
+the loader fix. Retry now refetches the secondary, publishes only the completed
+overlay, and neither refetches nor mutates valid primary configuration.
+Root presentation RED tests covered the generic error message and the misleading
+origin-switching hint; comparison now has explicit error/retry guidance.
+
+**45 combined focused tests / five files** passed. All **four browser recovery
+checks** passed, including real secondary HTTP 503, visible comparison error,
+keyboard Retry, both mission curves present afterward, and unchanged primary
+configuration request count. The initial full suite passed **1,845 tests, six
+skipped, 237 files**, but independent review found two closure-blocking gaps:
+missing time endpoints coerced to zero by the real comparison model, and an
+invalid manifest shape accepted as fallback metadata. These require tracked
+regressions, fixes and re-verification before closure; the first green run is
+not the final evidence.
+
+The review follow-up produced **11 additional RED cases** before correction.
+The model now rejects absent/blank endpoints before numeric coercion (genuine
+epoch-zero times remain valid). The loader checks supplied manifest map and
+artifact path shapes without imposing new requirements on optional metadata.
+Supported string, direct-phase, `runtime` and `path` forms remain covered.
+Independent rereview cleared both findings, with **62 tests / six files**
+passing. The post-fix browser comparison Retry test also passed with both
+primary and overlay curves present. Final full-unit verification: **1,860 passed,
+six skipped, 237 files**. SA-15 is complete after fixing and rereviewing both
+validation findings.
+
 ## Risk Triage Follow-Up
 
 Independent probes strengthened the original risk inventory. SA-17/18 are now
