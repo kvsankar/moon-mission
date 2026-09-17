@@ -20,6 +20,10 @@ This repository uses Vitest + Playwright with complementary suites.
     other missions or a mounted Dockview workspace.
   - Compares the same scene region in both images, below the header and above
     bottom controls. Chrome is covered separately, not by scene SSIM.
+  - The migration disposition for all tracked scene baselines is executable in
+    `test/support/cy3-ssim-disposition.js` and guarded by
+    `test/ssim-coverage-disposition.test.js`. Until the harness split is
+    complete, this inventory does not itself remove legacy captures.
 
 - **Workspace/chrome/mobile behavior**
   - `npm run test:browser:progressive` checks Dockview disclosure, keyboard

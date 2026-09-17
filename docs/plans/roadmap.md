@@ -1,6 +1,6 @@
 # Moon Mission Roadmap
 
-Last reviewed: 2026-09-16
+Last reviewed: 2026-09-17
 
 ## Authority
 
@@ -71,6 +71,16 @@ pre-existing failure before changing versions; keep the existing thresholds
 and loaded-file scope intact while prioritizing missing tests. Review the v4
 AST-remapped denominators rather than comparing percentages as if the coverage
 engines were identical. See [migration evidence](../evidence/reviews/vitest4-migration-2026-09-16.md).
+
+The 86-baseline CY3 disposition inventory is complete and executable: 14
+retained visual checks, 71 replacements with named semantic evidence, and one
+exact duplicate to retire. The first identified integration gap is also closed:
+all plane presets now run through visible progressive controls in the normal
+Dockview browser transition suite. No legacy baseline or score-history entry
+has been removed yet. Next, split the monolithic harness according to the
+reviewed inventory, verify the retained set, then retire obsolete PNGs and the
+historical score-decrease gate. Evidence:
+[CY3 SSIM Coverage Disposition](../evidence/reviews/cy3-ssim-coverage-disposition-2026-09-17.md).
 
 Harden browser startup diagnostics/readiness as part of this harness work:
 clean-install Vite optimizer reloads invalidated a retained scene handle, and

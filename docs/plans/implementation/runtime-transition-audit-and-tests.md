@@ -36,8 +36,12 @@ RTA-01 through RTA-03 have executable opt-in desired-contract reproductions in
 authorized the bounded RTA-01/02 implementation; those probes now pass and
 their regressions run in the normal unit suite. Subsequent approved work fixed
 RTA-03/04/05 as well: [recovery and readiness evidence](../../evidence/reviews/runtime-recovery-and-readiness-2026-09-15.md).
-All three original audit probes now pass. RTA-06 and wider coverage migration
-remain open. See also [supersession evidence](../../evidence/reviews/runtime-transition-supersession-2026-09-15.md).
+All three original audit probes now pass. RTA-06 and the runtime state-remediation
+campaign are complete. The old-to-new baseline inventory and the first missing
+plane-control browser regression are complete; the remaining work is the
+reviewed harness split and legacy-gate removal. See
+[CY3 SSIM Coverage Disposition](../../evidence/reviews/cy3-ssim-coverage-disposition-2026-09-17.md)
+and [supersession evidence](../../evidence/reviews/runtime-transition-supersession-2026-09-15.md).
 
 ## Parallel Workstreams
 
@@ -106,6 +110,12 @@ real-time responsiveness and asset-ready browser checks remain separate.
    at a time, with its regression test already in place.
 5. Complete the old-to-new coverage map and reviewed SSIM disposition before
    changing the default test gate or retiring legacy tests.
+
+The coverage map in item 5 is now executable and complete for all 86 tracked
+scene baselines: 14 retain, 71 replace with named semantic evidence, and one
+retire as an exact duplicate. No baseline has yet been removed. The next slice
+must implement the harness split, run the retained set, and only then remove
+obsolete captures and score-history entries.
 
 The detailed human UX review remains deferred until other roadmap work is
 finished. This technical audit is not a substitute for that review.

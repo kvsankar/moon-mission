@@ -29,6 +29,8 @@ async function snapshot(page) {
             sceneName: scene?.name,
             sceneState: scene?.state,
             initialized3D: scene?.initialized3D === true,
+            planeSelection: scene?.planeSelection,
+            planeVariables: [scene?.xFactor, scene?.yFactor, scene?.zFactor],
             currentTime: Number(slider?.dataset.currentTimeMs),
             rangeMin: Number(slider?.dataset.rangeMinMs),
             rangeMax: Number(slider?.dataset.rangeMaxMs),
@@ -280,6 +282,62 @@ describe("CY3 semantic runtime transitions in the normal Dockview workspace", ()
             expect(errors).toEqual([]);
         } catch (error) {
             await recordFailure(page, "dimension-cold-warm", error);
+            throw error;
+        } finally { await context.close(); }
+    }, TIMEOUT * 2);
+
+    it("applies every plane preset through visible controls without advancing mission time", async () => {
+        const { context, page, errors } = await openScenario();
+        try {
+            const initialTime = (await snapshot(page)).currentTime;
+            const presets = [
+                ["default", "DEFAULT"],
+                ["xy", "XY"],
+                ["yz", "YZ"],
+                ["zx", "ZX"],
+                ["xy-minus", "XY-"],
+                ["yz-minus", "YZ-"],
+                ["zx-minus", "ZX-"],
+            ];
+
+            for (const [id, selection] of presets) {
+                await useViewControl(page, `#plane-pill-${id}`);
+                await page.waitForFunction(({ id, selection }) => {
+                    const scene = window.animationScenes?.geo;
+                    return scene?.planeSelection === selection
+                        && document.getElementById(`checkbox-lock-${id}`)?.checked === true
+                        && document.getElementById(`plane-pill-${id}`)?.getAttribute("aria-pressed") === "true";
+                }, { id, selection });
+                const state = await snapshot(page);
+                expect(state.planeSelection).toBe(selection);
+                expect(state.planeVariables).toHaveLength(3);
+                expect(state.planeVariables.every(Number.isFinite)).toBe(true);
+                expect(state.currentTime).toBe(initialTime);
+                expectValidClock(state);
+            }
+
+            await useViewControl(page, "#dimension-pill-2d");
+            await waitForView(page, "geo", "2D");
+            await useViewControl(page, "#plane-pill-yz-minus");
+            await page.waitForFunction(() => window.animationScenes?.geo?.planeSelection === "YZ-"
+                && document.getElementById("checkbox-lock-yz-minus")?.checked === true);
+            const earth2D = await snapshot(page);
+            expect(earth2D.currentTime).toBe(initialTime);
+            expect(earth2D.planeSelection).toBe("YZ-");
+
+            await useViewControl(page, "#origin-pill-moon");
+            await waitForView(page, "lunar", "2D");
+            const lunarBefore = await snapshot(page);
+            await useViewControl(page, "#plane-pill-xy");
+            await page.waitForFunction(() => window.animationScenes?.lunar?.planeSelection === "XY"
+                && document.getElementById("checkbox-lock-xy")?.checked === true);
+            const moon2D = await snapshot(page);
+            expect(moon2D.currentTime).toBe(lunarBefore.currentTime);
+            expect(moon2D.planeSelection).toBe("XY");
+            expectValidClock(moon2D);
+            expect(errors).toEqual([]);
+        } catch (error) {
+            await recordFailure(page, "plane-presets", error);
             throw error;
         } finally { await context.close(); }
     }, TIMEOUT * 2);
