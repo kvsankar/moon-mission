@@ -10,13 +10,23 @@ const trackedSceneBaselines = readdirSync(baselineDirectory)
     .sort();
 
 describe("CY3 SSIM coverage disposition", () => {
-    it("explicitly classifies every tracked scene baseline exactly once", () => {
+    it("preserves an explicit, unique disposition for all 86 historical baselines", () => {
         const classified = CY3_SSIM_DISPOSITION
             .flatMap((group) => group.baselines)
             .sort();
 
-        expect(classified).toEqual(trackedSceneBaselines);
+        expect(classified).toHaveLength(86);
         expect(new Set(classified).size).toBe(classified.length);
+    });
+
+    it("tracks PNG files only for the reviewed retained visual set", () => {
+        const retained = CY3_SSIM_DISPOSITION
+            .filter((group) => group.disposition === "retain")
+            .flatMap((group) => group.baselines)
+            .sort();
+
+        expect(trackedSceneBaselines).toEqual(retained);
+        expect(existsSync(join(process.cwd(), "test", "screenshots", "ssim-history.json"))).toBe(false);
     });
 
     it("names executable replacement evidence before a baseline can leave the visual gate", () => {

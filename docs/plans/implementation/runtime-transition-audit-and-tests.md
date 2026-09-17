@@ -111,11 +111,13 @@ real-time responsiveness and asset-ready browser checks remain separate.
 5. Complete the old-to-new coverage map and reviewed SSIM disposition before
    changing the default test gate or retiring legacy tests.
 
-The coverage map in item 5 is now executable and complete for all 86 tracked
-scene baselines: 14 retain, 71 replace with named semantic evidence, and one
-retire as an exact duplicate. No baseline has yet been removed. The next slice
-must implement the harness split, run the retained set, and only then remove
-obsolete captures and score-history entries.
+The coverage map in item 5 is executable and complete for all 86 historical
+scene baselines: nine retain, 76 replace with named semantic evidence, and one
+retire as an exact duplicate. The default visual workflow now registers only
+the nine retained cases, all nine pass direct thresholds, obsolete PNGs are
+removed, and the historical score-decrease gate and score-history file are
+retired. The remaining code-hygiene task is pruning skipped legacy test bodies;
+it does not affect gate behavior.
 
 The detailed human UX review remains deferred until other roadmap work is
 finished. This technical audit is not a substitute for that review.

@@ -117,14 +117,8 @@ function buildVitestEnv(mode) {
     ...process.env,
     HEADLESS: mode === 'test-headed' ? 'false' : 'true',
     VITE_TEST_BASE_URL: TEST_URL,
-    UPDATE_SSIM_COMMITTED: 'false',
     UPDATE_SSIM_BASELINES: mode === 'baseline' ? 'true' : 'false',
   };
-
-  // Keep strict SSIM for normal test workflows.
-  if (mode !== 'baseline') {
-    env.SSIM_REGRESSION_STRICT = 'true';
-  }
 
   return env;
 }

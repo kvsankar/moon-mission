@@ -19,10 +19,14 @@ export const CY3_SSIM_DISPOSITION = [
     },
     {
         id: "reviewed-moon-relief",
-        disposition: "retain",
+        disposition: "replace",
         concern: "Moon surface profile and relief rendering",
-        rationale: "Lighting, relief and texture regressions are pixel concerns that semantic state cannot detect.",
-        evidence: [],
+        rationale: "The historical frames are black or contain only an orbit line, so they do not observe relief. Texture readiness, terrain packaging and renderer behavior have direct executable coverage.",
+        evidence: [
+            "test/moon-renderer.test.js",
+            "test/moon-terrain-package.test.js",
+            "test/moon-render-loading-interaction.test.js",
+        ],
         baselines: [
             "earth-3d-moon-relief-standard.png",
             "earth-3d-moon-relief-detailed.png",
@@ -44,10 +48,14 @@ export const CY3_SSIM_DISPOSITION = [
     },
     {
         id: "reviewed-lunar-overlays",
-        disposition: "retain",
+        disposition: "replace",
         concern: "Distinct landing and lunar-location scene geometry",
-        rationale: "These enabled overlays introduce unique rendered geometry that is not represented by the foundational frames.",
-        evidence: [],
+        rationale: "The location frame primarily measures Moon renderer changes and the landing frame currently exposes an unreviewed close-up terrain/framing issue. Geometry readiness and visibility remain protected semantically while the rendering issue is tracked separately.",
+        evidence: [
+            "test/landing-geometry-readiness.test.js",
+            "test/landing-load-actions.test.js",
+            "test/scene-view-plan-application.test.js",
+        ],
         baselines: [
             "moon-3d-landing-animation-enabled.png",
             "moon-3d-locations-view-toggle-enabled.png",

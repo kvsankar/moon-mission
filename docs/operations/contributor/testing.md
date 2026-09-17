@@ -11,19 +11,20 @@ This repository uses Vitest + Playwright with complementary suites.
 ## Test Suites
 
 - **UI + visual regression** (`test/ui.test.js`)
-  - Primary CH3 end-to-end coverage (Earth/Moon, 2D/3D, camera/view interactions, full-run snapshots).
-  - Uses SSIM-based image comparisons against tracked baselines.
-  - Writes latest SSIM scores and reports SSIM drift against committed history.
+  - Focused CY3 scene-rendering coverage: Earth/Moon/relative overviews,
+    Earth/Moon 2D frames and four terminal mission frames.
+  - Runs nine retained cases and uses direct SSIM thresholds against the nine
+    reviewed tracked baselines. Latest scores are diagnostic output only.
   - Runs only CY3 at `1280x720`, device scale factor 1, using
     `/chandrayaan3/?testMode=true&testProfile=ssim`. The profile sets
     `ui.dockviewEnabled: false`; the harness asserts legacy layout and rejects
     other missions or a mounted Dockview workspace.
   - Compares the same scene region in both images, below the header and above
     bottom controls. Chrome is covered separately, not by scene SSIM.
-  - The migration disposition for all tracked scene baselines is executable in
+  - The historical disposition for all 86 former scene baselines is executable in
     `test/support/cy3-ssim-disposition.js` and guarded by
-    `test/ssim-coverage-disposition.test.js`. Until the harness split is
-    complete, this inventory does not itself remove legacy captures.
+    `test/ssim-coverage-disposition.test.js`; only its nine retained entries may
+    exist as tracked scene PNGs.
 
 - **Workspace/chrome/mobile behavior**
   - `npm run test:browser:progressive` checks Dockview disclosure, keyboard
@@ -124,7 +125,6 @@ Remove-Item Env:HEADLESS, Env:VITE_TEST_BASE_URL
 
 - Tracked:
   - `test/screenshots/baseline/*.png`
-  - `test/screenshots/ssim-history.json`
 - Ignored runtime artifacts:
   - `test/screenshots/current/`
   - `test/screenshots/diff/`
@@ -141,16 +141,13 @@ make baseline
 
 This explicitly enables PNG writes; normal runs fail on missing baselines.
 Existing baseline files are not deleted first. Review every changed PNG before
-acceptance, then run without update flags to verify the result. Updating PNGs
-and updating committed score history are separate, deliberate actions.
+acceptance, then run without update flags to verify the result.
 
 ## Useful Env Flags
 
 - `VITE_TEST_BASE_URL` - target app URL (`http://localhost:8111` default in tests).
 - `HEADLESS=false` - run with visible browser for debugging.
-- `SSIM_REGRESSION_STRICT=true` - fail UI suite on SSIM regression report.
 - `UPDATE_SSIM_BASELINES=true` - explicitly write CY3 PNG baselines (enabled by `make baseline`).
-- `UPDATE_SSIM_COMMITTED=true` - update `ssim-history.json` from current run (use intentionally).
 
 Vitest discovery excludes nested `.tmp/**` scratch repos so temporary worktrees do not pollute app test runs.
 

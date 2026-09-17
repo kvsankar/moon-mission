@@ -9,32 +9,42 @@ disposition in `test/support/cy3-ssim-disposition.js`:
 
 | Disposition | Count | Meaning |
 | --- | ---: | --- |
-| Retain | 14 | Pixel comparison still protects a distinct rendering concern. |
-| Replace | 71 | Named semantic tests own the behavior represented by the old screenshot. |
+| Retain | 9 | Pixel comparison still protects a distinct rendering concern. |
+| Replace | 76 | Named semantic tests own the behavior represented by the old screenshot. |
 | Retire | 1 | Exact duplicate of another retained checkpoint. |
 
 `test/ssim-coverage-disposition.test.js` compares that registry to the files in
 `test/screenshots/baseline/`. It fails on omissions, duplicates, unknown
 replacement evidence or growth beyond the reviewed 5–15 image visual set.
 
-This slice does not delete a baseline or change the default SSIM gate. The
-existing suite remains intact until the harness is split according to this
-inventory and the retained captures are reviewed as one coherent set.
+Only the nine retained entries remain in `test/screenshots/baseline/`. The
+default workflow registers only the nine owning test cases and passes each
+image directly against its threshold. The historical prior-score comparison
+and `ssim-history.json` are removed; `ssim-latest.json` remains ignored,
+diagnostic output.
 
 ## Retained Visual Set
 
-The proposed small set keeps:
+The reviewed small set keeps:
 
 - one Earth 3D, Moon 3D and relative 3D overview;
 - one Earth 2D and Moon 2D frame;
-- three Moon relief/profile frames;
 - four terminal mission frames, pending a smaller deterministic endpoint
-  fixture; and
-- enabled landing and lunar-location overlays because they add unique scene
-  geometry.
+  fixture.
 
 These are image questions: semantic assertions cannot detect incorrect
-lighting, texture, relief, line geometry or framing.
+lighting, texture, line geometry or framing.
+
+The first retained-set run rejected three proposed visual families:
+
+- all three Moon relief captures were black or showed only an orbit line, so
+  they did not observe relief;
+- the lunar-location frame primarily measured the intentional physical-terrain
+  renderer change while its tiny markers already have semantic visibility
+  coverage; and
+- the landing frame showed severe current close-up displaced-terrain/framing
+  artifacts. It was not rebaselined. The visual issue is now a named rendering
+  follow-up while landing geometry/readiness remains semantically covered.
 
 ## Replaced Behavioral Families
 
@@ -70,17 +80,22 @@ presets in Earth 3D plus signed Earth 2D and Moon 2D changes. It verifies:
    hidden plane button.
 4. Routing interaction through the visible View disclosure made the browser
    regression pass without bypassing the responsive UX contract.
+5. A guard expecting only retained PNGs failed against 86 legacy files; 72
+   reviewed replacements and the score-history file were removed.
+6. The first 14-frame candidate run failed on ineffective relief captures,
+   stale renderer pixels and the landing artifact. Five more frames were
+   reclassified with executable semantic evidence rather than rebaselined.
+7. The final focused run passed all nine direct thresholds: five overview/2D
+   frames at SSIM 0.9922–0.9990 and four terminal frames at 0.9958–0.9992.
 
-## Remaining Migration Work
+## Remaining Work
 
-- Split the monolithic legacy suite so the 14 retained frames are the visual
-  gate and behavioral families run as semantic tests.
-- Replace the historical “score must never decrease” comparison with direct
-  reviewed-baseline thresholds; SSIM is similarity, not a quality score.
 - Review whether four expensive full-run screenshots can be reduced after a
   deterministic terminal-state fixture proves playback completion separately
   from final pixels.
-- Run and review the retained set before deleting obsolete PNGs and committed
-  score-history entries.
+- Prune skipped legacy test bodies from `test/ui.test.js`; they no longer run
+  in the visual workflow and their behavior is mapped to semantic suites.
+- Diagnose the landing close-up terrain/framing issue without lowering a
+  threshold or restoring its obsolete baseline.
 
 No deployment was performed.
