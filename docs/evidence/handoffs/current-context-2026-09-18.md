@@ -67,14 +67,19 @@ Latest verification before this docs pass:
 ### 1. Full unit coverage disposition
 
 This is the next implementation priority. Vitest 4 coverage remains below the
-unchanged repository thresholds. The last measured v4 checkpoint reported:
+unchanged line, statement and branch thresholds. After the 2026-09-18
+test-only expansion the gate reports:
 
 | Metric | Reported | Gate |
 | --- | ---: | ---: |
-| Lines | 51.35% | 87% |
-| Statements | 50.09% | 87% |
-| Branches | 47.35% | 82% |
-| Functions | 54.80% | 50% |
+| Lines | 74.99% | 87% |
+| Statements | 72.96% | 87% |
+| Branches | 62.74% | 82% |
+| Functions | 71.23% | 50% |
+
+See [Unit Coverage Expansion](../reviews/unit-coverage-expansion-2026-09-18.md)
+for the harness, the covered contracts, the recorded behaviour surprises and
+the ranked remaining gaps.
 
 Run a fresh report on current `master` before choosing modules. Preserve the
 loaded-files-only scope, exclusions and thresholds. Add behavior-driven tests;

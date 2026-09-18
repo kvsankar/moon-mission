@@ -100,8 +100,26 @@ lines, 53.79% statements, 50.02% branches and 58.12% functions. The first
 bounded slice extracted and behaviorally covered Frame and Shoot flyby-event
 resolution; the resulting gate is 55.17% lines, 53.94% statements, 50.25%
 branches and 58.21% functions. Thresholds and exclusions remain unchanged.
-Continue with bounded behavior/refactoring slices chosen from the largest active
-gaps. Evidence: [Unit Coverage Reconciliation](../evidence/reviews/unit-coverage-reconciliation-2026-09-18.md).
+Evidence: [Unit Coverage Reconciliation](../evidence/reviews/unit-coverage-reconciliation-2026-09-18.md).
+
+A test-only expansion then raised the gate to 74.99% lines, 72.96% statements,
+62.74% branches and 71.23% functions across 2,987 passing tests, without
+touching product code. The functions gate now passes; lines, statements and
+branches do not. Evidence:
+[Unit Coverage Expansion](../evidence/reviews/unit-coverage-expansion-2026-09-18.md).
+
+Continue with bounded behavior/refactoring slices chosen from the largest
+active gaps, now led by the auxiliary camera manager, the media browser panel,
+the splashdown ground-track panel and the Dockview host. Two follow-ups are
+now explicit:
+
+- Decide whether the long render and DOM-construction methods in those files
+  are extracted, because the remaining lines are otherwise reachable only by
+  driving a near-complete scene and panel graph.
+- Dispose of the hotfix kill switches (`ORBIT_OVERLAP_REFINEMENT_ENABLED`,
+  craft body halos, craft edge locators). Code behind a permanently off flag
+  cannot be covered and should be retired or re-enabled deliberately rather
+  than counted against the gate.
 
 ### 2. Harden combined browser startup diagnostics
 
@@ -127,6 +145,10 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Test-only unit coverage expansion added 29 test files and a minimal DOM test
+  double, raising lines from 55.17% to 74.99% with no product-code change:
+  [expansion evidence](../evidence/reviews/unit-coverage-expansion-2026-09-18.md).
 
 - Documentation consistency pass closed stale active-plan and handoff wording,
   added a resumable current-context checkpoint, and verified all local links in
