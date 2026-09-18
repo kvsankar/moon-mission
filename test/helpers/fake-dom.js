@@ -540,6 +540,9 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
         window: globalThis.window,
         CustomEvent: globalThis.CustomEvent,
         Event: globalThis.Event,
+        Element: globalThis.Element,
+        HTMLElement: globalThis.HTMLElement,
+        Node: globalThis.Node,
         hadDocument: "document" in globalThis,
         hadWindow: "window" in globalThis,
     };
@@ -554,12 +557,21 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
         addEventListener() {},
         removeEventListener() {},
         getComputedStyle: () => ({ getPropertyValue: () => "" }),
+        Element: FakeElement,
+        HTMLElement: FakeElement,
+        Node: FakeElement,
         ...windowOverrides,
     };
+    documentRef.defaultView = windowRef;
     globalThis.document = documentRef;
     globalThis.window = windowRef;
     globalThis.CustomEvent = FakeCustomEvent;
     globalThis.Event = FakeEvent;
+    // `ui/dom-helpers.js` narrows values with `instanceof Element`, so the
+    // constructor has to be reachable as a global for those guards to pass.
+    globalThis.Element = FakeElement;
+    globalThis.HTMLElement = FakeElement;
+    globalThis.Node = FakeElement;
     return {
         document: documentRef,
         window: windowRef,
@@ -570,6 +582,9 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
             else delete globalThis.window;
             globalThis.CustomEvent = previous.CustomEvent;
             globalThis.Event = previous.Event;
+            globalThis.Element = previous.Element;
+            globalThis.HTMLElement = previous.HTMLElement;
+            globalThis.Node = previous.Node;
         },
     };
 }
