@@ -495,6 +495,84 @@ function walk(root, visit) {
     root.children?.forEach((child) => walk(child, visit));
 }
 
+class FakeGradient {
+    constructor(kind, args) {
+        this.kind = kind;
+        this.args = args;
+        this.stops = [];
+    }
+
+    addColorStop(offset, color) {
+        this.stops.push({ offset, color });
+    }
+}
+
+/**
+ * A recording 2D context. Renderers here paint textures procedurally, so the
+ * calls are what matters, not the rasterized pixels.
+ */
+export class FakeCanvasContext2D {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.calls = [];
+        this.gradients = [];
+        this.fillStyle = "#000";
+        this.strokeStyle = "#000";
+        this.lineWidth = 1;
+        this.font = "10px sans-serif";
+        this.textAlign = "start";
+        this.textBaseline = "alphabetic";
+        this.globalAlpha = 1;
+        this.globalCompositeOperation = "source-over";
+        this.imageDataWrites = [];
+        for (const name of [
+            "save", "restore", "beginPath", "closePath", "fill", "stroke", "clip",
+            "moveTo", "lineTo", "arc", "arcTo", "ellipse", "rect", "quadraticCurveTo",
+            "bezierCurveTo", "fillRect", "strokeRect", "clearRect", "fillText",
+            "strokeText", "translate", "rotate", "scale", "setTransform",
+            "resetTransform", "transform", "setLineDash", "drawImage",
+        ]) {
+            this[name] = (...args) => {
+                this.calls.push([name, args]);
+            };
+        }
+    }
+
+    createRadialGradient(...args) {
+        const gradient = new FakeGradient("radial", args);
+        this.gradients.push(gradient);
+        return gradient;
+    }
+
+    createLinearGradient(...args) {
+        const gradient = new FakeGradient("linear", args);
+        this.gradients.push(gradient);
+        return gradient;
+    }
+
+    createPattern() {
+        return null;
+    }
+
+    measureText(text) {
+        // Roughly proportional to a 10px monospace glyph box.
+        return { width: String(text ?? "").length * 6 };
+    }
+
+    createImageData(width, height) {
+        return { width, height, data: new Uint8ClampedArray(width * height * 4) };
+    }
+
+    getImageData(x, y, width, height) {
+        return this.createImageData(width, height);
+    }
+
+    putImageData(imageData, x, y) {
+        this.imageDataWrites.push({ imageData, x, y });
+        this.calls.push(["putImageData", [imageData, x, y]]);
+    }
+}
+
 export class FakeDocument {
     constructor() {
         this.__isDocumentRoot = true;
@@ -511,7 +589,23 @@ export class FakeDocument {
     }
 
     createElement(tagName) {
-        return new FakeElement(tagName, this);
+        const element = new FakeElement(tagName, this);
+        if (element.tagName === "CANVAS") {
+            element.width = 300;
+            element.height = 150;
+            element.getContext = (kind) => {
+                if (kind !== "2d") return null;
+                element.__context2d ||= new FakeCanvasContext2D(element);
+                return element.__context2d;
+            };
+            element.toDataURL = () => "data:image/png;base64,";
+        }
+        return element;
+    }
+
+    /** Three.js creates its canvases and images through the namespaced API. */
+    createElementNS(_namespace, tagName) {
+        return this.createElement(tagName);
     }
 
     createDocumentFragment() {
