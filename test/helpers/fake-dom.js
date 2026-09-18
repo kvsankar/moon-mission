@@ -245,6 +245,10 @@ export class FakeElement {
         nodes.forEach((node) => this.appendChild(node));
     }
 
+    prepend(...nodes) {
+        nodes.slice().reverse().forEach((node) => this.insertBefore(node, this.children[0] || null));
+    }
+
     insertBefore(child, reference) {
         if (!reference) return this.appendChild(child);
         const index = this.children.indexOf(reference);
