@@ -3,11 +3,20 @@
 Saved 2026-09-16 at the user's request because credits were running low.
 This is a continuation note, **not another roadmap**.
 
-Historical note: work resumed from this handoff later the same day. SA-21 was
-subsequently completed; the mutable roadmap and remediation log are authoritative
-for current status. The details below preserve the exact interruption point.
+## Closed historical checkpoint
 
-## Read first
+**Do not resume from the instructions below.** Work resumed later, the dirty
+SA-21 slice was completed, and every SA-01 through SA-22 audit item was closed,
+reviewed, committed and pushed. Transition/SSIM disposition is also complete.
+The details below intentionally preserve the exact interruption point and are
+not current instructions.
+
+Use the [current context checkpoint](current-context-2026-09-18.md), the
+[mutable roadmap](../../plans/roadmap.md), and the
+[remediation log](../reviews/runtime-state-remediation-2026-09-16.md) for current
+status.
+
+## Historical instructions at interruption
 
 The active request is to fix **all items in the runtime state audit**, using
 TDD, and review/fix findings before closing each item. Work is intentionally
@@ -129,7 +138,7 @@ Important completed implementation contracts:
   synchronous disposal during visibility/constraints/activation/layout effects.
   It intentionally does **not** clear Reset View's selected/pending tool state.
 
-## Active slice: SA-21 workspace lifecycle — DO NOT CLOSE YET
+## Historical active slice: SA-21 workspace lifecycle — not closed at interruption
 
 SA-21 was brought forward before SA-12 because a cold startup defect blocked
 reliable workspace verification. The reorder is already in the dirty roadmap
@@ -307,7 +316,7 @@ controls, constrained reload. Do not change its expected panel counts/timeouts t
 hide startup failures. Re-review findings, update evidence/plan, then commit AND
 push only when SA-21 genuinely passes. No deployment.
 
-## Remaining items after SA-21
+## Historical remaining items after SA-21
 
 ### SA-12 — Reset View selection (next)
 
@@ -409,7 +418,7 @@ disable (especially CY3 SSIM), invalidate a pending import if viewport ownership
 changes, and prevent duplicate controllers. Primary scene/playback stay prioritized.
 The SA-21 host changes must remain protected.
 
-## Continuing with reviews and evidence
+## Historical review and evidence instructions
 
 Previous agents were stopped for this handoff. Their names were
 `lifecycle_design_audit`, `transition_design_audit`, `ui_technical_review`; a fresh

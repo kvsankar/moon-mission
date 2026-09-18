@@ -1,6 +1,6 @@
 # Moon Mission Roadmap
 
-Last reviewed: 2026-09-17
+Last reviewed: 2026-09-18
 
 ## Authority
 
@@ -17,7 +17,11 @@ explicit review and disposition.
 The preserved May planning snapshot is
 [`current-plan-2026-05-19.md`](../archive/status/current-plan-2026-05-19.md).
 
-## Current Priority
+The latest resumable status summary is
+[Current Work Context Checkpoint](../evidence/handoffs/current-context-2026-09-18.md).
+It records state but does not own priority.
+
+## Completed Foundations
 
 ### 1. Audit runtime state ownership and remediate sequentially
 
@@ -28,9 +32,9 @@ comparison and compatibility mirrors. Separate reproduced defects from design
 risks; do not equate every mutable object or derived UI value with a defect.
 
 The [state audit](../evidence/reviews/runtime-state-audit-2026-09-16.md) records
-the inventory, evidence and review limits. Prioritize confirmed stale-publication
-and cross-session contamination before broad ownership cleanup. RTA-06 stays
-in scope; prior RTA-01 through RTA-05 fixes must remain protected.
+the inventory, evidence and review limits. The campaign prioritized confirmed
+stale-publication and cross-session contamination before broad ownership cleanup.
+RTA-01 through RTA-06 are complete and remain protected by regression coverage.
 
 SA-01 is complete: configuration initialization is guarded against superseding
 startup, origin/dimension revisions and scene replacement, with explicit
@@ -49,28 +53,18 @@ complete. SA-14 detached-window geometry/lifecycle is complete. SA-20 detached
 panel-registry snapshots and SA-16 scene compatibility mirrors are complete.
 SA-19 late model/catalog ownership is complete, with orbit refinement explicitly
 kept disabled. SA-22 live viewport capability bootstrap is complete. The runtime
-state-remediation queue is complete; transition/SSIM and coverage disposition
-remain the next roadmap work, followed by the deferred detailed human UX review.
-The scoped plan orders the remaining
-confirmed gaps and risk areas, each
-with a failing regression, minimal implementation, independent review and
-re-verification. Commit and push each completed slice; no deployment.
+state-remediation queue is complete. The scoped plan and remediation evidence
+preserve the delivery order, failing regressions, review corrections and final
+verification. This section is completion context, not active work.
 
 Owner: [Runtime Architecture Follow-Ups](implementation/runtime-architecture-followups.md).
 
-### 2. Complete transition coverage and disposition the legacy SSIM gate
+### 2. Transition coverage and legacy SSIM gate
 
-Preserve integration protection while mapping old tests to semantic transition,
-controlled loading-order and selected rendering checks. Keep a small reviewed
-CY3 scene set; retire redundant screenshots and the historical score-decrease
-gate only after the coverage disposition. This migration does not block the
-reliability fixes above. Detailed human UX review remains deferred.
-
-Also reconcile the full unit coverage gate. The Vitest migration measured a
-pre-existing failure before changing versions; keep the existing thresholds
-and loaded-file scope intact while prioritizing missing tests. Review the v4
-AST-remapped denominators rather than comparing percentages as if the coverage
-engines were identical. See [migration evidence](../evidence/reviews/vitest4-migration-2026-09-16.md).
+Integration protection was preserved by mapping old screenshots to semantic
+transition, controlled loading-order and selected rendering checks. The focused
+CY3 scene set and direct thresholds now replace the redundant screenshots and
+historical score-decrease gate. Detailed human UX review remains deferred.
 
 The 86-baseline CY3 disposition is complete and executable: nine retained
 visual checks, 76 replacements with named semantic evidence, and one exact
@@ -80,21 +74,36 @@ Dockview browser transition suite. The focused gate passes all nine direct
 thresholds; obsolete PNGs, score history and the historical score-decrease gate
 are removed. Skipped legacy test-body pruning is cleanup, not a gate blocker.
 
-The retained-set review exposed a separate rendering concern: the current CY3
-landing close-up shows severe displaced-terrain/framing artifacts. Do not
-rebaseline that image. Track it for renderer/fixture diagnosis with the deferred
-detailed human UX review; landing geometry and loading remain semantically
-covered. Next roadmap work is the full unit-coverage disposition described
-below. Evidence:
+Evidence:
 [CY3 SSIM Coverage Disposition](../evidence/reviews/cy3-ssim-coverage-disposition-2026-09-17.md).
-
-Harden browser startup diagnostics/readiness as part of this harness work:
-clean-install Vite optimizer reloads invalidated a retained scene handle, and
-progressive-workspace checks intermittently timed out waiting for eight panels.
-Keep these observed failures visible; do not relax assertions or simply add retries.
 
 Owner: [Runtime Transition Audit And Regression Harness](implementation/runtime-transition-audit-and-tests.md).
 
+## Current Priority
+
+### 1. Reconcile the full unit coverage gate
+
+The Vitest 4 migration reproduced the coverage failure before changing versions.
+At that checkpoint, v4 reported lines 51.35%, statements 50.09%, branches
+47.35% and functions 54.80% against unchanged gates of 87%, 87%, 82% and 50%.
+The v4 AST remapper changed denominators, so do not compare its percentages to
+v3 as if they were like-for-like execution measurements.
+
+Run a fresh report at current `master`, preserve loaded-files-only scope,
+exclusions and thresholds, then inventory the largest uncovered active modules.
+Add behavior-driven tests in bounded slices; do not lower thresholds, exclude
+active code, or add coverage-only assertions. Evidence and reproduction:
+[Vitest 4 Migration](../evidence/reviews/vitest4-migration-2026-09-16.md).
+
+### 2. Harden combined browser startup diagnostics
+
+Cold Vite dependency optimization previously reloaded a page and invalidated a
+retained transition-scene handle. Progressive-workspace checks also
+intermittently timed out waiting for eight panels, although isolated reruns
+passed. The focused CY3 visual gate now uses application readiness instead of
+`networkidle`, but the combined transition/progressive failure has not been
+deterministically reproduced or closed. Preserve assertions and diagnose
+ownership/readiness; do not hide the issue with retries or longer waits.
 
 ### 3. Review the recovery baseline
 
@@ -110,6 +119,11 @@ record one disposition:
 Do not copy the audit inventory wholesale into the mutable queue.
 
 ## Recently Completed
+
+- Documentation consistency pass closed stale active-plan and handoff wording,
+  added a resumable current-context checkpoint, and verified all local links in
+  128 active Markdown files:
+  [review evidence](../evidence/reviews/documentation-consistency-2026-09-18.md).
 
 - State audit inventory and SA-01 configuration publication ownership:
   [audit and verification](../evidence/reviews/runtime-state-audit-2026-09-16.md).
@@ -143,8 +157,8 @@ Do not copy the audit inventory wholesale into the mutable queue.
   and playback priority: [progressive UX evidence](../evidence/reviews/progressive-workspace-ux-2026-09-15.md).
   The user accepted the UI for now; the later human review remains deferred.
 - CY3-only SSIM has a configuration-level Dockview disable option. Its historical
-  rendering/fixture differences remain tracked under coverage migration above;
-  no baselines were replaced to close the runtime fixes.
+  suite is now a nine-frame direct-threshold gate. Historical behavior is mapped
+  to semantic tests; obsolete baselines and score history are removed.
 
 ## Reviewed Scoped Plans
 
@@ -192,6 +206,20 @@ dispositions are approved.
   during deployment so the production allowlist is not maintained separately.
 
 ## Deferred Backlog
+
+### CY3 landing close-up rendering/fixture review
+
+The SSIM disposition run exposed severe displaced-terrain/framing artifacts in
+the current landing close-up. The obsolete image was not rebaselined and is not
+part of the focused gate. Landing geometry, readiness and visibility remain
+semantically covered. Diagnose the renderer/fixture during or immediately
+before the detailed human UX review; do not restore the old pixels or lower a
+threshold to close it.
+
+Maintenance after the coverage work may also prune the 44 skipped legacy test
+bodies still present in `test/ui.test.js` and replace four expensive natural
+full-run captures with a deterministic terminal-state fixture, provided the
+nine retained rendering concerns remain protected.
 
 ### Detailed human UX review — after the other roadmap items
 

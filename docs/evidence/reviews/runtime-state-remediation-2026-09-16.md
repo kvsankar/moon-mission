@@ -544,8 +544,9 @@ and all **three Artemis II mobile/desktop browser checks** passed. SA-22 is comp
 
 ## Risk Triage Follow-Up
 
-Independent probes strengthened the original risk inventory. SA-17/18 are now
-closed above; other entries still require tracked tests, review and verification.
+Independent probes strengthened the original risk inventory. Every entry below
+has now been reproduced or conservatively dispositioned, tested, reviewed and
+closed; the bullets preserve the decisions rather than an open queue.
 
 - SA-16: inactive lunar zoom writes changed the active legacy mirror to 9 and
   an absent-origin read returned 9. Keep mirrors active-origin-only; retain

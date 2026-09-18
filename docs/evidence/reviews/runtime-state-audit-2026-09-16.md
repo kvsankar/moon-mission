@@ -315,5 +315,9 @@ tests are `test/init-config-flow-state.test.js`, expanded config orchestration
 and recovery tests, and the revision-wiring test. No camera/media/render/panel
 fix is bundled here.
 
-No deployment. The coverage shortfall, historical SSIM disposition and browser
-startup flake remain tracked; no thresholds, skips or baselines were changed.
+No deployment. At this checkpoint the coverage shortfall, historical SSIM
+disposition and browser startup flake remained tracked; no thresholds, skips or
+baselines were changed. The state campaign and SSIM disposition were later
+completed. The unit coverage gap and combined browser-startup diagnosis remain
+active in the
+[current context checkpoint](../handoffs/current-context-2026-09-18.md).

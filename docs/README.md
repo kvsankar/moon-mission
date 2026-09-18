@@ -104,6 +104,8 @@ reference corpora:
 Point-in-time audits, reviews, handoffs, baselines, and measurements:
 
 - [evidence/](evidence/)
+- Current resumable context:
+  [evidence/handoffs/current-context-2026-09-18.md](evidence/handoffs/current-context-2026-09-18.md)
 
 ## Archive
 

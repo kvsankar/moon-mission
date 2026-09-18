@@ -77,5 +77,7 @@ cleared the final fix. Focused commit: `5020625`.
 [Dependency triage](dependency-triage-2026-09-15.md) distinguishes static runtime
 exposure from development tooling and identifies a coordinated npm/CDN Swiper
 upgrade. Same-major toolchain remediation is the next bounded security slice.
-RTA-06 camera state ownership and wider transition/SSIM coverage remain open.
+RTA-06 camera state ownership and wider transition/SSIM coverage remained open
+at this checkpoint and were subsequently completed. See the
+[current context checkpoint](../handoffs/current-context-2026-09-18.md).
 The detailed human UX review remains deferred until other roadmap work is done.

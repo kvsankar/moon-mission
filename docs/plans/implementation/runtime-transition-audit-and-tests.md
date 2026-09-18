@@ -1,6 +1,6 @@
 ---
 doc_class: plan
-status: current
+status: complete
 scope: runtime.transition-audit-and-verification
 ---
 
@@ -37,9 +37,8 @@ authorized the bounded RTA-01/02 implementation; those probes now pass and
 their regressions run in the normal unit suite. Subsequent approved work fixed
 RTA-03/04/05 as well: [recovery and readiness evidence](../../evidence/reviews/runtime-recovery-and-readiness-2026-09-15.md).
 All three original audit probes now pass. RTA-06 and the runtime state-remediation
-campaign are complete. The old-to-new baseline inventory and the first missing
-plane-control browser regression are complete; the remaining work is the
-reviewed harness split and legacy-gate removal. See
+campaign are complete. The old-to-new baseline inventory, plane-control browser
+regression, focused nine-frame harness and legacy-gate removal are complete. See
 [CY3 SSIM Coverage Disposition](../../evidence/reviews/cy3-ssim-coverage-disposition-2026-09-17.md)
 and [supersession evidence](../../evidence/reviews/runtime-transition-supersession-2026-09-15.md).
 
@@ -72,21 +71,21 @@ and [supersession evidence](../../evidence/reviews/runtime-transition-supersessi
   assume independent controls commute unless the owning specification says so.
 - Capture failed transition state and browser evidence without relying on SSIM.
 
-## Coverage Map And Remaining Obligations
+## Final Coverage Map
 
-| Concern | Existing protection | Additional protection needed |
+| Concern | Unit/domain protection | Delivered integration protection |
 | --- | --- | --- |
-| Origin switching | Origin transition planner, per-frame ephemeris tests, legacy CY3 captures | Real cold/warm/revisited origin sequences; stale completion cannot publish into another origin |
-| Dimension switching | Dimension planner, legacy 2D/3D captures | Real 3D -> 2D -> 3D after origin changes; active render surface and state agree |
-| Camera/view switching | Pair policy, camera action tests, mounted-camera tests | Paused UI/controller agreement and order-sensitive plane/free/mounted transitions |
-| Lazy initialization | Texture/profile deferred-promise tests, setup tests | Orbit and landing readiness, pending switch/re-entry, failure/retry, disposal during work |
-| Scene state | Scene-first state tests and compatibility fallback tests | Explicit ownership and no cross-scene leakage across repeated transitions |
-| Playback and layout | Clock/media tests and progressive workspace browser tests | Combined play/seek/pause/switch/resize sequences using absolute mission time |
-| Rendering | Existing CY3 SSIM and separate chrome baselines | Small reviewed scene set with pinned inputs; renderer defects remain tracked independently |
+| Origin switching | Origin planner, per-frame ephemeris and request-ownership tests | Cold Moon, warm Earth roundtrip plus held-request Retry/origin supersession |
+| Dimension switching | Dimension planner and stale plane-completion tests | Real 3D -> 2D -> 3D across cold/warm Earth and Moon scenes with exclusive active surfaces |
+| Camera/view switching | Pair policy, action, intent and mounted-camera tests | Paused UI/controller agreement plus visible plane/free/mounted controls |
+| Lazy initialization | Texture/profile, setup, curve, model and catalog ownership tests | Orbit/config/media failure/Retry, late landing readiness, disposal and viewport-superseded activation |
+| Scene state | Scene-first state and compatibility-adapter tests | Active-origin-only mirrors, repeated transitions and scene identity checks |
+| Playback and layout | Clock/media and workspace-domain tests | Restart publication ordering, resize/reload continuity and progressive disclosure browser checks |
+| Rendering | Renderer/unit tests and separate chrome baselines | Nine reviewed CY3 scene frames with direct thresholds; landing close-up remains a named deferred rendering concern |
 
-The new browser slice is an initial integration check, not exhaustive coverage
-of this table. Pure tests use controlled promises/time where appropriate;
-real-time responsiveness and asset-ready browser checks remain separate.
+Pure tests use controlled promises/time where appropriate; real-time
+responsiveness, asset-ready browser checks and the focused CY3 visual gate stay
+separate so one layer does not masquerade as another.
 
 ## SSIM Migration Rules
 
@@ -119,5 +118,8 @@ removed, and the historical score-decrease gate and score-history file are
 retired. The remaining code-hygiene task is pruning skipped legacy test bodies;
 it does not affect gate behavior.
 
+This plan is complete. Optional cleanup—pruning skipped legacy bodies and
+replacing expensive full-run captures with a deterministic terminal fixture—is
+tracked in the roadmap and must preserve the nine reviewed rendering concerns.
 The detailed human UX review remains deferred until other roadmap work is
-finished. This technical audit is not a substitute for that review.
+finished; this technical audit is not a substitute for that review.

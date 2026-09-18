@@ -118,10 +118,12 @@ scope and thresholds, and independently confirmed the pre-upgrade coverage
 gate was already failing. Final review also checked the constructor fixtures
 and verified every coverage total and the normalized file-set comparison.
 
-The [single roadmap](../../plans/roadmap.md) retains the unit coverage gap and
-legacy SSIM disposition. The full historical SSIM suite is not claimed green
-by this migration. RTA-06 camera-state ownership is the next implementation
-priority; detailed human UX review remains deferred.
+At this migration checkpoint the [single roadmap](../../plans/roadmap.md)
+retained the unit coverage gap, legacy SSIM disposition and RTA-06 ownership
+work. RTA-06 and SSIM disposition were subsequently completed. The unchanged
+unit coverage gap is now the first implementation priority; see the
+[current context checkpoint](../handoffs/current-context-2026-09-18.md).
+Detailed human UX review remains deferred.
 
 No deployment was performed. Production changes, including the previously
 updated Swiper, still require the user's explicit deployment authorization.

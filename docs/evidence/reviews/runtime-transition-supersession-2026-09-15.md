@@ -80,8 +80,11 @@ exhaustive browser network-fault coverage across every mission.
 
 ## Next Work
 
-RTA-03 camera orientation, RTA-04 terminal load failure/retry, RTA-05 landing
-dependency readiness and RTA-06 DOM-owned camera semantics remain open.
+At this checkpoint, RTA-03 camera orientation, RTA-04 terminal load
+failure/retry, RTA-05 landing dependency readiness and RTA-06 DOM-owned camera
+semantics remained open. They were subsequently completed, as was the legacy
+SSIM disposition; see the
+[current context checkpoint](../handoffs/current-context-2026-09-18.md).
 The [paired plan](../../plans/implementation/runtime-transition-audit-and-tests.md)
-still owns wider coverage migration and eventual legacy SSIM disposition.
+preserves the completed coverage migration.
 Detailed human UX review remains deferred as requested.
