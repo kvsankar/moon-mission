@@ -16,13 +16,24 @@
 let nextNodeId = 0;
 
 function parseCompound(text) {
-    const compound = { tag: null, id: null, classes: [], attrs: [], checked: false };
-    const pattern = /([#.]?[\w-]+)|(\[[^\]]*\])|(:checked)/g;
+    const compound = {
+        tag: null,
+        id: null,
+        classes: [],
+        attrs: [],
+        checked: false,
+        popoverOpen: false,
+    };
+    const pattern = /(:[\w-]+)|([#.]?[\w-]+)|(\[[^\]]*\])/g;
     let match;
     while ((match = pattern.exec(text)) !== null) {
         const token = match[0];
         if (token === ":checked") {
             compound.checked = true;
+        } else if (token === ":popover-open") {
+            compound.popoverOpen = true;
+        } else if (token.startsWith(":")) {
+            throw new Error(`fake-dom: unsupported pseudo-class ${token}`);
         } else if (token.startsWith("#")) {
             compound.id = token.slice(1);
         } else if (token.startsWith(".")) {
@@ -91,6 +102,7 @@ function matchesCompound(node, compound) {
         if (attr.value !== undefined && String(actual) !== attr.value) return false;
     }
     if (compound.checked && node.checked !== true) return false;
+    if (compound.popoverOpen && node.popoverOpen !== true) return false;
     return true;
 }
 
@@ -187,6 +199,8 @@ export class FakeElement {
         this.scrollLeft = 0;
         this.clientWidth = 0;
         this.clientHeight = 0;
+        this.popoverOpen = false;
+        this.nodeType = 1;
     }
 
     get className() {
@@ -290,6 +304,17 @@ export class FakeElement {
         return this.getAttribute(name) !== null;
     }
 
+    /**
+     * Needed by test-runner element serializers, which recognise these nodes as
+     * DOM elements once `Element` is installed as a global.
+     */
+    getAttributeNames() {
+        const names = new Set(this.attributes.keys());
+        if (this.id) names.add("id");
+        if (this.classList.tokens.size > 0) names.add("class");
+        return [...names];
+    }
+
     removeAttribute(name) {
         this.attributes.delete(name);
         if (name === "id") this.id = "";
@@ -365,6 +390,18 @@ export class FakeElement {
         return this.__rect || { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 };
     }
 
+    /** Test-only: fix the rectangle `getBoundingClientRect` reports. */
+    setBoundingClientRect({ left = 0, top = 0, width = 0, height = 0 }) {
+        this.__rect = {
+            left, top, width, height,
+            right: left + width,
+            bottom: top + height,
+            x: left,
+            y: top,
+        };
+        return this;
+    }
+
     focus() {
         if (this.ownerDocument) this.ownerDocument.activeElement = this;
     }
@@ -377,6 +414,24 @@ export class FakeElement {
 
     click() {
         this.dispatchEvent(new FakeEvent("click", { bubbles: true }));
+    }
+
+    showPopover() {
+        if (this.popoverOpen) return;
+        this.popoverOpen = true;
+        const event = new FakeEvent("toggle");
+        event.oldState = "closed";
+        event.newState = "open";
+        this.dispatchEvent(event);
+    }
+
+    hidePopover() {
+        if (!this.popoverOpen) return;
+        this.popoverOpen = false;
+        const event = new FakeEvent("toggle");
+        event.oldState = "open";
+        event.newState = "closed";
+        this.dispatchEvent(event);
     }
 }
 
@@ -528,6 +583,36 @@ export function createFakeDocument(descriptors = []) {
         (parentNode || documentRef.body).appendChild(element);
     }
     return documentRef;
+}
+
+/**
+ * Records observed elements so tests can fire a resize deliberately rather than
+ * waiting on layout.
+ */
+export class FakeResizeObserver {
+    static instances = [];
+
+    constructor(callback) {
+        this.callback = callback;
+        this.observed = [];
+        FakeResizeObserver.instances.push(this);
+    }
+
+    observe(target) {
+        this.observed.push(target);
+    }
+
+    unobserve(target) {
+        this.observed = this.observed.filter((entry) => entry !== target);
+    }
+
+    disconnect() {
+        this.observed = [];
+    }
+
+    trigger() {
+        this.callback(this.observed.map((target) => ({ target })));
+    }
 }
 
 /**
