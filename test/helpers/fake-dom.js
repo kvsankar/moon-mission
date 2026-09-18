@@ -233,6 +233,18 @@ export class FakeElement {
         return node === this.ownerDocument?.documentElement || node.__isDocumentRoot === true;
     }
 
+    /**
+     * The shadow root or document this node lives in. Library code reaches for
+     * this when it has to bind document-level listeners next to an element that
+     * may be inside a shadow tree.
+     */
+    getRootNode() {
+        let node = this;
+        while (node.parentNode) node = node.parentNode;
+        if (node.host) return node;
+        return this.ownerDocument || node;
+    }
+
     appendChild(child) {
         if (!child) return child;
         child.remove?.();
