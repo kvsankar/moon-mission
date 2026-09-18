@@ -390,6 +390,14 @@ export class FakeElement {
         return !event.defaultPrevented;
     }
 
+    attachShadow() {
+        if (!this.shadowRoot) {
+            this.shadowRoot = new FakeElement("#shadow-root", this.ownerDocument);
+            this.shadowRoot.host = this;
+        }
+        return this.shadowRoot;
+    }
+
     getBoundingClientRect() {
         return this.__rect || { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 };
     }
@@ -438,6 +446,38 @@ export class FakeElement {
         this.dispatchEvent(event);
     }
 }
+
+/**
+ * Tag-specific subclasses so `instanceof HTMLInputElement`-style guards in the
+ * imperative shell keep distinguishing element kinds.
+ */
+export class FakeHTMLInputElement extends FakeElement {}
+export class FakeHTMLButtonElement extends FakeElement {}
+export class FakeHTMLSelectElement extends FakeElement {}
+export class FakeHTMLTextAreaElement extends FakeElement {}
+export class FakeHTMLCanvasElement extends FakeElement {}
+export class FakeHTMLImageElement extends FakeElement {}
+export class FakeHTMLAnchorElement extends FakeElement {}
+
+const ELEMENT_CONSTRUCTOR_GLOBALS = Object.freeze([
+    "HTMLInputElement",
+    "HTMLButtonElement",
+    "HTMLSelectElement",
+    "HTMLTextAreaElement",
+    "HTMLCanvasElement",
+    "HTMLImageElement",
+    "HTMLAnchorElement",
+]);
+
+const ELEMENT_CLASS_BY_TAG = {
+    INPUT: FakeHTMLInputElement,
+    BUTTON: FakeHTMLButtonElement,
+    SELECT: FakeHTMLSelectElement,
+    TEXTAREA: FakeHTMLTextAreaElement,
+    CANVAS: FakeHTMLCanvasElement,
+    IMG: FakeHTMLImageElement,
+    A: FakeHTMLAnchorElement,
+};
 
 function toCamelCase(name) {
     return String(name).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -593,7 +633,9 @@ export class FakeDocument {
     }
 
     createElement(tagName) {
-        const element = new FakeElement(tagName, this);
+        const normalized = String(tagName || "div").toUpperCase();
+        const ElementClass = ELEMENT_CLASS_BY_TAG[normalized] || FakeElement;
+        const element = new ElementClass(tagName, this);
         if (element.tagName === "CANVAS") {
             element.width = 300;
             element.height = 150;
@@ -741,6 +783,9 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
         Element: globalThis.Element,
         HTMLElement: globalThis.HTMLElement,
         Node: globalThis.Node,
+        elementConstructors: Object.fromEntries(
+            ELEMENT_CONSTRUCTOR_GLOBALS.map((name) => [name, globalThis[name]]),
+        ),
         getComputedStyle: globalThis.getComputedStyle,
         requestAnimationFrame: globalThis.requestAnimationFrame,
         cancelAnimationFrame: globalThis.cancelAnimationFrame,
@@ -764,6 +809,13 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
         Element: FakeElement,
         HTMLElement: FakeElement,
         Node: FakeElement,
+        HTMLInputElement: FakeHTMLInputElement,
+        HTMLButtonElement: FakeHTMLButtonElement,
+        HTMLSelectElement: FakeHTMLSelectElement,
+        HTMLTextAreaElement: FakeHTMLTextAreaElement,
+        HTMLCanvasElement: FakeHTMLCanvasElement,
+        HTMLImageElement: FakeHTMLImageElement,
+        HTMLAnchorElement: FakeHTMLAnchorElement,
         ...windowOverrides,
     };
     documentRef.defaultView = windowRef;
@@ -776,6 +828,9 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
     globalThis.Element = FakeElement;
     globalThis.HTMLElement = FakeElement;
     globalThis.Node = FakeElement;
+    for (const name of ELEMENT_CONSTRUCTOR_GLOBALS) {
+        globalThis[name] = windowRef[name];
+    }
     // Modules reach for these as bare globals as well as through `window`.
     globalThis.getComputedStyle = windowRef.getComputedStyle;
     globalThis.requestAnimationFrame = windowRef.requestAnimationFrame;
@@ -796,6 +851,9 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
             globalThis.Element = previous.Element;
             globalThis.HTMLElement = previous.HTMLElement;
             globalThis.Node = previous.Node;
+            for (const name of ELEMENT_CONSTRUCTOR_GLOBALS) {
+                globalThis[name] = previous.elementConstructors[name];
+            }
             globalThis.getComputedStyle = previous.getComputedStyle;
             globalThis.requestAnimationFrame = previous.requestAnimationFrame;
             globalThis.cancelAnimationFrame = previous.cancelAnimationFrame;
