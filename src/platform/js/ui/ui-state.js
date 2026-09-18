@@ -256,8 +256,12 @@ export function readViewSettings() {
         const value = readOptionalNumber(ids);
         if (!Number.isFinite(value)) continue;
         if (key === "sky_time_seconds") {
-            settings.sky_time_ms = value * 1000;
-        } else if (key !== "sky_time_ms" || !Number.isFinite(settings.sky_time_ms)) {
+            // An explicit millisecond control wins when both are mounted,
+            // matching app/sky-actions.js. Seconds are only a fallback.
+            if (!Number.isFinite(settings.sky_time_ms)) {
+                settings.sky_time_ms = value * 1000;
+            }
+        } else {
             settings[key] = value;
         }
     }

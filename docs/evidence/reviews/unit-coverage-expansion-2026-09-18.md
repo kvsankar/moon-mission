@@ -75,22 +75,27 @@ New test files, grouped by the contract they pin down:
   `mission-state-cell-groups-runtime`.
 - **Data and math** — `npz-ephemeris`, `sky-math`, `math-utils`, `core-dom`.
 
-## Behaviour Recorded, Not Changed
+## Behaviour Recorded, Then Dispositioned
 
-Three places behave differently from what their surrounding code suggests. The
-tests record what the code does today; none of them were changed.
+Three places behaved differently from what their surrounding code suggested.
+This pass recorded them without changing product code; they were investigated
+and dispositioned immediately afterwards in
+[Lunar Mode And Sky Time Defects](lunar-mode-and-sky-time-defects-2026-09-18.md).
 
-- `ui/ui-state.js` reads `sky_time_ms` before `sky_time_seconds`, and the
-  seconds branch assigns unconditionally. When both controls are mounted the
-  seconds control wins, so the `sky_time_ms` guard in that loop never decides
-  the outcome.
-- `core/state/runtime-view-state.js` exposes
-  `setLunarCraterShowAllEnabled`/`setLunarCraterHoverEnabled`, but neither key
-  is in `PER_VIEW_FLAG_KEYS`. Those setters are no-ops; both flags are derived
-  from the display mode when `viewLunarCraters` is written.
-- `app/auxiliary-camera-views.js` `roundPercentParts` corrects any residual on
-  the first entry, so an input summing above 100 can produce a negative first
-  part.
+- `core/state/runtime-view-state.js` omitted `lunarCraterShowAllEnabled` and
+  `lunarCraterHoverEnabled` from `PER_VIEW_FLAG_KEYS`, so the dedicated setters
+  were no-ops and each view's mode selection was not retained. **Confirmed
+  defect, fixed.**
+- `ui/ui-state.js` let the sky-time seconds control override an explicit
+  millisecond control, disagreeing with `app/sky-actions.js`. **Latent
+  defect** — neither control exists in any markup — **fixed for consistency.**
+- `app/auxiliary-camera-views.js` `roundPercentParts` can return a negative
+  first part for inputs summing above 100. **Not a defect**: both call sites
+  build four counts that partition the visible sample set, so that input is
+  unreachable. The test was retargeted at the real contract instead.
+
+The tests listed above were updated to the fixed contracts, so the figures in
+this document remain the measurement for the test-only pass.
 
 ## Remaining Gaps
 

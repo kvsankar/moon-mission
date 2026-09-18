@@ -150,6 +150,12 @@ Do not copy the audit inventory wholesale into the mutable queue.
   double, raising lines from 55.17% to 74.99% with no product-code change:
   [expansion evidence](../evidence/reviews/unit-coverage-expansion-2026-09-18.md).
 
+- The three behaviours that expansion recorded were then investigated and
+  dispositioned: per-view retention of the lunar feature mode flags and the
+  sky-time control precedence were confirmed defects and fixed; the
+  percentage-rounding residual was shown unreachable and left alone:
+  [defect investigation](../evidence/reviews/lunar-mode-and-sky-time-defects-2026-09-18.md).
+
 - Documentation consistency pass closed stale active-plan and handoff wording,
   added a resumable current-context checkpoint, and verified all local links in
   128 active Markdown files:

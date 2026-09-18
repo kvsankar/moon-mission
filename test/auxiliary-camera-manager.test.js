@@ -588,11 +588,15 @@ describe("percentage rounding", () => {
         expect(manager.roundPercentParts([-10, 40, 30, 30])).toEqual([0, 40, 30, 30]);
     });
 
-    it("corrects an over-full set on the first part so the total stays at one hundred", () => {
-        const parts = manager.roundPercentParts([50, 60, 0, 0]);
+    it("keeps the four visibility shares whole and summing to one hundred", () => {
+        // The only call site builds the parts as four counts that partition
+        // the visible sample set, so they always sum to 100 and are never
+        // negative. This pins that contract rather than the defensive
+        // correction branch, which those inputs cannot reach.
+        const parts = manager.roundPercentParts([41.6666, 8.3333, 41.6666, 8.3333]);
 
+        expect(parts.every((value) => Number.isInteger(value) && value >= 0)).toBe(true);
         expect(parts.reduce((total, value) => total + value, 0)).toBe(100);
-        expect(parts[1]).toBe(60);
     });
 });
 

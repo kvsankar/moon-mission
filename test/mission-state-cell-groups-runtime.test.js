@@ -90,13 +90,20 @@ describe("view state cells against the runtime store", () => {
         expect(cells.transitionRevision.get()).toBe(runtimeViewState.getTransitionRevision());
     });
 
-    it("derives the lunar feature mode flags from the display mode", () => {
-        const { cells, runtimeViewState } = makeCells();
+    it("round-trips an explicit lunar feature mode flag", () => {
+        const { cells } = makeCells();
 
-        // Show-all and hover are not stored per view; they are recomputed when
-        // the Lunar Features toggle is written, from the current display mode.
         cells.lunarCraterShowAllEnabled.set(true);
+        expect(cells.lunarCraterShowAllEnabled.get()).toBe(true);
+
+        cells.lunarCraterShowAllEnabled.set(false);
+        cells.lunarCraterHoverEnabled.set(true);
         expect(cells.lunarCraterShowAllEnabled.get()).toBe(false);
+        expect(cells.lunarCraterHoverEnabled.get()).toBe(true);
+    });
+
+    it("derives the mode flags from the display mode when none is written", () => {
+        const { cells, runtimeViewState } = makeCells();
 
         runtimeViewState.setLunarCraterDisplayMode("always");
         cells.viewLunarCraters.set(true);

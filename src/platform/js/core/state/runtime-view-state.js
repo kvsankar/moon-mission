@@ -68,6 +68,11 @@ const DEFAULT_VIEW_IDENTITY = Object.freeze({
 const PER_VIEW_FLAG_KEYS = Object.freeze([
     "viewCraters",
     "viewLunarCraters",
+    // Remembered per view like every other lunar feature key. These are also
+    // the keys that suppress the derivation in applyViewFlagPatch, so leaving
+    // them out discarded an explicit selection without deriving one either.
+    "lunarCraterShowAllEnabled",
+    "lunarCraterHoverEnabled",
     "lunarCraterHoverLabels",
     "lunarCraterDisplayMode",
     "lunarCraterMinDiameterKm",

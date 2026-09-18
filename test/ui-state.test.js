@@ -235,15 +235,18 @@ describe("readViewSettings", () => {
         expect(readViewSettings().sky_time_ms).toBe(12000);
     });
 
-    it("lets the seconds control win when both sky-time controls exist", () => {
-        // `sky_time_ms` is read before `sky_time_seconds`, and the seconds
-        // branch assigns unconditionally, so the seconds control is the
-        // effective source whenever both are mounted. The `sky_time_ms` guard
-        // in the loop therefore never decides this case.
+    it("prefers an explicit millisecond control over the seconds control", () => {
+        // Matches `app/sky-actions.js`, which reads the same pair as
+        // `readOptionalNumeric("sky-time-ms") ?? (seconds * 1000)`.
         mountSettings([
             { id: "sky-time-ms", tag: "input", value: "500" },
             { id: "sky-time-seconds", tag: "input", value: "12" },
         ]);
+        expect(readViewSettings().sky_time_ms).toBe(500);
+    });
+
+    it("falls back to the seconds control when no millisecond control exists", () => {
+        mountSettings([{ id: "sky-time-seconds", tag: "input", value: "12" }]);
         expect(readViewSettings().sky_time_ms).toBe(12000);
     });
 
