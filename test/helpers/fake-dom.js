@@ -709,6 +709,21 @@ export class FakeResizeObserver {
     }
 }
 
+/** An in-memory `Storage` good enough for persistence round-trips. */
+export function createMemoryStorage(initial = {}) {
+    const entries = new Map(Object.entries(initial));
+    return {
+        get length() {
+            return entries.size;
+        },
+        key: (index) => [...entries.keys()][index] ?? null,
+        getItem: (key) => (entries.has(String(key)) ? entries.get(String(key)) : null),
+        setItem: (key, value) => entries.set(String(key), String(value)),
+        removeItem: (key) => entries.delete(String(key)),
+        clear: () => entries.clear(),
+    };
+}
+
 /**
  * Install a fake document/window pair as globals and return a teardown handle.
  */
@@ -722,8 +737,14 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
         Element: globalThis.Element,
         HTMLElement: globalThis.HTMLElement,
         Node: globalThis.Node,
+        getComputedStyle: globalThis.getComputedStyle,
+        requestAnimationFrame: globalThis.requestAnimationFrame,
+        cancelAnimationFrame: globalThis.cancelAnimationFrame,
+        ResizeObserver: globalThis.ResizeObserver,
+        localStorage: globalThis.localStorage,
         hadDocument: "document" in globalThis,
         hadWindow: "window" in globalThis,
+        hadLocalStorage: "localStorage" in globalThis,
     };
     const windowRef = {
         document: documentRef,
@@ -751,6 +772,13 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
     globalThis.Element = FakeElement;
     globalThis.HTMLElement = FakeElement;
     globalThis.Node = FakeElement;
+    // Modules reach for these as bare globals as well as through `window`.
+    globalThis.getComputedStyle = windowRef.getComputedStyle;
+    globalThis.requestAnimationFrame = windowRef.requestAnimationFrame;
+    globalThis.cancelAnimationFrame = windowRef.cancelAnimationFrame;
+    if (windowRef.ResizeObserver) globalThis.ResizeObserver = windowRef.ResizeObserver;
+    globalThis.localStorage = windowRef.localStorage || createMemoryStorage();
+    windowRef.localStorage = globalThis.localStorage;
     return {
         document: documentRef,
         window: windowRef,
@@ -764,6 +792,12 @@ export function installFakeDom(descriptors = [], windowOverrides = {}) {
             globalThis.Element = previous.Element;
             globalThis.HTMLElement = previous.HTMLElement;
             globalThis.Node = previous.Node;
+            globalThis.getComputedStyle = previous.getComputedStyle;
+            globalThis.requestAnimationFrame = previous.requestAnimationFrame;
+            globalThis.cancelAnimationFrame = previous.cancelAnimationFrame;
+            globalThis.ResizeObserver = previous.ResizeObserver;
+            if (previous.hadLocalStorage) globalThis.localStorage = previous.localStorage;
+            else delete globalThis.localStorage;
         },
     };
 }
