@@ -95,6 +95,14 @@ Add behavior-driven tests in bounded slices; do not lower thresholds, exclude
 active code, or add coverage-only assertions. Evidence and reproduction:
 [Vitest 4 Migration](../evidence/reviews/vitest4-migration-2026-09-16.md).
 
+Current-`master` reconciliation is underway. The fresh baseline is 55.01%
+lines, 53.79% statements, 50.02% branches and 58.12% functions. The first
+bounded slice extracted and behaviorally covered Frame and Shoot flyby-event
+resolution; the resulting gate is 55.17% lines, 53.94% statements, 50.25%
+branches and 58.21% functions. Thresholds and exclusions remain unchanged.
+Continue with bounded behavior/refactoring slices chosen from the largest active
+gaps. Evidence: [Unit Coverage Reconciliation](../evidence/reviews/unit-coverage-reconciliation-2026-09-18.md).
+
 ### 2. Harden combined browser startup diagnostics
 
 Cold Vite dependency optimization previously reloaded a page and invalidated a

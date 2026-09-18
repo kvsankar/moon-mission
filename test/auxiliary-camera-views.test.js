@@ -12,11 +12,15 @@ import {
     normalizeComposerRollRad,
     resolveComposerSeeThroughMarkers,
     resolveComposerSkyLabelOccluders,
-    resolveLunarFlybyWindowMs,
     rollRadFromDialPointer,
     selectComposerSkyLabelCandidates,
     shouldRenderComposerLunarCraterHover,
 } from "../src/platform/js/app/auxiliary-camera-views.js";
+import {
+    resolveFlybyPlannerEvents,
+    resolveLunarFlybyTimeMs,
+    resolveLunarFlybyWindowMs,
+} from "../src/platform/js/core/domain/composer-flyby-events.js";
 import { LIGHT_SETTINGS as LT } from "../src/platform/js/core/constants.js";
 
 afterEach(() => {
@@ -285,6 +289,178 @@ describe("resolveLunarFlybyWindowMs", () => {
 
         expect(Number.isNaN(window.startMs)).toBe(true);
         expect(Number.isNaN(window.endMs)).toBe(true);
+    });
+
+    it("rejects a reversed SOI window", () => {
+        const window = resolveLunarFlybyWindowMs([
+            {
+                key: "lunarSoiEntry",
+                label: "Lunar SOI In",
+                startTime: "2026-04-07T17:27:12Z",
+            },
+            {
+                key: "lunarSoiExit",
+                label: "Lunar SOI Out",
+                startTime: "2026-04-06T04:43:12Z",
+            },
+        ]);
+
+        expect(Number.isNaN(window.startMs)).toBe(true);
+        expect(Number.isNaN(window.endMs)).toBe(true);
+    });
+
+    it("accepts authored label, tokenized key, and narrative SOI boundary variants", () => {
+        const entryTime = Date.parse("2026-04-06T04:43:12Z");
+        const exitTime = Date.parse("2026-04-07T17:27:12Z");
+        const window = resolveLunarFlybyWindowMs([
+            { key: "invalid", label: "Invalid", startTime: "not-a-date" },
+            { key: "boundary", label: "Lunar SOI Entry", startTime: entryTime },
+            { key: "moon soi ingress", label: "Boundary", startTime: entryTime + 1_000 },
+            {
+                key: "narrative-entry",
+                label: "Boundary",
+                infoText: "The craft enters the lunar sphere of influence",
+                startTime: entryTime + 2_000,
+            },
+            { key: "boundary", label: "Moon SOI Exit", startTime: exitTime },
+            { key: "lunar soi egress", label: "Boundary", startTime: exitTime - 1_000 },
+            {
+                key: "narrative-exit",
+                label: "Boundary",
+                hoverText: "The craft exits the Moon sphere of influence",
+                startTime: exitTime - 2_000,
+            },
+        ]);
+
+        expect(window).toEqual({
+            startMs: entryTime - (5 * 60 * 1000),
+            endMs: exitTime + (5 * 60 * 1000),
+        });
+        const absentWindow = resolveLunarFlybyWindowMs(null);
+        expect(Number.isNaN(absentWindow.startMs)).toBe(true);
+        expect(Number.isNaN(absentWindow.endMs)).toBe(true);
+    });
+});
+
+describe("Frame and Shoot flyby event resolution", () => {
+    it("prefers a named closest approach over broader lunar-flyby narratives", () => {
+        const narrativeTime = Date.parse("2026-04-06T22:00:00Z");
+        const explicitTime = Date.parse("2026-04-06T23:06:12Z");
+
+        expect(resolveLunarFlybyTimeMs([
+            {
+                key: "missionUpdate",
+                label: "Mission update",
+                hoverText: "The craft begins its lunar flyby",
+                startTime: narrativeTime,
+            },
+            {
+                key: "closestApproach",
+                label: "Closest Approach",
+                startTime: explicitTime,
+            },
+        ])).toBe(explicitTime);
+    });
+
+    it("prefers a non-burn event and then the earliest time for equally strong matches", () => {
+        const earliestTime = Date.parse("2026-04-06T23:06:12Z");
+        const laterTime = Date.parse("2026-04-06T23:07:12Z");
+
+        expect(resolveLunarFlybyTimeMs([
+            {
+                key: "closestApproachBurn",
+                label: "Closest Approach",
+                burnFlag: true,
+                startTime: earliestTime - 60_000,
+            },
+            {
+                key: "closestApproachLate",
+                label: "Closest Approach",
+                startTime: laterTime,
+            },
+            {
+                key: "closestApproachEarly",
+                label: "Closest Approach",
+                startTime: earliestTime,
+            },
+        ])).toBe(earliestTime);
+    });
+
+    it("recognizes explicit, tokenized, and narrative lunar flyby variants", () => {
+        const explicitTime = Date.parse("2026-04-06T23:06:12Z");
+
+        expect(resolveLunarFlybyTimeMs([
+            {
+                key: "broadcast",
+                label: "Moon Flyby",
+                startTime: explicitTime,
+            },
+            {
+                key: "moon-pass",
+                label: "Flyby",
+                startTime: explicitTime - 1_000,
+            },
+            {
+                key: "missionUpdate",
+                label: "Mission update",
+                infoText: "Lunar perilune is now",
+                startTime: explicitTime - 2_000,
+            },
+        ])).toBe(explicitTime);
+    });
+
+    it("returns NaN when no valid lunar flyby event can be identified", () => {
+        expect(Number.isNaN(resolveLunarFlybyTimeMs([
+            { key: "launch", label: "Launch", startTime: "2026-04-01T00:00:00Z" },
+            { key: "lunarFlyby", label: "Lunar Flyby", startTime: "not-a-date" },
+        ]))).toBe(true);
+        expect(Number.isNaN(resolveLunarFlybyTimeMs(null))).toBe(true);
+    });
+
+    it("returns canonical pills in display order from key and label matches", () => {
+        const exitTime = Date.parse("2026-04-07T17:27:12Z");
+        const entryTime = Date.parse("2026-04-06T04:43:12Z");
+        const approachTime = Date.parse("2026-04-06T23:06:12Z");
+
+        expect(resolveFlybyPlannerEvents([
+            { key: "lunar_soi_out", label: "Boundary crossed", startTime: exitTime },
+            { key: "unknown", label: "Earth set", startTime: "2026-04-06T08:00:00Z" },
+            { key: "closest-approach", label: "Perilune", startTime: approachTime },
+            { key: "lunarSoiEntry", label: "Lunar SOI In", startTime: entryTime },
+            { key: "bad", label: "Earthrise", startTime: "invalid" },
+        ])).toEqual([
+            {
+                id: "lunarSoiEntry",
+                title: "Lunar SOI In",
+                timeMs: entryTime,
+                sourceLabel: "Lunar SOI In",
+            },
+            {
+                id: "earthSet",
+                title: "Earthset",
+                timeMs: Date.parse("2026-04-06T08:00:00Z"),
+                sourceLabel: "Earth set",
+            },
+            {
+                id: "closestApproach",
+                title: "Closest Approach",
+                timeMs: approachTime,
+                sourceLabel: "Perilune",
+            },
+            {
+                id: "lunarSoiExit",
+                title: "Lunar SOI Out",
+                timeMs: exitTime,
+                sourceLabel: "Boundary crossed",
+            },
+        ]);
+    });
+
+    it("returns no planner pills for absent or unmatched events", () => {
+        expect(resolveFlybyPlannerEvents()).toEqual([]);
+        expect(resolveFlybyPlannerEvents([
+            { key: "launch", label: "Launch", startTime: 100 },
+        ])).toEqual([]);
     });
 });
 
