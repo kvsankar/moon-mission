@@ -64,4 +64,3 @@ Verification:
 
 No threshold, coverage exclusion, test skip, runtime asset, mission config,
 data-repository file or deployment state was changed.
-
