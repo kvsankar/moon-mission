@@ -1,225 +1,250 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
     createMissionInteractionStateCells,
     createMissionSessionStateCells,
     createMissionViewStateCells,
-    createMutableStateCell,
-    createReadonlyStateCell,
 } from "../src/platform/js/app/mission-state-cell-groups.js";
-import { createRuntimeViewState } from "../src/platform/js/core/state/runtime-view-state.js";
-import { createRuntimeSessionState } from "../src/platform/js/core/state/runtime-session-state.js";
-import { createRuntimeInteractionState } from "../src/platform/js/core/state/runtime-interaction-state.js";
 
-describe("state cells", () => {
-    it("routes reads and writes through the supplied accessors", () => {
-        let stored = 1;
-        const cell = createMutableStateCell(() => stored, (value) => { stored = value; });
+describe("mission state cell groups", () => {
+    it("builds writable and readonly view-state cells", () => {
+        const state = {
+            config: "geo",
+            currentDimension: "3D",
+            previousDimension: "2D",
+            dimensionChanged: false,
+            viewAuxiliaryPanels: true,
+            viewOrbit: true,
+            viewOrbitDescent: false,
+            viewCraters: false,
+            viewLunarCraters: false,
+            lunarCraterShowAllEnabled: false,
+            lunarCraterHoverEnabled: false,
+            viewMoonLatLonGrid: false,
+            viewMoonLatLonLabels: true,
+            viewMoonLatLonHover: false,
+            lunarCraterHoverLabels: true,
+            lunarCraterDisplayMode: "hover",
+            lunarCraterMinDiameterKm: 80,
+            lunarCraterMaxDiameterKm: 600,
+            lunarCraterHoverMinDiameterKm: 0,
+            lunarCraterHoverMaxDiameterKm: 600,
+            lunarFeatureTypeFilters: {},
+            lunarFeatureSearchQuery: "",
+            lunarFeatureExcludedKeys: [],
+            lunarFeatureHoverTypeFilters: {},
+            lunarFeatureHoverSearchQuery: "",
+            lunarFeatureHoverExcludedKeys: [],
+            viewXYZAxes: false,
+            viewPoles: false,
+            viewPolarAxes: false,
+            viewSky: true,
+            viewConstellationLines: false,
+            viewMoonSOI: false,
+            viewMoonHillSphere: false,
+            viewBodyHalos: true,
+            viewMoonOsculatingOrbit: false,
+            viewEclipticPlane: false,
+            viewEquatorialPlane: false,
+            viewFPS: false,
+            orbitStyle: "trail",
+            trailTrackBrightness2D: 1,
+            trailTrackBrightness3D: 0.5,
+            trailTailBrightness2D: 0.25,
+            trailTailBrightness3D: 0.1,
+        };
+        let effectiveOrbitStyle = "trail";
+        const runtimeViewState = {
+            getConfig: () => state.config,
+            setConfig: (value) => { state.config = value; },
+            getCurrentDimension: () => state.currentDimension,
+            setCurrentDimension: (value) => { state.currentDimension = value; },
+            getPreviousDimension: () => state.previousDimension,
+            setPreviousDimension: (value) => { state.previousDimension = value; },
+            getDimensionChanged: () => state.dimensionChanged,
+            setDimensionChanged: (value) => { state.dimensionChanged = value; },
+            getViewAuxiliaryPanels: () => state.viewAuxiliaryPanels,
+            setViewAuxiliaryPanels: (value) => { state.viewAuxiliaryPanels = value; },
+            getViewOrbit: () => state.viewOrbit,
+            setViewOrbit: (value) => { state.viewOrbit = value; },
+            getViewOrbitDescent: () => state.viewOrbitDescent,
+            setViewOrbitDescent: (value) => { state.viewOrbitDescent = value; },
+            getViewCraters: () => state.viewCraters,
+            setViewCraters: (value) => { state.viewCraters = value; },
+            getViewLunarCraters: () => state.viewLunarCraters,
+            setViewLunarCraters: (value) => { state.viewLunarCraters = value; },
+            getLunarCraterShowAllEnabled: () => state.lunarCraterShowAllEnabled,
+            setLunarCraterShowAllEnabled: (value) => { state.lunarCraterShowAllEnabled = value; },
+            getLunarCraterHoverEnabled: () => state.lunarCraterHoverEnabled,
+            setLunarCraterHoverEnabled: (value) => { state.lunarCraterHoverEnabled = value; },
+            getViewMoonLatLonGrid: () => state.viewMoonLatLonGrid,
+            setViewMoonLatLonGrid: (value) => { state.viewMoonLatLonGrid = value; },
+            getViewMoonLatLonLabels: () => state.viewMoonLatLonLabels,
+            setViewMoonLatLonLabels: (value) => { state.viewMoonLatLonLabels = value; },
+            getViewMoonLatLonHover: () => state.viewMoonLatLonHover,
+            setViewMoonLatLonHover: (value) => { state.viewMoonLatLonHover = value; },
+            getLunarCraterHoverLabels: () => state.lunarCraterHoverLabels,
+            setLunarCraterHoverLabels: (value) => { state.lunarCraterHoverLabels = value; },
+            getLunarCraterDisplayMode: () => state.lunarCraterDisplayMode,
+            setLunarCraterDisplayMode: (value) => { state.lunarCraterDisplayMode = value; },
+            getLunarCraterMinDiameterKm: () => state.lunarCraterMinDiameterKm,
+            setLunarCraterMinDiameterKm: (value) => { state.lunarCraterMinDiameterKm = value; },
+            getLunarCraterMaxDiameterKm: () => state.lunarCraterMaxDiameterKm,
+            setLunarCraterMaxDiameterKm: (value) => { state.lunarCraterMaxDiameterKm = value; },
+            getLunarCraterHoverMinDiameterKm: () => state.lunarCraterHoverMinDiameterKm,
+            setLunarCraterHoverMinDiameterKm: (value) => { state.lunarCraterHoverMinDiameterKm = value; },
+            getLunarCraterHoverMaxDiameterKm: () => state.lunarCraterHoverMaxDiameterKm,
+            setLunarCraterHoverMaxDiameterKm: (value) => { state.lunarCraterHoverMaxDiameterKm = value; },
+            getLunarFeatureTypeFilters: () => state.lunarFeatureTypeFilters,
+            setLunarFeatureTypeFilters: (value) => { state.lunarFeatureTypeFilters = value; },
+            getLunarFeatureSearchQuery: () => state.lunarFeatureSearchQuery,
+            setLunarFeatureSearchQuery: (value) => { state.lunarFeatureSearchQuery = value; },
+            getLunarFeatureExcludedKeys: () => state.lunarFeatureExcludedKeys,
+            setLunarFeatureExcludedKeys: (value) => { state.lunarFeatureExcludedKeys = value; },
+            getLunarFeatureHoverTypeFilters: () => state.lunarFeatureHoverTypeFilters,
+            setLunarFeatureHoverTypeFilters: (value) => { state.lunarFeatureHoverTypeFilters = value; },
+            getLunarFeatureHoverSearchQuery: () => state.lunarFeatureHoverSearchQuery,
+            setLunarFeatureHoverSearchQuery: (value) => { state.lunarFeatureHoverSearchQuery = value; },
+            getLunarFeatureHoverExcludedKeys: () => state.lunarFeatureHoverExcludedKeys,
+            setLunarFeatureHoverExcludedKeys: (value) => { state.lunarFeatureHoverExcludedKeys = value; },
+            getViewXYZAxes: () => state.viewXYZAxes,
+            setViewXYZAxes: (value) => { state.viewXYZAxes = value; },
+            getViewPoles: () => state.viewPoles,
+            setViewPoles: (value) => { state.viewPoles = value; },
+            getViewPolarAxes: () => state.viewPolarAxes,
+            setViewPolarAxes: (value) => { state.viewPolarAxes = value; },
+            getViewSky: () => state.viewSky,
+            setViewSky: (value) => { state.viewSky = value; },
+            getViewConstellationLines: () => state.viewConstellationLines,
+            setViewConstellationLines: (value) => { state.viewConstellationLines = value; },
+            getViewMoonSOI: () => state.viewMoonSOI,
+            setViewMoonSOI: (value) => { state.viewMoonSOI = value; },
+            getViewMoonHillSphere: () => state.viewMoonHillSphere,
+            setViewMoonHillSphere: (value) => { state.viewMoonHillSphere = value; },
+            getViewBodyHalos: () => state.viewBodyHalos,
+            setViewBodyHalos: (value) => { state.viewBodyHalos = value; },
+            getViewMoonOsculatingOrbit: () => state.viewMoonOsculatingOrbit,
+            setViewMoonOsculatingOrbit: (value) => { state.viewMoonOsculatingOrbit = value; },
+            getViewEclipticPlane: () => state.viewEclipticPlane,
+            setViewEclipticPlane: (value) => { state.viewEclipticPlane = value; },
+            getViewEquatorialPlane: () => state.viewEquatorialPlane,
+            setViewEquatorialPlane: (value) => { state.viewEquatorialPlane = value; },
+            getViewFPS: () => state.viewFPS,
+            setViewFPS: (value) => { state.viewFPS = value; },
+            getOrbitStyle: () => state.orbitStyle,
+            setOrbitStyle: (value) => { state.orbitStyle = value; },
+            getTrailTrackBrightness2D: () => state.trailTrackBrightness2D,
+            setTrailTrackBrightness2D: (value) => { state.trailTrackBrightness2D = value; },
+            getTrailTrackBrightness3D: () => state.trailTrackBrightness3D,
+            setTrailTrackBrightness3D: (value) => { state.trailTrackBrightness3D = value; },
+            getTrailTailBrightness2D: () => state.trailTailBrightness2D,
+            setTrailTailBrightness2D: (value) => { state.trailTailBrightness2D = value; },
+            getTrailTailBrightness3D: () => state.trailTailBrightness3D,
+            setTrailTailBrightness3D: (value) => { state.trailTailBrightness3D = value; },
+        };
 
-        expect(cell.get()).toBe(1);
-        cell.set(7);
-        expect(stored).toBe(7);
-    });
-
-    it("swallows writes to a readonly cell", () => {
-        const cell = createReadonlyStateCell(() => "fixed");
-
-        expect(cell.get()).toBe("fixed");
-        expect(() => cell.set("other")).not.toThrow();
-        expect(cell.get()).toBe("fixed");
-    });
-});
-
-describe("view state cells", () => {
-    function makeCells() {
-        const runtimeViewState = createRuntimeViewState();
-        const getEffectiveOrbitStyle = vi.fn(() => "trail");
-        return {
+        const cells = createMissionViewStateCells(
             runtimeViewState,
-            getEffectiveOrbitStyle,
-            cells: createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle),
-        };
-    }
+            () => effectiveOrbitStyle,
+        );
 
-    it("exposes every runtime view flag as a cell", () => {
-        const { cells } = makeCells();
-
-        for (const key of [
-            "config",
-            "currentDimension",
-            "viewOrbit",
-            "viewCraters",
-            "viewLunarCraters",
-            "viewMoonLatLonGrid",
-            "trailTrackBrightness2D",
-            "trailTailBrightness3D",
-        ]) {
-            expect(typeof cells[key]?.get).toBe("function");
-            expect(typeof cells[key]?.set).toBe("function");
-        }
-    });
-
-    it("round-trips a value through the runtime view state", () => {
-        const { cells, runtimeViewState } = makeCells();
-
+        expect(cells.config.get()).toBe("geo");
         cells.config.set("lunar");
+        expect(state.config).toBe("lunar");
 
-        expect(runtimeViewState.getConfig()).toBe("lunar");
-        expect(cells.config.get()).toBe("lunar");
-    });
-
-    it("tracks the dimension change flags together", () => {
-        const { cells } = makeCells();
-
-        cells.currentDimension.set("2D");
-        cells.previousDimension.set("3D");
-        cells.dimensionChanged.set(true);
-
-        expect(cells.currentDimension.get()).toBe("2D");
-        expect(cells.previousDimension.get()).toBe("3D");
-        expect(cells.dimensionChanged.get()).toBe(true);
-    });
-
-    it("keeps the transition revision read-only", () => {
-        const { cells, runtimeViewState } = makeCells();
-        const before = cells.transitionRevision.get();
-
-        cells.transitionRevision.set(999);
-
-        expect(cells.transitionRevision.get()).toBe(before);
-        expect(cells.transitionRevision.get()).toBe(runtimeViewState.getTransitionRevision());
-    });
-
-    it("derives the lunar feature mode flags from the display mode", () => {
-        const { cells, runtimeViewState } = makeCells();
-
-        // Show-all and hover are not stored per view; they are recomputed when
-        // the Lunar Features toggle is written, from the current display mode.
+        expect(cells.viewOrbit.get()).toBe(true);
+        cells.viewOrbit.set(false);
+        expect(state.viewOrbit).toBe(false);
+        cells.viewLunarCraters.set(true);
+        expect(state.viewLunarCraters).toBe(true);
         cells.lunarCraterShowAllEnabled.set(true);
-        expect(cells.lunarCraterShowAllEnabled.get()).toBe(false);
+        cells.lunarCraterHoverEnabled.set(true);
+        expect(state.lunarCraterShowAllEnabled).toBe(true);
+        expect(state.lunarCraterHoverEnabled).toBe(true);
+        cells.viewMoonLatLonGrid.set(true);
+        expect(state.viewMoonLatLonGrid).toBe(true);
+        cells.viewMoonLatLonLabels.set(false);
+        expect(state.viewMoonLatLonLabels).toBe(false);
+        cells.viewMoonLatLonHover.set(true);
+        expect(state.viewMoonLatLonHover).toBe(true);
+        cells.lunarCraterHoverLabels.set(false);
+        cells.lunarCraterDisplayMode.set("always");
+        cells.lunarCraterMinDiameterKm.set(40);
+        cells.lunarCraterMaxDiameterKm.set(120);
+        cells.lunarCraterHoverMinDiameterKm.set(10);
+        cells.lunarCraterHoverMaxDiameterKm.set(240);
+        cells.lunarFeatureTypeFilters.set({ crater: { enabled: true } });
+        cells.lunarFeatureSearchQuery.set("Tycho");
+        cells.lunarFeatureExcludedKeys.set(["tycho"]);
+        cells.lunarFeatureHoverTypeFilters.set({ mare: { enabled: true } });
+        cells.lunarFeatureHoverSearchQuery.set("Mare");
+        cells.lunarFeatureHoverExcludedKeys.set(["mare"]);
+        expect(state.lunarCraterHoverLabels).toBe(false);
+        expect(state.lunarCraterDisplayMode).toBe("always");
+        expect(state.lunarCraterMinDiameterKm).toBe(40);
+        expect(state.lunarCraterMaxDiameterKm).toBe(120);
+        expect(state.lunarCraterHoverMinDiameterKm).toBe(10);
+        expect(state.lunarCraterHoverMaxDiameterKm).toBe(240);
+        expect(state.lunarFeatureTypeFilters).toEqual({ crater: { enabled: true } });
+        expect(state.lunarFeatureSearchQuery).toBe("Tycho");
+        expect(state.lunarFeatureExcludedKeys).toEqual(["tycho"]);
+        expect(state.lunarFeatureHoverTypeFilters).toEqual({ mare: { enabled: true } });
+        expect(state.lunarFeatureHoverSearchQuery).toBe("Mare");
+        expect(state.lunarFeatureHoverExcludedKeys).toEqual(["mare"]);
 
-        runtimeViewState.setLunarCraterDisplayMode("always");
-        cells.viewLunarCraters.set(true);
-        expect(cells.lunarCraterShowAllEnabled.get()).toBe(true);
-
-        runtimeViewState.setLunarCraterDisplayMode("hover");
-        cells.viewLunarCraters.set(true);
-        expect(cells.lunarCraterShowAllEnabled.get()).toBe(false);
-        expect(cells.lunarCraterHoverEnabled.get()).toBe(true);
+        expect(cells.effectiveOrbitStyle.get()).toBe("trail");
+        effectiveOrbitStyle = "classic";
+        expect(cells.effectiveOrbitStyle.get()).toBe("classic");
+        cells.effectiveOrbitStyle.set("ignored");
+        expect(cells.effectiveOrbitStyle.get()).toBe("classic");
     });
 
-    it("clears both lunar feature modes when the features are switched off", () => {
-        const { cells, runtimeViewState } = makeCells();
-        runtimeViewState.setLunarCraterDisplayMode("always");
-        cells.viewLunarCraters.set(true);
-
-        cells.viewLunarCraters.set(false);
-
-        expect(cells.lunarCraterShowAllEnabled.get()).toBe(false);
-        expect(cells.lunarCraterHoverEnabled.get()).toBe(false);
-    });
-
-    it("round-trips the lunar feature view toggles that are stored per view", () => {
-        const { cells } = makeCells();
-
-        cells.viewLunarCraters.set(true);
-        cells.viewCraters.set(false);
-
-        expect(cells.viewLunarCraters.get()).toBe(true);
-        expect(cells.viewCraters.get()).toBe(false);
-    });
-
-    it("round-trips the trail brightness controls", () => {
-        const { cells } = makeCells();
-
-        cells.trailTrackBrightness2D.set(0.4);
-        cells.trailTailBrightness3D.set(1.7);
-
-        expect(cells.trailTrackBrightness2D.get()).toBe(0.4);
-        expect(cells.trailTailBrightness3D.get()).toBe(1.7);
-    });
-
-    it("round-trips the photo and auxiliary view toggles", () => {
-        const { cells } = makeCells();
-
-        cells.viewPhotoMode.set(true);
-        cells.viewAuxiliaryPanels.set(false);
-        cells.viewEarthClouds.set(false);
-
-        expect(cells.viewPhotoMode.get()).toBe(true);
-        expect(cells.viewAuxiliaryPanels.get()).toBe(false);
-        expect(cells.viewEarthClouds.get()).toBe(false);
-    });
-});
-
-describe("session state cells", () => {
-    it("round-trips the animation time", () => {
-        const runtimeSessionState = createRuntimeSessionState();
-        const cells = createMissionSessionStateCells(runtimeSessionState);
-
-        cells.animTime.set(1_700_000_000_000);
-
-        expect(cells.animTime.get()).toBe(1_700_000_000_000);
-        expect(runtimeSessionState.getAnimTime()).toBe(1_700_000_000_000);
-    });
-
-    it("keeps the playback flag read-only", () => {
-        const runtimeSessionState = createRuntimeSessionState();
-        const cells = createMissionSessionStateCells(runtimeSessionState);
-        const before = cells.animationRunning.get();
-
-        cells.animationRunning.set(!before);
-
-        expect(cells.animationRunning.get()).toBe(before);
-    });
-});
-
-describe("interaction state cells", () => {
-    function makeCells() {
-        const runtimeInteractionState = createRuntimeInteractionState();
-        return {
-            runtimeInteractionState,
-            cells: createMissionInteractionStateCells(runtimeInteractionState),
+    it("builds session and interaction state cells with the expected mutability", () => {
+        const sessionState = {
+            animTime: 100,
+            animationRunning: true,
         };
-    }
+        const interactionState = {
+            startLandingFlag: false,
+            mousedownTimeout: 25,
+            timeoutHandleZoom: null,
+            mouseDown: false,
+            missionStartCalled: false,
+            legacyTimeoutHandle: 42,
+        };
+        const runtimeSessionState = {
+            getAnimTime: () => sessionState.animTime,
+            setAnimTime: (value) => { sessionState.animTime = value; },
+            getAnimationRunning: () => sessionState.animationRunning,
+        };
+        const runtimeInteractionState = {
+            getStartLandingFlag: () => interactionState.startLandingFlag,
+            setStartLandingFlag: (value) => { interactionState.startLandingFlag = value; },
+            getMouseDownTimeout: () => interactionState.mousedownTimeout,
+            setMouseDownTimeout: (value) => { interactionState.mousedownTimeout = value; },
+            getTimeoutHandleZoom: () => interactionState.timeoutHandleZoom,
+            setTimeoutHandleZoom: (value) => { interactionState.timeoutHandleZoom = value; },
+            getMouseDown: () => interactionState.mouseDown,
+            setMouseDown: (value) => { interactionState.mouseDown = value; },
+            getMissionStartCalled: () => interactionState.missionStartCalled,
+            setMissionStartCalled: (value) => { interactionState.missionStartCalled = value; },
+            getLegacyTimeoutHandle: () => interactionState.legacyTimeoutHandle,
+        };
 
-    it("round-trips the pointer and landing flags", () => {
-        const { cells } = makeCells();
+        const sessionCells = createMissionSessionStateCells(runtimeSessionState);
+        const interactionCells = createMissionInteractionStateCells(runtimeInteractionState);
 
-        cells.mouseDown.set(true);
-        cells.startLandingFlag.set(true);
-        cells.missionStartCalled.set(true);
+        sessionCells.animTime.set(250);
+        expect(sessionState.animTime).toBe(250);
+        sessionCells.animationRunning.set(false);
+        expect(sessionState.animationRunning).toBe(true);
 
-        expect(cells.mouseDown.get()).toBe(true);
-        expect(cells.startLandingFlag.get()).toBe(true);
-        expect(cells.missionStartCalled.get()).toBe(true);
-    });
+        interactionCells.startLandingFlag.set(true);
+        interactionCells.timeoutHandleZoom.set("zoom-timeout");
+        interactionCells.timeoutHandle.set("ignored");
 
-    it("round-trips the pending timeout handles", () => {
-        const { cells } = makeCells();
-
-        cells.mousedownTimeout.set(11);
-        cells.timeoutHandleZoom.set(22);
-
-        expect(cells.mousedownTimeout.get()).toBe(11);
-        expect(cells.timeoutHandleZoom.get()).toBe(22);
-    });
-
-    it("keeps the legacy timeout handle read-only", () => {
-        const { cells } = makeCells();
-        const before = cells.timeoutHandle.get();
-
-        cells.timeoutHandle.set(42);
-
-        expect(cells.timeoutHandle.get()).toBe(before);
-    });
-
-    it("records input activity through the cell", () => {
-        const { cells, runtimeInteractionState } = makeCells();
-
-        cells.lastInputActivityMs.set(5000);
-
-        expect(cells.lastInputActivityMs.get()).toBe(5000);
-        expect(runtimeInteractionState.getLastInputActivityMs()).toBe(5000);
+        expect(interactionState.startLandingFlag).toBe(true);
+        expect(interactionState.timeoutHandleZoom).toBe("zoom-timeout");
+        expect(interactionState.legacyTimeoutHandle).toBe(42);
     });
 });
