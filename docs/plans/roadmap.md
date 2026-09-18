@@ -108,18 +108,31 @@ touching product code. The functions gate now passes; lines, statements and
 branches do not. Evidence:
 [Unit Coverage Expansion](../evidence/reviews/unit-coverage-expansion-2026-09-18.md).
 
+A second test-only pass raised it again to 79.08% lines, 76.92% statements,
+66.06% branches and 76.37% functions across 3,530 passing tests in 288 files,
+covering the camera controller, the star field, both sky renderers, the mobile
+far-side overlay, both splashdown ground-track surfaces, the media browser
+render path, and the settings and spacecraft action factories. Evidence:
+[Unit Coverage Expansion, Round Two](../evidence/reviews/unit-coverage-expansion-round-two-2026-09-18.md).
+
 Continue with bounded behavior/refactoring slices chosen from the largest
-active gaps, now led by the auxiliary camera manager, the media browser panel,
-the splashdown ground-track panel and the Dockview host. Two follow-ups are
-now explicit:
+active gaps, now led by the auxiliary camera manager, the Dockview host and
+the lunar crater actions. Branches are the gate furthest from target, so
+`media-timeline-coordination.js`, `background-media-panel.js` and
+`timeline-dock-controller.js` — each with far more uncovered branches than
+lines — are the efficient targets for that gate specifically. Two follow-ups
+remain explicit:
 
 - Decide whether the long render and DOM-construction methods in those files
-  are extracted, because the remaining lines are otherwise reachable only by
-  driving a near-complete scene and panel graph.
+  are extracted. `auxiliary-camera-views.js` now has a measurement behind this:
+  of its 1,938 uncovered lines, only two contiguous runs exceed fourteen lines,
+  so the remainder is scattered branches inside a 3,300-line `createPanel`
+  method. Extraction is the prerequisite, not more tests.
 - Dispose of the hotfix kill switches (`ORBIT_OVERLAP_REFINEMENT_ENABLED`,
-  craft body halos, craft edge locators). Code behind a permanently off flag
-  cannot be covered and should be retired or re-enabled deliberately rather
-  than counted against the gate.
+  craft body halos, craft edge locators, and `resolveEffectiveOrbitStyle`,
+  which ignores its argument and always returns `"classic"`). Code behind a
+  permanently off flag cannot be covered and should be retired or re-enabled
+  deliberately rather than counted against the gate.
 
 ### 2. Harden combined browser startup diagnostics
 
@@ -149,6 +162,11 @@ Do not copy the audit inventory wholesale into the mutable queue.
 - Test-only unit coverage expansion added 29 test files and a minimal DOM test
   double, raising lines from 55.17% to 74.99% with no product-code change:
   [expansion evidence](../evidence/reviews/unit-coverage-expansion-2026-09-18.md).
+
+- A second test-only pass added nine more test files and raised lines from
+  75.45% to 79.08% and branches from 62.91% to 66.06%, again with no
+  product-code change:
+  [round-two evidence](../evidence/reviews/unit-coverage-expansion-round-two-2026-09-18.md).
 
 - The three behaviours that expansion recorded were then investigated and
   dispositioned: per-view retention of the lunar feature mode flags and the

@@ -67,19 +67,24 @@ Latest verification before this docs pass:
 ### 1. Full unit coverage disposition
 
 This is the next implementation priority. Vitest 4 coverage remains below the
-unchanged line, statement and branch thresholds. After the 2026-09-18
-test-only expansion the gate reports:
+unchanged line, statement and branch thresholds. After the two 2026-09-18
+test-only expansions the gate reports:
 
 | Metric | Reported | Gate |
 | --- | ---: | ---: |
-| Lines | 74.99% | 87% |
-| Statements | 72.96% | 87% |
-| Branches | 62.74% | 82% |
-| Functions | 71.23% | 50% |
+| Lines | 79.08% | 87% |
+| Statements | 76.92% | 87% |
+| Branches | 66.06% | 82% |
+| Functions | 76.37% | 50% |
+
+3,530 tests pass across 288 files with the same six pre-existing skips.
 
 See [Unit Coverage Expansion](../reviews/unit-coverage-expansion-2026-09-18.md)
-for the harness, the covered contracts, the recorded behaviour surprises and
-the ranked remaining gaps.
+for the harness and the first pass, and
+[Round Two](../reviews/unit-coverage-expansion-round-two-2026-09-18.md) for the
+second pass, the per-slice gains, the kill switches found, and the ranked
+remaining gaps. Branches are now the gate furthest from target; modules with
+far more uncovered branches than lines are the efficient targets for it.
 
 Run a fresh report on current `master` before choosing modules. Preserve the
 loaded-files-only scope, exclusions and thresholds. Add behavior-driven tests;
