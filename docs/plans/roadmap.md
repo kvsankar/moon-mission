@@ -115,13 +115,22 @@ far-side overlay, both splashdown ground-track surfaces, the media browser
 render path, and the settings and spacecraft action factories. Evidence:
 [Unit Coverage Expansion, Round Two](../evidence/reviews/unit-coverage-expansion-round-two-2026-09-18.md).
 
+A third, branch-first pass then raised it to 80.07% lines, 77.94%
+statements, 67.41% branches and 76.97% functions across 3,722 passing tests
+in 293 files, by targeting the modules carrying far more uncovered branches
+than lines: the media coordinator intent dispatcher, the lunar crater
+setter family, the timeline dock media marker lane, the Dockview panel
+launch strip and the desktop main field of view control. Evidence:
+[Branch-First Pass](../evidence/reviews/unit-coverage-branch-first-2026-09-19.md).
+
 Continue with bounded behavior/refactoring slices chosen from the largest
-active gaps, now led by the auxiliary camera manager, the Dockview host and
-the lunar crater actions. Branches are the gate furthest from target, so
-`media-timeline-coordination.js`, `background-media-panel.js` and
-`timeline-dock-controller.js` — each with far more uncovered branches than
-lines — are the efficient targets for that gate specifically. Two follow-ups
-remain explicit:
+active gaps. Branches remain the gate furthest from target (67.41% against
+82%, a 5,019-arm shortfall), so keep choosing by uncovered branches:
+`media-browser-panel.js`, `ground-track-panel.js`,
+`background-media-panel.js` and `lunar-crater-control-panel.js` are next.
+Both line gates remain reachable without touching
+`auxiliary-camera-views.js`: 2,836 lines are needed for 87% and 6,218 are
+uncovered elsewhere. Two follow-ups remain explicit:
 
 - Decide whether the long render and DOM-construction methods in those files
   are extracted. `auxiliary-camera-views.js` now has a measurement behind this:
@@ -167,6 +176,11 @@ Do not copy the audit inventory wholesale into the mutable queue.
   75.45% to 79.08% and branches from 62.91% to 66.06%, again with no
   product-code change:
   [round-two evidence](../evidence/reviews/unit-coverage-expansion-round-two-2026-09-18.md).
+
+- A third, branch-first pass added five more test files and raised branches
+  from 66.06% to 67.41% and lines from 79.08% to 80.07%, choosing each slice
+  by uncovered branch count:
+  [branch-first evidence](../evidence/reviews/unit-coverage-branch-first-2026-09-19.md).
 
 - The three behaviours that expansion recorded were then investigated and
   dispositioned: per-view retention of the lunar feature mode flags and the

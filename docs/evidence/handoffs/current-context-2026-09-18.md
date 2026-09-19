@@ -67,24 +67,26 @@ Latest verification before this docs pass:
 ### 1. Full unit coverage disposition
 
 This is the next implementation priority. Vitest 4 coverage remains below the
-unchanged line, statement and branch thresholds. After the two 2026-09-18
-test-only expansions the gate reports:
+unchanged line, statement and branch thresholds. After three test-only
+expansions the gate reports:
 
 | Metric | Reported | Gate |
 | --- | ---: | ---: |
-| Lines | 79.08% | 87% |
-| Statements | 76.92% | 87% |
-| Branches | 66.06% | 82% |
-| Functions | 76.37% | 50% |
+| Lines | 80.07% | 87% |
+| Statements | 77.94% | 87% |
+| Branches | 67.41% | 82% |
+| Functions | 76.97% | 50% |
 
-3,530 tests pass across 288 files with the same six pre-existing skips.
+3,722 tests pass across 293 files with the same six pre-existing skips.
 
 See [Unit Coverage Expansion](../reviews/unit-coverage-expansion-2026-09-18.md)
-for the harness and the first pass, and
+for the harness and the first pass,
 [Round Two](../reviews/unit-coverage-expansion-round-two-2026-09-18.md) for the
-second pass, the per-slice gains, the kill switches found, and the ranked
-remaining gaps. Branches are now the gate furthest from target; modules with
-far more uncovered branches than lines are the efficient targets for it.
+second pass and the kill switches found, and
+[Branch-First Pass](../reviews/unit-coverage-branch-first-2026-09-19.md) for the
+third, which also records where each gate now stands. Branches remain the gate
+furthest from target, so keep choosing slices by uncovered branch count rather
+than by file size.
 
 Run a fresh report on current `master` before choosing modules. Preserve the
 loaded-files-only scope, exclusions and thresholds. Add behavior-driven tests;
