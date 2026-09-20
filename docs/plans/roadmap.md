@@ -115,22 +115,22 @@ far-side overlay, both splashdown ground-track surfaces, the media browser
 render path, and the settings and spacecraft action factories. Evidence:
 [Unit Coverage Expansion, Round Two](../evidence/reviews/unit-coverage-expansion-round-two-2026-09-18.md).
 
-A third, branch-first pass then raised it to 80.07% lines, 77.94%
-statements, 67.41% branches and 76.97% functions across 3,722 passing tests
-in 293 files, by targeting the modules carrying far more uncovered branches
-than lines: the media coordinator intent dispatcher, the lunar crater
-setter family, the timeline dock media marker lane, the Dockview panel
-launch strip and the desktop main field of view control. Evidence:
+A third, branch-first pass then raised it to 80.66% lines, 78.55%
+statements, 68.32% branches and 77.52% functions across 3,820 passing tests
+in 297 files, by targeting the modules carrying far more uncovered branches
+than lines across nine slices. Evidence:
 [Branch-First Pass](../evidence/reviews/unit-coverage-branch-first-2026-09-19.md).
 
 Continue with bounded behavior/refactoring slices chosen from the largest
-active gaps. Branches remain the gate furthest from target (67.41% against
-82%, a 5,019-arm shortfall), so keep choosing by uncovered branches:
+active gaps. Branches remain the gate furthest from target (68.32% against
+82%, a 4,708-arm shortfall), so keep choosing by uncovered branches:
 `media-browser-panel.js`, `ground-track-panel.js`,
-`background-media-panel.js` and `lunar-crater-control-panel.js` are next.
-Both line gates remain reachable without touching
-`auxiliary-camera-views.js`: 2,836 lines are needed for 87% and 6,218 are
-uncovered elsewhere. Two follow-ups remain explicit:
+`media-timeline-coordination.js` and `background-media-panel.js` are next.
+Drop `lunar-crater-control-panel.js` below those despite its branch count;
+the last pass showed its remaining arms are spread too thinly across
+generated rows to repay a slice. Both line gates remain reachable without
+touching `auxiliary-camera-views.js`: 2,593 lines are needed for 87% and
+5,975 are uncovered elsewhere. Two follow-ups remain explicit:
 
 - Decide whether the long render and DOM-construction methods in those files
   are extracted. `auxiliary-camera-views.js` now has a measurement behind this:
@@ -177,8 +177,8 @@ Do not copy the audit inventory wholesale into the mutable queue.
   product-code change:
   [round-two evidence](../evidence/reviews/unit-coverage-expansion-round-two-2026-09-18.md).
 
-- A third, branch-first pass added five more test files and raised branches
-  from 66.06% to 67.41% and lines from 79.08% to 80.07%, choosing each slice
+- A third, branch-first pass added nine more test files and raised branches
+  from 66.06% to 68.32% and lines from 79.08% to 80.66%, choosing each slice
   by uncovered branch count:
   [branch-first evidence](../evidence/reviews/unit-coverage-branch-first-2026-09-19.md).
 

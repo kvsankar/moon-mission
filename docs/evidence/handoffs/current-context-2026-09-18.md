@@ -72,12 +72,12 @@ expansions the gate reports:
 
 | Metric | Reported | Gate |
 | --- | ---: | ---: |
-| Lines | 80.07% | 87% |
-| Statements | 77.94% | 87% |
-| Branches | 67.41% | 82% |
-| Functions | 76.97% | 50% |
+| Lines | 80.66% | 87% |
+| Statements | 78.55% | 87% |
+| Branches | 68.32% | 82% |
+| Functions | 77.52% | 50% |
 
-3,722 tests pass across 293 files with the same six pre-existing skips.
+3,820 tests pass across 297 files with the same six pre-existing skips.
 
 See [Unit Coverage Expansion](../reviews/unit-coverage-expansion-2026-09-18.md)
 for the harness and the first pass,
