@@ -414,6 +414,23 @@ export class FakeElement {
         return this.__rect || { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 };
     }
 
+    /**
+     * Pointer capture. Drag code routes a gesture to one element for its whole
+     * duration, so the double records the capture rather than ignoring it.
+     */
+    setPointerCapture(pointerId) {
+        this.__capturedPointers = this.__capturedPointers || new Set();
+        this.__capturedPointers.add(pointerId);
+    }
+
+    releasePointerCapture(pointerId) {
+        this.__capturedPointers?.delete(pointerId);
+    }
+
+    hasPointerCapture(pointerId) {
+        return this.__capturedPointers?.has(pointerId) === true;
+    }
+
     /** Test-only: fix the rectangle `getBoundingClientRect` reports. */
     setBoundingClientRect({ left = 0, top = 0, width = 0, height = 0 }) {
         this.__rect = {
