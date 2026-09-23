@@ -150,8 +150,10 @@ describe('Landing Compare Smoke Tests', () => {
         );
       }, { timeout: TIMEOUTS.MISSION_READY });
 
-      await page.waitForSelector('#compare-pill-button', { timeout: TIMEOUTS.MISSION_READY });
-      await page.waitForTimeout(5000);
+      await page.waitForFunction(() =>
+        document.getElementById('mission-loading-overlay')?.dataset.blocking === 'false' &&
+        document.getElementById('compare-mode-toggle')?.checked === true,
+      null, { timeout: TIMEOUTS.MISSION_READY });
 
       const missionSnapshot = await page.evaluate(() => {
         return {
@@ -165,8 +167,42 @@ describe('Landing Compare Smoke Tests', () => {
       expect(missionSnapshot.compareToggleChecked).toBe(true);
       expect(missionSnapshot.compareMissionValue).toBe('artemis1');
 
-      expect(consoleErrors).toHaveLength(0);
-      expect(pageErrors).toHaveLength(0);
+      expect(consoleErrors, JSON.stringify(consoleErrors)).toHaveLength(0);
+      expect(pageErrors, JSON.stringify(pageErrors)).toHaveLength(0);
+    } finally {
+      await page.close();
+    }
+  }, TIMEOUTS.TEST_CASE);
+
+  it('keeps table, timeline, mission brief and orbit preview available', async () => {
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const pageErrors = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
+    try {
+      await page.goto(`${TEST_CONFIG.baseUrl}/index.html?testMode=true`, {
+        waitUntil: 'domcontentloaded', timeout: TIMEOUTS.PAGE_LOAD,
+      });
+      await page.waitForSelector('[data-landing-compare-toggle="chandrayaan3"]', {
+        timeout: TIMEOUTS.LANDING_READY,
+      });
+
+      await page.locator('.landing-view-button[data-view="table"]').click();
+      expect(await page.locator('table tbody tr').count()).toBeGreaterThan(0);
+      await page.locator('.landing-view-button[data-view="timeline"]').click();
+      expect(await page.locator('.landing-timeline-chip').count()).toBeGreaterThan(0);
+      await page.locator('.landing-view-button[data-view="default"]').click();
+
+      const card = page.locator('.landing-card').filter({
+        has: page.locator('[data-landing-compare-toggle="chandrayaan3"]'),
+      });
+      await card.getByRole('button', { name: 'Brief' }).click();
+      await page.waitForFunction(() => {
+        const picker = document.getElementById('landing-brief-orbit-mode-picker');
+        return picker?.children.length > 0 && !!document.querySelector('#landing-brief-orbit-anim svg');
+      }, null, { timeout: TIMEOUTS.LANDING_READY });
+      expect(await page.locator('#landing-brief-panel').getAttribute('aria-hidden')).toBe('false');
+      expect(await page.locator('#landing-brief-panel').textContent()).toMatch(/HORIZONS Data/);
+      expect(pageErrors, JSON.stringify(pageErrors)).toHaveLength(0);
     } finally {
       await page.close();
     }

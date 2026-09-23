@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     buildMediaFilterModel,
     filterMediaItems,
+    resolveMediaFilterIntent,
 } from "../src/platform/js/core/domain/media-filter-state.js";
 
 const ITEMS = [
@@ -221,5 +222,29 @@ describe("media filter state", () => {
             ["crew", 1, false],
             ["space", 0, false],
         ]);
+    });
+});
+
+describe("media filter intents", () => {
+    it("selects a single kind from an unrestricted view and reports excluded audio", () => {
+        const result = resolveMediaFilterIntent({ type: "toggleMediaKind", value: "videoClip" }, {
+            quick: "all", mediaKinds: ["image", "audioClip", "videoClip"],
+        });
+        expect(result).toEqual({ handled: true, patch: {
+            quick: "all", kind: "all", mediaKinds: ["videoClip"],
+        }, stopAudioIfExcluded: true });
+    });
+
+    it("returns to all kinds when the last selected kind is toggled off", () => {
+        const result = resolveMediaFilterIntent({ type: "toggleMediaKind", value: "image" }, {
+            quick: "all", mediaKinds: ["image"],
+        });
+        expect(result.patch.mediaKinds).toEqual(["image", "audioClip", "videoClip"]);
+        expect(result.stopAudioIfExcluded).toBe(false);
+    });
+
+    it("consumes invalid filter inputs without publishing a patch", () => {
+        expect(resolveMediaFilterIntent({ type: "toggleSubject", value: "bogus" })).toEqual({ handled: true });
+        expect(resolveMediaFilterIntent({ type: "unrelated" })).toEqual({ handled: false });
     });
 });

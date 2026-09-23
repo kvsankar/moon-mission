@@ -1,0 +1,342 @@
+{
+  "maxLines": 1000,
+  "completedRefactors": [
+    {
+      "source": "src/platform/js/core/domain/media-manifest.js",
+      "beforeLines": 1017,
+      "plan": "docs/plans/implementation/media-manifest-normalization-ownership.md",
+      "resultFiles": [
+        "src/platform/js/core/domain/media-manifest.js",
+        "src/platform/js/core/domain/media-manifest-fields.js",
+        "src/platform/js/core/domain/media-manifest-artemis.js",
+        "src/platform/js/core/domain/media-manifest-streams.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/core/domain/lunar-crater-catalog.js",
+      "beforeLines": 1048,
+      "plan": "docs/plans/implementation/lunar-crater-planning-ownership.md",
+      "resultFiles": [
+        "src/platform/js/core/domain/lunar-crater-catalog.js",
+        "src/platform/js/core/domain/lunar-crater-common.js",
+        "src/platform/js/core/domain/lunar-crater-projection.js",
+        "src/platform/js/core/domain/lunar-crater-labels.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/ui/view-settings-pill-controller.js",
+      "beforeLines": 1282,
+      "plan": "docs/plans/implementation/view-settings-pill-ownership.md",
+      "resultFiles": [
+        "src/platform/js/ui/view-settings-pill-controller.js",
+        "src/platform/js/ui/view-settings-moon-render-panel.js",
+        "src/platform/js/ui/view-settings-annotation-panels.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/animation-scene-class.js",
+      "beforeLines": 1008,
+      "plan": "docs/plans/implementation/animation-scene-effect-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/animation-scene-class.js",
+        "src/platform/js/ui/scene-mobile-camera-framing.js",
+        "src/platform/js/rendering/scene-visual-aids.js",
+        "src/platform/js/rendering/scene-body-rotation.js"
+      ]
+    },
+    {
+      "source": "test/view-settings-pill-controller.test.js",
+      "beforeLines": 1038,
+      "plan": "docs/plans/implementation/view-settings-pill-test-fixture.md",
+      "resultFiles": [
+        "test/view-settings-pill-controller.test.js",
+        "test/helpers/view-settings-pill-harness.js"
+      ]
+    },
+    {
+      "source": "test/auxiliary-camera-manager.test.js",
+      "beforeLines": 1207,
+      "plan": "docs/plans/implementation/auxiliary-camera-manager-test-ownership.md",
+      "resultFiles": [
+        "test/auxiliary-camera-manager.test.js",
+        "test/auxiliary-camera-geometry.test.js",
+        "test/helpers/auxiliary-camera-manager-harness.js"
+      ]
+    },
+    {
+      "source": "test/auxiliary-camera-views.test.js",
+      "beforeLines": 2709,
+      "plan": "docs/plans/implementation/auxiliary-camera-views-test-ownership.md",
+      "resultFiles": [
+        "test/auxiliary-camera-views.test.js",
+        "test/auxiliary-composer-interactions.test.js",
+        "test/auxiliary-composer-timeline.test.js",
+        "test/auxiliary-composer-scene.test.js"
+      ]
+    },
+    {
+      "source": "test/auxiliary-panel-resize-interaction.test.js",
+      "beforeLines": 1034,
+      "plan": "docs/plans/implementation/auxiliary-panel-browser-test-ownership.md",
+      "resultFiles": [
+        "test/auxiliary-panel-resize-interaction.test.js",
+        "test/mission-media-panel-geometry-interaction.test.js",
+        "test/helpers/auxiliary-panel-browser.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/experimental-dockview-host.js",
+      "beforeLines": 1832,
+      "plan": "docs/plans/implementation/dockview-workspace-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/experimental-dockview-host.js",
+        "src/platform/js/app/experimental-dockview-shell.js",
+        "src/platform/js/app/experimental-dockview-controls.js",
+        "src/platform/js/app/experimental-dockview-layout.js",
+        "src/platform/js/app/experimental-dockview-panel-renderers.js"
+      ]
+    },
+    {
+      "source": "test/background-media-panel.test.js",
+      "beforeLines": 1766,
+      "plan": "docs/plans/implementation/background-media-test-ownership.md",
+      "resultFiles": [
+        "test/background-media-panel.test.js",
+        "test/background-media-captions.test.js",
+        "test/background-media-panel-geometry.test.js",
+        "test/helpers/background-media-panel-harness.js"
+      ]
+    },
+    {
+      "source": "test/media-browser-panel.test.js",
+      "beforeLines": 1090,
+      "plan": "docs/plans/implementation/media-browser-panel-test-ownership.md",
+      "resultFiles": [
+        "test/media-browser-panel.test.js",
+        "test/media-browser-thumbnails.test.js",
+        "test/helpers/media-browser-panel-harness.js"
+      ]
+    },
+    {
+      "source": "test/timeline-dock-controller.test.js",
+      "beforeLines": 1860,
+      "plan": "docs/plans/implementation/timeline-dock-test-ownership.md",
+      "resultFiles": [
+        "test/timeline-dock-controller.test.js",
+        "test/timeline-dock-pointer.test.js",
+        "test/timeline-dock-markers.test.js",
+        "test/helpers/timeline-dock-element.js"
+      ]
+    },
+    {
+      "source": "test/media-timeline-coordination.test.js",
+      "beforeLines": 4807,
+      "plan": "docs/plans/implementation/media-timeline-test-ownership.md",
+      "resultFiles": [
+        "test/media-timeline-coordination.test.js",
+        "test/media-timeline-selection.test.js",
+        "test/media-timeline-browser-focus.test.js",
+        "test/media-timeline-audio-transport.test.js",
+        "test/media-timeline-video-transport.test.js",
+        "test/media-timeline-clock-authority.test.js",
+        "test/media-timeline-playback-recovery.test.js",
+        "test/helpers/media-timeline-coordination-harness.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/background-media-panel.js",
+      "beforeLines": 2329,
+      "plan": "docs/plans/implementation/background-media-panel-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/background-media-panel.js",
+        "src/platform/js/app/background-media-dom.js",
+        "src/platform/js/app/background-media-captions.js",
+        "src/platform/js/app/background-media-policy.js",
+        "src/platform/js/app/background-media-layout.js",
+        "src/platform/js/app/background-media-transport.js",
+        "src/platform/js/app/background-media-panel-geometry.js",
+        "src/platform/js/app/background-media-transcript.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/rendering/star-catalog-hipparcos.js",
+      "beforeLines": 5068,
+      "plan": "docs/plans/implementation/star-catalog-data-placement.md",
+      "resultFiles": [
+        "src/platform/js/rendering/star-catalog-hipparcos.js",
+        "src/platform/js/rendering/catalog-data/star-catalog-hipparcos-01.json",
+        "src/platform/js/rendering/catalog-data/star-catalog-hipparcos-02.json",
+        "src/platform/js/rendering/catalog-data/star-catalog-hipparcos-03.json",
+        "src/platform/js/rendering/catalog-data/star-catalog-hipparcos-04.json",
+        "src/platform/js/rendering/catalog-data/star-catalog-hipparcos-05.json",
+        "src/platform/js/rendering/catalog-data/star-catalog-hipparcos-06.json"
+      ]
+    },
+    {
+      "source": "src/platform/js/rendering/star-name-cross-index.js",
+      "beforeLines": 2923,
+      "plan": "docs/plans/implementation/star-catalog-data-placement.md",
+      "resultFiles": [
+        "src/platform/js/rendering/star-name-cross-index.js",
+        "src/platform/js/rendering/catalog-data/star-name-cross-index-01.json",
+        "src/platform/js/rendering/catalog-data/star-name-cross-index-02.json",
+        "src/platform/js/rendering/catalog-data/star-name-cross-index-03.json",
+        "src/platform/js/rendering/catalog-data/star-name-cross-index-04.json"
+      ]
+    },
+    {
+      "source": "test/ui.test.js",
+      "beforeLines": 4284,
+      "plan": "docs/plans/implementation/cy3-visual-gate-ownership.md",
+      "resultFiles": [
+        "test/ui.test.js",
+        "test/support/cy3-visual-config.js",
+        "test/support/cy3-visual-screenshots.js",
+        "test/support/cy3-visual-controls.js",
+        "test/support/cy3-visual-profile.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/rendering/moon-renderer.js",
+      "beforeLines": 1878,
+      "plan": "docs/plans/implementation/moon-renderer-ownership.md",
+      "resultFiles": [
+        "src/platform/js/rendering/moon-renderer.js",
+        "src/platform/js/rendering/moon-lat-lon-overlay.js",
+        "src/platform/js/rendering/moon-material.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/ui/lunar-crater-control-panel.js",
+      "beforeLines": 2371,
+      "plan": "docs/plans/implementation/lunar-crater-controls-ownership.md",
+      "resultFiles": [
+        "src/platform/js/ui/lunar-crater-control-panel.js",
+        "src/platform/js/ui/lunar-crater-control-model.js",
+        "src/platform/js/ui/lunar-crater-control-dom.js",
+        "src/platform/js/ui/lunar-crater-control-elements.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/media-browser-panel.js",
+      "beforeLines": 3696,
+      "plan": "docs/plans/implementation/media-browser-panel-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/media-browser-panel.js",
+        "src/platform/js/app/media-browser-config.js",
+        "src/platform/js/app/media-browser-policy.js",
+        "src/platform/js/app/media-browser-dom.js",
+        "src/platform/js/app/media-browser-video-source.js",
+        "src/platform/js/app/media-browser-panel-geometry.js",
+        "src/platform/js/app/media-browser-thumbnail-renderer.js",
+        "src/platform/js/app/media-browser-thumbnail-controls.js",
+        "src/platform/js/app/media-browser-controls.js",
+        "src/platform/js/app/media-browser-filter-drawer.js",
+        "src/platform/js/app/media-browser-image-view.js",
+        "src/platform/js/app/media-browser-player-events.js",
+        "src/platform/js/app/media-browser-stage-overlay.js",
+        "src/platform/js/app/media-browser-view-model.js",
+        "src/platform/js/app/media-browser-shell.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/lunar-crater-actions.js",
+      "beforeLines": 2639,
+      "plan": "docs/plans/implementation/lunar-crater-effects-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/lunar-crater-actions.js",
+        "src/platform/js/app/lunar-crater-render-config.js",
+        "src/platform/js/app/lunar-crater-render-primitives.js",
+        "src/platform/js/app/lunar-crater-hit-testing.js",
+        "src/platform/js/app/lunar-crater-annotation-runtime.js",
+        "src/platform/js/app/lunar-crater-hover-runtime.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/ground-track-panel.js",
+      "beforeLines": 2627,
+      "plan": "docs/plans/implementation/ground-track-panel-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/ground-track-panel.js",
+        "src/platform/js/app/ground-track-config.js",
+        "src/platform/js/app/ground-track-geometry.js",
+        "src/platform/js/app/ground-track-policy.js",
+        "src/platform/js/app/ground-track-primitives.js",
+        "src/platform/js/app/ground-track-presentation.js",
+        "src/platform/js/app/ground-track-data-source.js",
+        "src/platform/js/app/ground-track-surface.js",
+        "src/platform/js/app/ground-track-panel-geometry.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/timeline-dock-controller.js",
+      "beforeLines": 1833,
+      "plan": "docs/plans/implementation/timeline-dock-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/timeline-dock-controller.js",
+        "src/platform/js/app/timeline-dock-model.js",
+        "src/platform/js/app/timeline-dock-markers.js",
+        "src/platform/js/app/timeline-dock-pointer.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/index-landing.js",
+      "beforeLines": 3782,
+      "plan": "docs/plans/implementation/landing-entry-ownership.md",
+      "resultFiles": [
+        "src/platform/js/index-landing.js",
+        "src/platform/js/landing-text.js",
+        "src/platform/js/landing-orbit-math.js",
+        "src/platform/js/landing-catalog.js",
+        "src/platform/js/landing-brief-data.js",
+        "src/platform/js/landing-orbit-data.js",
+        "src/platform/js/landing-card-model.js",
+        "src/platform/js/landing-brief-view.js",
+        "src/platform/js/landing-orbit-card-controller.js",
+        "src/platform/js/landing-brief-orbit-animation.js",
+        "src/platform/js/landing-view-renderer.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/mission.js",
+      "beforeLines": 1006,
+      "plan": "docs/plans/implementation/mission-entry-ownership.md",
+      "resultFiles": [
+        "src/platform/js/mission.js",
+        "src/platform/js/app/mission-initial-view-state.js",
+        "src/platform/js/app/mission-view-identity-controller.js",
+        "src/platform/js/app/mission-timeline-source.js",
+        "src/platform/js/app/mission-workspace-lifecycle.js",
+        "src/platform/js/app/mission-runtime-state-bootstrap.js",
+        "src/platform/js/app/mission-view-commands.js"
+      ]
+    },
+    {
+      "source": "src/platform/js/app/media-timeline-coordination.js",
+      "beforeLines": 3618,
+      "plan": "docs/plans/implementation/media-timeline-coordination-ownership.md",
+      "resultFiles": [
+        "src/platform/js/app/media-timeline-coordination.js",
+        "src/platform/js/app/media-timeline-items.js",
+        "src/platform/js/app/media-timeline-focus.js",
+        "src/platform/js/app/media-timeline-thumbnails.js",
+        "src/platform/js/app/media-timeline-panel-view.js",
+        "src/platform/js/app/media-timeline-duration-probe.js",
+        "src/platform/js/app/media-timeline-manifest-owner.js",
+        "src/platform/js/app/media-timeline-playback-runtime.js",
+        "src/platform/js/app/media-timeline-playback-transport.js",
+        "src/platform/js/app/media-timeline-selection-runtime.js",
+        "src/platform/js/app/media-timeline-constants.js",
+        "src/platform/js/app/media-timeline-browser-effects.js",
+        "src/platform/js/core/domain/media-filter-state.js"
+      ]
+    }
+  ],
+  "oversizedFiles": {},
+  "allowedLayerImports": [
+    {
+      "from": "src/platform/js/core/domain/active-event-ui-state.js",
+      "to": "src/platform/js/app/burn-event-metadata.js"
+    }
+  ]
+}

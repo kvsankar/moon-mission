@@ -156,6 +156,8 @@ archived design/review documents are historical, not setup instructions.
 
 - `npm run dev` - Vite dev server
 - `npm run test:unit` - unit/integration tests excluding UI visual suite
+- `npm run structure:check` - parse authored JS, enforce the source-size
+  baseline and layer boundary, and reject import cycles
 - `make test` - primary Playwright+SSIM UI suite (`test/ui.test.js`, managed server on `8111`)
 - `make baseline` - regenerate screenshot baselines (intentional visual changes only)
 - `make data-audit` - audit app/data repo boundary against `../moon-mission-data`
@@ -170,9 +172,25 @@ archived design/review documents are historical, not setup instructions.
 - `node scripts/generate-media-thumbnails.mjs --mission artemis2 --data-root ../moon-mission-data --kind all` - generate Mission Media thumbnails into the data repo
 - `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
 
+The hook checks staged authored JavaScript with
+`npm run structure:check:staged` after compiling mission configs. New JS files
+must stay at or below 1,000 physical lines. Existing oversized files have
+ceilings in `scripts/source-structure-baseline.json`. For a structural refactor,
+write a [plan](../../plans/templates/structural-refactor.md) before editing:
+name the new owner and keep the largest resulting piece at or below 70% of the
+original physical lines. Record every resulting file. Lowering or removing an
+oversized baseline entry requires a completed-refactor record with that plan;
+the check verifies the 30% arithmetic. A small incidental decrease does not
+complete a refactor. The check also parses ES modules and rejects new
+core-to-effect imports. CI runs the full scan, including import cycles, because
+local hooks are optional. The staged check reads Git's index, not unstaged
+working-tree content.
+
 Pre-commit behavior (when hooks are installed):
+
 - runs `configs:compile`
 - stages updated `assets/*/data/config.json`
+- checks staged authored JavaScript syntax, size and core import boundaries
 - does not currently auto-stage compiled `media-manifest.json`; stage media manifest source and compiled output intentionally when media metadata changes
 
 ### Build / Packaging
@@ -226,6 +244,9 @@ If you regenerate orbit data:
 ## 6) Coding Conventions
 
 - Prefer small, single-purpose modules and pure helpers where practical.
+- For a structural refactor, write the ownership and size plan first. The
+  largest resulting piece must be at least 30% smaller than the original;
+  moving code behind a forwarding wrapper is not a completed boundary change.
 - Keep diffs targeted; avoid formatting-only churn unless needed.
 - Follow existing naming and file placement conventions in `src/platform/js/*`.
 - For multi-craft behavior, prefer craft IDs (`A`, `B`, `C` style modeling by mission config), not role-hardcoded names.
@@ -234,6 +255,7 @@ If you regenerate orbit data:
 
 Minimum expected checks for most changes:
 - `npm run test:unit`
+- `npm run structure:check` when authored JavaScript or the size baseline changes
 - `npm run configs:lint` when mission config source/compiled files changed
 
 When UI/visual behavior changes:

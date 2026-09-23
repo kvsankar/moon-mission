@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 // JS reproduction of the GLSL `moonSunDiskVisibleFraction` helper inside
-// `src/platform/js/rendering/moon-renderer.js`, reused by the tuner.
+// `src/platform/js/rendering/moon-material.js`, used by MoonRenderer and the tuner.
 // Kept in sync manually — the
 // shader source is a string template, not directly importable. If the
 // GLSL constants or formula change, mirror the change here and re-run.
@@ -17,7 +17,7 @@ const MOON_INV_PI = 0.31830988618;
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const renderShaderSource = readFileSync(
-    resolve(repoRoot, "src/platform/js/rendering/moon-renderer.js"),
+    resolve(repoRoot, "src/platform/js/rendering/moon-material.js"),
     "utf8",
 );
 const tunerShaderSource = readFileSync(

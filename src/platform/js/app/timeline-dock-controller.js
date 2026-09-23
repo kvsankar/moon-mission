@@ -1,94 +1,18 @@
 import {
     formatDateOnlyLocal,
     formatDateTimeLocal,
-    formatDuration,
     formatTimeOnlyLocal,
 } from "../utils/time-utils.js";
-import {
-    resolveTimelineEventHoverText,
-    resolveTimelineEventLabel,
-} from "./comparison-timeline.js";
-import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
 import { buildTimelineTimeScale } from "../core/domain/timeline-time-labels.js";
-
-function clamp(value, min, max) {
-    if (!Number.isFinite(value)) return min;
-    if (value < min) return min;
-    if (value > max) return max;
-    return value;
-}
-
-function computePercent(value, min, max) {
-    const span = max - min;
-    if (!Number.isFinite(span) || span <= 0) return 0;
-    return ((value - min) / span) * 100;
-}
-
-function normalizeWheelDelta(delta, deltaMode, pixelFallback = 720) {
-    if (!Number.isFinite(delta)) return 0;
-    if (deltaMode === 1) return delta * 16;
-    if (deltaMode === 2) return delta * pixelFallback;
-    return delta;
-}
-
-function resolveWheelZoomFactor(deltaY) {
-    if (!Number.isFinite(deltaY) || deltaY === 0) return 1;
-    const magnitude = clamp(Math.abs(deltaY), 12, 240);
-    const direction = deltaY > 0 ? 1 : -1;
-    return Math.exp(direction * magnitude * 0.0028);
-}
-
-function buildEventSignature(eventInfos) {
-    if (!Array.isArray(eventInfos) || eventInfos.length === 0) return "";
-    return eventInfos
-        .map((eventInfo) => {
-            const timeMs = eventInfo?.startTime instanceof Date
-                ? eventInfo.startTime.getTime()
-                : Number.NaN;
-            return [
-                eventInfo?.key || "",
-                Number.isFinite(timeMs) ? String(timeMs) : "NaN",
-                eventInfo?.label || "",
-                eventInfo?.burnFlag ? "1" : "0",
-                eventInfo?.clickable === false ? "0" : "1",
-                eventInfo?.generated ? "1" : "0",
-                eventInfo?.generatedLabel || "",
-                eventInfo?.burnDirection || "",
-                eventInfo?.burnTypeLabel || "",
-                String(eventInfo?.durationSeconds ?? ""),
-                eventInfo?.hoverText || "",
-                eventInfo?.timelineLabel || "",
-                eventInfo?.timelineHoverText || "",
-                eventInfo?.timelineRole || "",
-            ].join("|");
-        })
-        .join(";");
-}
-
-function buildMediaSignature(mediaMarkers) {
-    if (!Array.isArray(mediaMarkers) || mediaMarkers.length === 0) return "";
-    return mediaMarkers
-        .map((marker) => {
-            const timeMs = marker?.startTime instanceof Date
-                ? marker.startTime.getTime()
-                : Number(marker?.startTimeMs);
-            return [
-                marker?.id || "",
-                Number.isFinite(timeMs) ? String(timeMs) : "NaN",
-                marker?.label || "",
-                marker?.hoverText || "",
-                marker?.mediaKind || "",
-                marker?.mediaDisplayMode || "",
-                String(marker?.endTimeMs ?? ""),
-                marker?.durationEstimated ? "1" : "0",
-                marker?.selected ? "1" : "0",
-                marker?.clickable === false ? "0" : "1",
-                marker?.preEphemeris ? "1" : "0",
-                marker?.postEphemeris ? "1" : "0",
-            ].join("|");
-        })
-        .join(";");
-}
+import { createTimelineDockMarkers } from "./timeline-dock-markers.js";
+import { createTimelineDockPointer } from "./timeline-dock-pointer.js";
+import {
+    clamp,
+    computePercent,
+    formatComparisonElapsedLabel,
+    formatMissionElapsedLabel,
+    formatUtcYearElapsedLabel,
+} from "./timeline-dock-model.js";
 
 function dispatchDocumentCustomEvent(type, detail) {
     if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") {
@@ -100,49 +24,6 @@ function dispatchDocumentCustomEvent(type, detail) {
     }
     const event = { type, detail };
     document.dispatchEvent(event);
-}
-
-function formatComparisonElapsedLabel(timeMs, rangeStartMs) {
-    const elapsedMs = Math.max(0, Number(timeMs) - Number(rangeStartMs || 0));
-    if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) {
-        return "T+0";
-    }
-    if (elapsedMs < 60000) {
-        return "T+<1m";
-    }
-    return `T+${formatDuration(elapsedMs, {
-        compact: true,
-        includeSeconds: false,
-    })}`;
-}
-
-function formatMissionElapsedLabel(timeMs, rangeStartMs) {
-    const elapsedMs = Number(timeMs) - Number(rangeStartMs);
-    if (!Number.isFinite(elapsedMs)) return "";
-    const sign = elapsedMs < 0 ? "-" : "+";
-    const absoluteMs = Math.abs(elapsedMs);
-    const totalSeconds = Math.floor(absoluteMs / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const pad = (value) => String(value).padStart(2, "0");
-    return `MET ${sign}${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
-}
-
-function formatUtcYearElapsedLabel(timeMs) {
-    if (!Number.isFinite(timeMs)) return "";
-    const date = new Date(timeMs);
-    const yearStartMs = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
-    const elapsedMs = timeMs - yearStartMs;
-    if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return "";
-    const totalSeconds = Math.floor(elapsedMs / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    const pad = (value, length = 2) => String(value).padStart(length, "0");
-    return `UTC ${pad(days, 3)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function createTimelineDockController({
@@ -177,7 +58,6 @@ function createTimelineDockController({
     const missionElapsedLabel = document.getElementById("timeline-mission-elapsed-label");
     const currentRow = document.getElementById("timeline-current-row") || currentLabel?.parentElement || null;
     const craftStrip = document.getElementById("timeline-craft-strip");
-    const EVENT_MARKER_HOVERED_CLASS = "timeline-dock__marker--hovered";
     const TIME_READOUT_MODES = ["local", "utc", "met"];
 
     if (!slider || !markers || !startLabel || !endLabel || !currentLabel || !craftStrip) {
@@ -197,22 +77,8 @@ function createTimelineDockController({
     let viewMin = 0;
     let viewMax = 0;
     let lastRangeSignature = "";
-    let lastEventSignature = "";
-    let lastEventInfos = [];
     let currentTimeMs = Number.NaN;
-    let lastMediaSignature = "";
-    let lastMediaMarkersData = [];
-    let hoveredEventMarker = null;
-    let hoveredVisibleEventRange = null;
     let isBound = false;
-    let timelineDragState = null;
-    let mediaPreviewElement = null;
-    let mediaPreviewImage = null;
-    let mediaPreviewTitle = null;
-    let activeMediaPreviewMarker = null;
-    let pendingMediaPreviewSource = "";
-    const failedMediaPreviewSources = new Set();
-    const timelineDragThresholdPx = 3;
     let currentMode = {
         compareMode: false,
         label: "",
@@ -222,6 +88,85 @@ function createTimelineDockController({
     let compactTimeReadoutModeIndex = 0;
     let timeReadoutPointerStart = null;
     let suppressNextTimeReadoutClick = false;
+
+    const timelinePointer = createTimelineDockPointer({
+        dockRoot,
+        slider,
+        playhead,
+        onSeekTime,
+        syncMarkerHighlights: (...args) => dockMarkers.syncMarkerHighlights(...args),
+        getDirectMediaMarkerTargetIndex: (...args) => dockMarkers.getDirectMediaMarkerTargetIndex(...args),
+        selectMediaMarkerByIndex: (...args) => dockMarkers.selectMediaMarkerByIndex(...args),
+        selectMediaMarkerAtTime: (...args) => dockMarkers.selectMediaMarkerAtTime(...args),
+        getRangeMin: () => rangeMin,
+        getRangeMax: () => rangeMax,
+        getViewMin: () => viewMin,
+        getViewMax: () => viewMax,
+        getCurrentTimeMs: () => currentTimeMs,
+        setCurrentTimeMs: (value) => { currentTimeMs = value; },
+        updateCurrentLabel,
+        getTrackWidthPx,
+        getTimelinePointerSurface,
+        isNodeWithin,
+        resolvePointerZone,
+        getTimelineRect,
+        getFullSpanMs,
+        getViewSpanMs,
+        isTimelineZoomed,
+        syncTimelineOverview,
+        syncSliderTimelineDataset,
+        syncPlayhead,
+        dispatchTimelineUserSeek,
+        resolveZoomAnchor,
+        zoomView,
+        panView,
+        panViewFromDrag,
+    });
+    const {
+        getTimeAtClientX,
+        getDragDeltaTimeMs,
+        getClientXAtTime,
+        isPlayheadPointerTarget,
+        seekToTime,
+        endTimelineDrag,
+        beginTimelineDrag,
+        updateTimelineDrag,
+        handleTimelineWheel,
+        handleTimelineDoubleClick,
+    } = timelinePointer;
+
+    const dockMarkers = createTimelineDockMarkers({
+        markers,
+        mediaMarkers,
+        getViewMin: () => viewMin,
+        getViewMax: () => viewMax,
+        getCurrentTimeMs: () => currentTimeMs,
+        getCurrentMode: () => currentMode,
+        onMarkerSelect,
+        onMarkerHover,
+        onMarkerLeave,
+        syncHoveredVisibleEventRange,
+        dispatchTimelineUserSeek,
+        renderEventMarkersFromCache,
+        renderMediaMarkersFromCache,
+        getTimeAtClientX,
+        getClientXAtTime,
+        seekToTime,
+        dispatchDocumentCustomEvent,
+    });
+    const {
+        clearHoveredEventMarker,
+        setHoveredEventMarker,
+        setHoveredVisibleEventRange,
+        syncMarkerHighlights,
+        renderMarker,
+        selectMediaMarkerByIndex,
+        selectMediaMarkerAtTime,
+        getDirectMediaMarkerTargetIndex,
+        renderMediaMarker,
+        setEvents,
+        setMediaMarkersFn,
+    } = dockMarkers;
 
     function isCompactTimelineLayout() {
         if (typeof window === "undefined") return false;
@@ -528,11 +473,11 @@ function createTimelineDockController({
 
     function syncHoveredVisibleEventRange() {
         if (!eventVisibleRange) return;
-        if (!hoveredVisibleEventRange) {
+        if (!dockMarkers.getHoveredVisibleEventRange()) {
             eventVisibleRange.hidden = true;
             return;
         }
-        const { startTimeMs, endTimeMs } = hoveredVisibleEventRange;
+        const { startTimeMs, endTimeMs } = dockMarkers.getHoveredVisibleEventRange();
         if (
             !Number.isFinite(startTimeMs) ||
             !Number.isFinite(endTimeMs) ||
@@ -648,8 +593,8 @@ function createTimelineDockController({
     function renderEventMarkersFromCache() {
         clearHoveredEventMarker();
         markers.innerHTML = "";
-        for (let i = 0; i < lastEventInfos.length; i += 1) {
-            const marker = renderMarker(lastEventInfos[i], i);
+        for (let i = 0; i < dockMarkers.getEventInfos().length; i += 1) {
+            const marker = renderMarker(dockMarkers.getEventInfos()[i], i);
             if (marker) markers.appendChild(marker);
         }
         syncMarkerHighlights();
@@ -658,13 +603,9 @@ function createTimelineDockController({
     function renderMediaMarkersFromCache() {
         if (!mediaMarkers) return;
         mediaMarkers.innerHTML = "";
-        mediaPreviewElement = null;
-        mediaPreviewImage = null;
-        mediaPreviewTitle = null;
-        activeMediaPreviewMarker = null;
-        pendingMediaPreviewSource = "";
-        for (let i = 0; i < lastMediaMarkersData.length; i += 1) {
-            const marker = renderMediaMarker(lastMediaMarkersData[i], i);
+        dockMarkers.resetMediaPreview();
+        for (let i = 0; i < dockMarkers.getMediaMarkersData().length; i += 1) {
+            const marker = renderMediaMarker(dockMarkers.getMediaMarkersData()[i], i);
             if (marker) mediaMarkers.appendChild(marker);
         }
     }
@@ -730,296 +671,6 @@ function createTimelineDockController({
         const deltaMs = getDragDeltaTimeMs(startClientX, clientX);
         if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
         setViewWindow(startViewMin - deltaMs, startViewMax - deltaMs);
-    }
-
-    function getTimeAtClientX(clientX) {
-        const rect = getTimelineRect();
-        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) {
-            return resolveZoomAnchor();
-        }
-        const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
-        return viewMin + getViewSpanMs() * ratio;
-    }
-
-    function getDragDeltaTimeMs(startClientX, clientX) {
-        const rect = getTimelineRect();
-        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) return 0;
-        const deltaRatio = (clientX - startClientX) / rect.width;
-        return getViewSpanMs() * deltaRatio;
-    }
-
-    function getThumbClientX() {
-        const rect = getTimelineRect();
-        const spanMs = getViewSpanMs();
-        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0 || spanMs <= 0) {
-            return Number.NaN;
-        }
-        const valueMs = clamp(Number(slider.value), viewMin, viewMax);
-        const ratio = clamp((valueMs - viewMin) / spanMs, 0, 1);
-        return rect.left + rect.width * ratio;
-    }
-
-    function getClientXAtTime(timeMs) {
-        const rect = getTimelineRect();
-        const spanMs = getViewSpanMs();
-        if (!Number.isFinite(timeMs) || !rect || !Number.isFinite(rect.width) || rect.width <= 0 || spanMs <= 0) {
-            return Number.NaN;
-        }
-        const clampedTimeMs = clamp(timeMs, viewMin, viewMax);
-        const ratio = clamp((clampedTimeMs - viewMin) / spanMs, 0, 1);
-        return rect.left + rect.width * ratio;
-    }
-
-    function isNearSliderThumb(clientX) {
-        const thumbClientX = getThumbClientX();
-        return Number.isFinite(thumbClientX) && Math.abs(clientX - thumbClientX) <= 24;
-    }
-
-    function isPlayheadPointerTarget(target) {
-        if (!playhead || playhead.hidden === true) return false;
-        return isNodeWithin(playhead, target);
-    }
-
-    function resolveTimelinePointTarget(target) {
-        const surface = getTimelinePointerSurface();
-        let node = target;
-        while (node && node !== surface) {
-            const className = typeof node.className === "string" ? node.className : "";
-            if (
-                className.split(/\s+/).some((name) => (
-                    name === "timeline-dock__marker" ||
-                    name === "timeline-dock__media-marker"
-                ))
-            ) {
-                return node;
-            }
-            node = node.parentElement;
-        }
-        return null;
-    }
-
-    function isNearTimelinePointGlyph(pointTarget, clientX) {
-        if (!pointTarget || !Number.isFinite(clientX)) {
-            return false;
-        }
-
-        const className = typeof pointTarget.className === "string" ? pointTarget.className : "";
-        const classSet = new Set(className.split(/\s+/).filter(Boolean));
-        const isMediaMarker = classSet.has("timeline-dock__media-marker");
-        const isSegmentMarker = classSet.has("timeline-dock__media-marker--segment");
-        if (isSegmentMarker) {
-            const startTimeMs = Number(pointTarget?.dataset?.mediaStartTimeMs);
-            const endTimeMs = Number(pointTarget?.dataset?.mediaEndTimeMs);
-            const startClientX = getClientXAtTime(startTimeMs);
-            const endClientX = getClientXAtTime(endTimeMs);
-            if (Number.isFinite(startClientX) && Number.isFinite(endClientX) && endClientX > startClientX) {
-                const insetPx = Math.min(8, (endClientX - startClientX) * 0.2);
-                return clientX >= (startClientX + insetPx) && clientX <= (endClientX - insetPx);
-            }
-        }
-
-        const centerTimeMs = Number.isFinite(Number(pointTarget?.dataset?.eventTimeMs))
-            ? Number(pointTarget.dataset.eventTimeMs)
-            : Number(pointTarget?.dataset?.mediaStartTimeMs);
-        const markerCenterClientX = getClientXAtTime(centerTimeMs);
-        if (Number.isFinite(markerCenterClientX)) {
-            const glyphRadiusPx = isMediaMarker ? 6 : 5;
-            return Math.abs(clientX - markerCenterClientX) <= glyphRadiusPx;
-        }
-
-        return true;
-    }
-
-    function isMediaSegmentPointTarget(pointTarget) {
-        if (!pointTarget) return false;
-        const className = typeof pointTarget.className === "string" ? pointTarget.className : "";
-        const classSet = new Set(className.split(/\s+/).filter(Boolean));
-        return classSet.has("timeline-dock__media-marker") &&
-            classSet.has("timeline-dock__media-marker--segment");
-    }
-
-    function isMediaMarkerPointTarget(pointTarget) {
-        if (!pointTarget) return false;
-        const className = typeof pointTarget.className === "string" ? pointTarget.className : "";
-        return className.split(/\s+/).includes("timeline-dock__media-marker");
-    }
-
-    function seekToTime(timeMs, commit) {
-        if (!Number.isFinite(timeMs)) return;
-        currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
-        slider.value = String(clamp(currentTimeMs, viewMin, viewMax));
-        syncSliderTimelineDataset();
-        updateCurrentLabel(currentTimeMs);
-        syncMarkerHighlights();
-        syncPlayhead();
-        syncTimelineOverview();
-        onSeekTime?.(currentTimeMs, commit === true);
-    }
-
-    function endTimelineDrag(event, cancelled = false) {
-        if (!timelineDragState) return;
-        const state = timelineDragState;
-        timelineDragState = null;
-        dockRoot?.classList?.remove?.("timeline-dock--timeline-dragging");
-        if (Number.isFinite(state.pointerId)) {
-            state.captureTarget?.releasePointerCapture?.(state.pointerId);
-        }
-
-        if (cancelled) {
-            dispatchTimelineUserSeek("cancel", state.lastTimeMs, {
-                commit: false,
-                source: "timeline-drag",
-            });
-            return;
-        }
-
-        if ((state.mode === "click-lane" || state.mode === "media-click-lane") && state.moved) {
-            dispatchTimelineUserSeek("cancel", state.lastTimeMs, {
-                commit: false,
-                source: "timeline-click",
-            });
-            return;
-        }
-
-        if (state.mode === "scrub") {
-            return;
-        }
-
-        const finalTimeMs = Number.isFinite(event?.clientX)
-            ? getTimeAtClientX(event.clientX)
-            : state.lastTimeMs;
-        if (state.mode === "playhead") {
-            seekToTime(finalTimeMs, true);
-            dispatchTimelineUserSeek(state.moved ? "end" : "commit", finalTimeMs, {
-                commit: true,
-                source: "timeline-playhead",
-            });
-            return;
-        }
-        if (state.mode === "media-click-lane" && selectMediaMarkerByIndex(Number(state.mediaMarkerIndex), finalTimeMs)) {
-            return;
-        }
-        if (state.mode === "media-click-lane" && selectMediaMarkerAtTime(finalTimeMs, event)) {
-            return;
-        }
-        seekToTime(finalTimeMs, true);
-        dispatchTimelineUserSeek(state.moved ? "end" : "commit", finalTimeMs, {
-            commit: true,
-            source: "timeline-click",
-        });
-    }
-
-    function beginTimelineDrag(event) {
-        if (!event || event.isPrimary === false) return;
-        if (event.pointerType === "mouse" && event.button !== 0) return;
-        const clientX = Number(event.clientX);
-        const clientY = Number(event.clientY);
-        if (!Number.isFinite(clientX) || getFullSpanMs() <= 0) return;
-        const pointTarget = resolveTimelinePointTarget(event.target);
-        if (
-            pointTarget &&
-            !isMediaMarkerPointTarget(pointTarget) &&
-            isNearTimelinePointGlyph(pointTarget, clientX)
-        ) {
-            return;
-        }
-        const pointerSurface = getTimelinePointerSurface();
-        const pointerZone = resolvePointerZone(event, clientX, clientY);
-        if (!pointerZone) return;
-
-        event.preventDefault?.();
-        pointerSurface?.setPointerCapture?.(event.pointerId);
-        const initialTimeMs = getTimeAtClientX(clientX);
-        timelineDragState = {
-            pointerId: event.pointerId,
-            startClientX: clientX,
-            startTimeMs: Number.isFinite(currentTimeMs)
-                ? currentTimeMs
-                : clamp(Number(slider.value), viewMin, viewMax),
-            startViewMin: viewMin,
-            startViewMax: viewMax,
-            moved: false,
-            lastTimeMs: initialTimeMs,
-            mode: pointerZone,
-            captureTarget: pointerSurface,
-            mediaMarkerIndex: pointerZone === "media-click-lane"
-                ? getDirectMediaMarkerTargetIndex(event)
-                : -1,
-        };
-        if (pointerZone === "scrub" || pointerZone === "playhead") {
-            dockRoot?.classList?.add?.("timeline-dock--timeline-dragging");
-        }
-    }
-
-    function updateTimelineDrag(event) {
-        if (!timelineDragState) return;
-        if (
-            Number.isFinite(timelineDragState.pointerId) &&
-            Number.isFinite(event?.pointerId) &&
-            event.pointerId !== timelineDragState.pointerId
-        ) {
-            return;
-        }
-
-        const clientX = Number(event?.clientX);
-        if (!Number.isFinite(clientX)) return;
-        const moveDeltaPx = Math.abs(clientX - Number(timelineDragState.startClientX));
-        if (!timelineDragState.moved && moveDeltaPx < timelineDragThresholdPx) {
-            return;
-        }
-        event.preventDefault?.();
-        timelineDragState.moved = true;
-        if (timelineDragState.mode === "playhead") {
-            const nextTimeMs = getTimeAtClientX(clientX);
-            timelineDragState.lastTimeMs = nextTimeMs;
-            seekToTime(nextTimeMs, false);
-            dispatchTimelineUserSeek("update", nextTimeMs, {
-                commit: false,
-                source: "timeline-playhead",
-            });
-            return;
-        }
-        if (timelineDragState.mode !== "scrub") {
-            timelineDragState.lastTimeMs = getTimeAtClientX(clientX);
-            return;
-        }
-        panViewFromDrag(
-            Number(timelineDragState.startViewMin),
-            Number(timelineDragState.startViewMax),
-            Number(timelineDragState.startClientX),
-            clientX,
-        );
-        timelineDragState.lastTimeMs = currentTimeMs;
-    }
-
-    function handleTimelineWheel(event) {
-        if (getFullSpanMs() <= 0) return;
-        const widthPx = getTrackWidthPx();
-        const deltaMode = Number(event.deltaMode || 0);
-        const deltaX = normalizeWheelDelta(Number(event.deltaX || 0), deltaMode, widthPx);
-        const deltaY = normalizeWheelDelta(Number(event.deltaY || 0), deltaMode, widthPx);
-        const horizontalDelta = Math.abs(deltaX) > Math.abs(deltaY)
-            ? deltaX
-            : (event.shiftKey ? deltaY : 0);
-
-        if (horizontalDelta !== 0 && isTimelineZoomed()) {
-            event.preventDefault?.();
-            panView(getViewSpanMs() * horizontalDelta * 0.0012);
-            return;
-        }
-
-        if (deltaY === 0) return;
-        event.preventDefault?.();
-        zoomView(resolveWheelZoomFactor(deltaY), getTimeAtClientX(event.clientX));
-    }
-
-    function handleTimelineDoubleClick(event) {
-        if (!event || getFullSpanMs() <= 0) return;
-        const clientX = Number(event.clientX);
-        const pointTarget = resolveTimelinePointTarget(event.target);
-        if (pointTarget && isNearTimelinePointGlyph(pointTarget, clientX)) return;
-        event.preventDefault?.();
-        zoomView(0.5, getTimeAtClientX(event.clientX));
     }
 
     function isScaleButtonDisabled(button) {
@@ -1100,541 +751,6 @@ function createTimelineDockController({
         syncMarkerHighlights();
         syncPlayhead();
         syncTimelineOverview();
-    }
-
-    function setElementClass(element, className, enabled) {
-        if (!element?.classList) return;
-        if (enabled) {
-            element.classList.add(className);
-        } else {
-            element.classList.remove(className);
-        }
-    }
-
-    function clearHoveredEventMarker() {
-        if (hoveredEventMarker?.classList) {
-            hoveredEventMarker.classList.remove(EVENT_MARKER_HOVERED_CLASS);
-        }
-        hoveredEventMarker = null;
-    }
-
-    function markerMatchesHoverDetail(marker, detail = {}) {
-        if (!marker?.dataset) return false;
-        const eventKey = String(detail.eventKey || "");
-        const eventSourceKey = String(detail.eventSourceKey || "");
-        if (eventKey && marker.dataset.eventKey === eventKey) return true;
-        if (eventSourceKey && marker.dataset.eventSourceKey === eventSourceKey) return true;
-        const eventTimeMs = Number(detail.eventTimeMs);
-        const markerTimeMs = Number(marker.dataset.eventTimeMs);
-        return Number.isFinite(eventTimeMs) &&
-            Number.isFinite(markerTimeMs) &&
-            Math.abs(eventTimeMs - markerTimeMs) <= 1;
-    }
-
-    function setHoveredEventMarker(detail = {}, hovered = true) {
-        clearHoveredEventMarker();
-        if (!hovered) return;
-        const marker = Array.from(markers.children || [])
-            .find((candidate) => markerMatchesHoverDetail(candidate, detail));
-        if (!marker?.classList) return;
-        marker.classList.add(EVENT_MARKER_HOVERED_CLASS);
-        hoveredEventMarker = marker;
-    }
-
-    function setHoveredVisibleEventRange(detail = {}) {
-        if (detail?.active !== true) {
-            hoveredVisibleEventRange = null;
-            syncHoveredVisibleEventRange();
-            return;
-        }
-        const startTimeMs = Number(detail.startTimeMs);
-        const endTimeMs = Number(detail.endTimeMs);
-        if (!Number.isFinite(startTimeMs) || !Number.isFinite(endTimeMs)) {
-            hoveredVisibleEventRange = null;
-            syncHoveredVisibleEventRange();
-            return;
-        }
-        hoveredVisibleEventRange = { startTimeMs, endTimeMs };
-        syncHoveredVisibleEventRange();
-    }
-
-    function syncMarkerHighlights() {
-        const markerNodes = Array.from(markers.children || []);
-        if (markerNodes.length === 0) return;
-
-        const highlightState = resolveTimelineEventHighlightState({
-            events: markerNodes.map((marker) => ({
-                timeMs: Number(marker?.dataset?.eventTimeMs),
-            })),
-            currentTimeMs,
-        });
-        const currentIndexes = new Set(highlightState.currentIndexes);
-        const boundaryIndexes = new Set(highlightState.boundaryIndexes);
-        for (let index = 0; index < markerNodes.length; index += 1) {
-            const marker = markerNodes[index];
-            const isCurrent = currentIndexes.has(index);
-            setElementClass(marker, "timeline-dock__marker--current-event", isCurrent);
-            setElementClass(
-                marker,
-                "timeline-dock__marker--time-boundary",
-                !isCurrent && boundaryIndexes.has(index),
-            );
-        }
-    }
-
-    function renderMarker(eventInfo, index) {
-        const eventTimeMs = eventInfo?.startTime instanceof Date
-            ? eventInfo.startTime.getTime()
-            : Number.NaN;
-        if (!Number.isFinite(eventTimeMs)) return null;
-        if (eventTimeMs < viewMin || eventTimeMs > viewMax) return null;
-
-        const marker = document.createElement("button");
-        marker.type = "button";
-        const markerClasses = ["timeline-dock__marker"];
-        if (eventInfo?.comparisonEvent || eventInfo?.timelineRole === "comparison") {
-            markerClasses.push("timeline-dock__marker--comparison");
-        }
-        if (eventInfo?.burnFlag) {
-            markerClasses.push("timeline-dock__marker--burn");
-        }
-        if (eventInfo?.generated) {
-            markerClasses.push("timeline-dock__marker--generated");
-        }
-        if (eventInfo?.clickable === false) {
-            markerClasses.push("timeline-dock__marker--inactive");
-            marker.setAttribute("aria-disabled", "true");
-        }
-        marker.className = markerClasses.join(" ");
-        marker.dataset.eventKey = eventInfo?.key || "";
-        marker.dataset.eventSourceKey = eventInfo?.timelineSourceKey || eventInfo?.key || "";
-        marker.dataset.eventIndex = String(index);
-        marker.dataset.eventTimeMs = String(eventTimeMs);
-        marker.style.left = `${computePercent(eventTimeMs, viewMin, viewMax)}%`;
-        const markerLabel = resolveTimelineEventLabel(eventInfo);
-        const hoverText = resolveTimelineEventHoverText(eventInfo) || "Event";
-        const generatedSuffix = eventInfo?.generatedLabel
-            ? `\n${eventInfo.generatedLabel}`
-            : "";
-        marker.title = currentMode.compareMode
-            ? `${markerLabel}\n${hoverText}${generatedSuffix}`
-            : `${markerLabel} - ${formatDateTimeLocal(eventTimeMs)}\n${hoverText}${generatedSuffix}`;
-        marker.setAttribute("aria-label", marker.title);
-        marker.addEventListener("mouseenter", () => {
-            setHoveredEventMarker({
-                eventKey: eventInfo?.key || "",
-                eventSourceKey: eventInfo?.timelineSourceKey || eventInfo?.key || "",
-                eventTimeMs,
-            }, true);
-            onMarkerHover?.(eventInfo, index);
-        });
-        marker.addEventListener("focus", () => {
-            setHoveredEventMarker({
-                eventKey: eventInfo?.key || "",
-                eventSourceKey: eventInfo?.timelineSourceKey || eventInfo?.key || "",
-                eventTimeMs,
-            }, true);
-            onMarkerHover?.(eventInfo, index);
-        });
-        marker.addEventListener("mouseleave", () => {
-            setHoveredEventMarker({}, false);
-            onMarkerLeave?.(eventInfo, index);
-        });
-        marker.addEventListener("blur", () => {
-            setHoveredEventMarker({}, false);
-            onMarkerLeave?.(eventInfo, index);
-        });
-        if (eventInfo?.clickable !== false) {
-            marker.addEventListener("click", () => {
-                seekToTime(eventTimeMs, true);
-                dispatchTimelineUserSeek("commit", eventTimeMs, {
-                    commit: true,
-                    source: "timeline-event-marker",
-                });
-                onMarkerSelect?.(eventInfo, index);
-            });
-        }
-        return marker;
-    }
-
-    function resolveMediaMarkerTargetTime(markerInfo, timeMs) {
-        const markerTimeMs = markerInfo?.startTime instanceof Date
-            ? markerInfo.startTime.getTime()
-            : Number(markerInfo?.startTimeMs);
-        if (!Number.isFinite(markerTimeMs)) return Number.NaN;
-        const markerEndTimeMs = Number(markerInfo?.endTimeMs);
-        const isSegment = markerInfo?.mediaDisplayMode === "segment"
-            && Number.isFinite(markerEndTimeMs)
-            && markerEndTimeMs > markerTimeMs;
-        if (!isSegment) return markerTimeMs;
-        return clamp(Number.isFinite(timeMs) ? timeMs : markerTimeMs, markerTimeMs, markerEndTimeMs);
-    }
-
-    function dispatchMediaMarkerSelection(markerInfo, index, targetTimeMs) {
-        if (!markerInfo || markerInfo.clickable === false || !Number.isFinite(targetTimeMs)) return false;
-        seekToTime(targetTimeMs, true);
-        dispatchTimelineUserSeek("commit", targetTimeMs, {
-            commit: true,
-            source: "timeline-media-marker",
-        });
-        dispatchDocumentCustomEvent("mission-media-marker-select", {
-            marker: markerInfo,
-            index,
-            timeMs: targetTimeMs,
-        });
-        return true;
-    }
-
-    function getMediaMarkerElementIndex(element) {
-        const index = Number(element?.dataset?.mediaIndex);
-        return Number.isInteger(index) && index >= 0 ? index : -1;
-    }
-
-    function findMediaMarkerElementTarget(target) {
-        let node = target;
-        while (node && node !== mediaMarkers) {
-            const className = typeof node.className === "string" ? node.className : "";
-            if (className.split(/\s+/).includes("timeline-dock__media-marker")) {
-                return node;
-            }
-            node = node.parentElement;
-        }
-        return null;
-    }
-
-    function resolveMediaMarkerClickRank(markerInfo) {
-        const mediaKind = String(markerInfo?.mediaKind || "").trim();
-        if (mediaKind === "videoClip") return 0;
-        if (mediaKind === "audioClip") return 1;
-        return 2;
-    }
-
-    function resolveRenderedMediaMarkerIndexAtPointer(clientX, clientY, timeMs) {
-        if (!mediaMarkers || !Number.isFinite(clientX)) return -1;
-        const laneRect = mediaMarkers.getBoundingClientRect?.();
-        if (Number.isFinite(clientY) && laneRect) {
-            const laneTop = Number(laneRect.top);
-            const laneHeight = Number(laneRect.height);
-            if (
-                Number.isFinite(laneTop) &&
-                Number.isFinite(laneHeight) &&
-                laneHeight > 0 &&
-                (clientY < laneTop || clientY > laneTop + laneHeight)
-            ) {
-                return -1;
-            }
-        }
-
-        const children = Array.from(mediaMarkers.children || []);
-        let bestCandidate = null;
-        for (let childIndex = children.length - 1; childIndex >= 0; childIndex -= 1) {
-            const child = children[childIndex];
-            if (child?.hidden === true) continue;
-            const className = typeof child.className === "string" ? child.className : "";
-            if (!className.split(/\s+/).includes("timeline-dock__media-marker")) continue;
-            const rect = child.getBoundingClientRect?.();
-            if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.width) || rect.width <= 0) continue;
-            if (clientX >= rect.left && clientX <= rect.left + rect.width) {
-                const index = getMediaMarkerElementIndex(child);
-                const markerInfo = lastMediaMarkersData[index];
-                if (!markerInfo || markerInfo.clickable === false) continue;
-                const centerDistancePx = Math.abs(clientX - (rect.left + rect.width / 2));
-                const startTimeMs = Number(markerInfo.startTimeMs);
-                const timeDistanceMs = Number.isFinite(timeMs) && Number.isFinite(startTimeMs)
-                    ? Math.abs(timeMs - startTimeMs)
-                    : Number.POSITIVE_INFINITY;
-                const candidate = {
-                    index,
-                    rank: resolveMediaMarkerClickRank(markerInfo),
-                    centerDistancePx,
-                    timeDistanceMs,
-                    childIndex,
-                };
-                if (
-                    !bestCandidate ||
-                    candidate.rank < bestCandidate.rank ||
-                    (candidate.rank === bestCandidate.rank && candidate.centerDistancePx < bestCandidate.centerDistancePx) ||
-                    (
-                        candidate.rank === bestCandidate.rank &&
-                        candidate.centerDistancePx === bestCandidate.centerDistancePx &&
-                        candidate.timeDistanceMs < bestCandidate.timeDistanceMs
-                    ) ||
-                    (
-                        candidate.rank === bestCandidate.rank &&
-                        candidate.centerDistancePx === bestCandidate.centerDistancePx &&
-                        candidate.timeDistanceMs === bestCandidate.timeDistanceMs &&
-                        candidate.childIndex > bestCandidate.childIndex
-                    )
-                ) {
-                    bestCandidate = candidate;
-                }
-            }
-        }
-        return bestCandidate?.index ?? -1;
-    }
-
-    function selectMediaMarkerByIndex(index, timeMs) {
-        if (!Array.isArray(lastMediaMarkersData) || index < 0 || index >= lastMediaMarkersData.length) return false;
-        const markerInfo = lastMediaMarkersData[index];
-        const targetTimeMs = resolveMediaMarkerTargetTime(markerInfo, timeMs);
-        return dispatchMediaMarkerSelection(markerInfo, index, targetTimeMs);
-    }
-
-    function selectMediaMarkerAtTime(timeMs, event = null) {
-        if (!Array.isArray(lastMediaMarkersData) || !Number.isFinite(timeMs)) return false;
-        const renderedIndex = resolveRenderedMediaMarkerIndexAtPointer(
-            Number(event?.clientX),
-            Number(event?.clientY),
-            timeMs,
-        );
-        if (selectMediaMarkerByIndex(renderedIndex, timeMs)) {
-            return true;
-        }
-        const targetMarkerElement = findMediaMarkerElementTarget(event?.target);
-        if (targetMarkerElement && selectMediaMarkerByIndex(getMediaMarkerElementIndex(targetMarkerElement), timeMs)) {
-            return true;
-        }
-        for (let index = 0; index < lastMediaMarkersData.length; index += 1) {
-            const markerInfo = lastMediaMarkersData[index];
-            if (!markerInfo || markerInfo.clickable === false) continue;
-            const markerTimeMs = markerInfo?.startTime instanceof Date
-                ? markerInfo.startTime.getTime()
-                : Number(markerInfo?.startTimeMs);
-            if (!Number.isFinite(markerTimeMs)) continue;
-            const markerEndTimeMs = Number(markerInfo?.endTimeMs);
-            const isSegment = markerInfo?.mediaDisplayMode === "segment"
-                && Number.isFinite(markerEndTimeMs)
-                && markerEndTimeMs > markerTimeMs;
-            if (isSegment) {
-                if (timeMs >= markerTimeMs && timeMs <= markerEndTimeMs) {
-                    return dispatchMediaMarkerSelection(markerInfo, index, timeMs);
-                }
-                continue;
-            }
-            const markerClientX = getClientXAtTime(markerTimeMs);
-            const targetClientX = getClientXAtTime(timeMs);
-            if (Number.isFinite(markerClientX) && Number.isFinite(targetClientX) && Math.abs(markerClientX - targetClientX) <= 8) {
-                return dispatchMediaMarkerSelection(markerInfo, index, markerTimeMs);
-            }
-        }
-        return false;
-    }
-
-    function ensureMediaMarkerPreview() {
-        if (mediaPreviewElement) return mediaPreviewElement;
-        if (!mediaMarkers) return null;
-
-        mediaPreviewElement = document.createElement("span");
-        mediaPreviewElement.className = "timeline-dock__media-preview";
-        mediaPreviewElement.hidden = true;
-
-        mediaPreviewImage = document.createElement("img");
-        mediaPreviewImage.className = "timeline-dock__media-preview-image";
-        mediaPreviewImage.alt = "";
-        mediaPreviewImage.decoding = "async";
-        mediaPreviewImage.addEventListener?.("load", () => {
-            if (!mediaPreviewElement || !mediaPreviewImage) return;
-            const imageSource = mediaPreviewImage.getAttribute?.("src") || mediaPreviewImage.src || "";
-            if (!imageSource || imageSource !== pendingMediaPreviewSource || !activeMediaPreviewMarker) return;
-            mediaPreviewImage.hidden = false;
-            mediaPreviewElement.hidden = false;
-            mediaPreviewElement.classList?.add?.("is-visible");
-        });
-        mediaPreviewImage.addEventListener?.("error", () => {
-            const imageSource = mediaPreviewImage?.getAttribute?.("src") || mediaPreviewImage?.src || pendingMediaPreviewSource;
-            if (imageSource) failedMediaPreviewSources.add(imageSource);
-            if (mediaPreviewImage) {
-                mediaPreviewImage.hidden = true;
-                mediaPreviewImage.removeAttribute?.("src");
-            }
-            hideMediaMarkerPreview(activeMediaPreviewMarker);
-        });
-        mediaPreviewElement.appendChild(mediaPreviewImage);
-
-        mediaPreviewTitle = document.createElement("span");
-        mediaPreviewTitle.className = "timeline-dock__media-preview-title";
-        mediaPreviewElement.appendChild(mediaPreviewTitle);
-        mediaMarkers.appendChild(mediaPreviewElement);
-        return mediaPreviewElement;
-    }
-
-    function setMediaPreviewEdgeClass(anchorPercent) {
-        if (!mediaPreviewElement) return;
-        mediaPreviewElement.classList?.toggle?.("timeline-dock__media-preview--start", anchorPercent < 8);
-        mediaPreviewElement.classList?.toggle?.("timeline-dock__media-preview--end", anchorPercent > 92);
-    }
-
-    function showMediaMarkerPreview(marker, markerInfo, anchorPercent) {
-        const thumbnailAssetUrl = String(markerInfo?.thumbnailAssetUrl || "").trim();
-        if (!thumbnailAssetUrl || failedMediaPreviewSources.has(thumbnailAssetUrl)) {
-            hideMediaMarkerPreview(marker);
-            return;
-        }
-        const preview = ensureMediaMarkerPreview();
-        if (!preview) return;
-        activeMediaPreviewMarker = marker;
-        pendingMediaPreviewSource = thumbnailAssetUrl;
-        preview.hidden = false;
-        preview.classList?.remove?.("is-visible");
-        preview.style.left = `${clamp(Number(anchorPercent), 0, 100)}%`;
-        setMediaPreviewEdgeClass(Number(anchorPercent));
-        if (mediaPreviewTitle) {
-            const previewTitle = String(markerInfo?.label || markerInfo?.hoverText || "Media item").trim();
-            mediaPreviewTitle.textContent = previewTitle || "Media item";
-        }
-        if (mediaPreviewImage) {
-            mediaPreviewImage.hidden = false;
-            if (mediaPreviewImage.getAttribute?.("src") !== thumbnailAssetUrl) {
-                mediaPreviewImage.src = thumbnailAssetUrl;
-            }
-            if (mediaPreviewImage.complete === true && Number(mediaPreviewImage.naturalWidth || 0) > 0) {
-                preview.hidden = false;
-                preview.classList?.add?.("is-visible");
-            }
-        }
-    }
-
-    function hideMediaMarkerPreview(marker) {
-        if (marker && activeMediaPreviewMarker && marker !== activeMediaPreviewMarker) return;
-        activeMediaPreviewMarker = null;
-        pendingMediaPreviewSource = "";
-        mediaPreviewElement?.classList?.remove?.("is-visible");
-        if (mediaPreviewElement) {
-            mediaPreviewElement.hidden = true;
-        }
-    }
-
-    function bindMediaMarkerPreviewEvents(marker, markerInfo, anchorPercent) {
-        if (!marker) return;
-        marker.addEventListener("pointerenter", () => showMediaMarkerPreview(marker, markerInfo, anchorPercent));
-        marker.addEventListener("pointerleave", () => hideMediaMarkerPreview(marker));
-        marker.addEventListener("focus", () => showMediaMarkerPreview(marker, markerInfo, anchorPercent));
-        marker.addEventListener("blur", () => hideMediaMarkerPreview(marker));
-    }
-
-    function handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs) {
-        event?.stopPropagation?.();
-        const clickTimeMs = isSegment && Number.isFinite(event?.clientX)
-            ? getTimeAtClientX(event.clientX)
-            : markerTimeMs;
-        dispatchMediaMarkerSelection(
-            markerInfo,
-            index,
-            resolveMediaMarkerTargetTime(markerInfo, clickTimeMs),
-        );
-    }
-
-    function getDirectMediaMarkerTargetIndex(event) {
-        const targetMarkerElement = findMediaMarkerElementTarget(event?.target);
-        if (!targetMarkerElement) return -1;
-        return getMediaMarkerElementIndex(targetMarkerElement);
-    }
-
-    function renderMediaMarker(markerInfo, index) {
-        const markerTimeMs = markerInfo?.startTime instanceof Date
-            ? markerInfo.startTime.getTime()
-            : Number(markerInfo?.startTimeMs);
-        if (!Number.isFinite(markerTimeMs)) return null;
-        const markerEndTimeMs = Number(markerInfo?.endTimeMs);
-        const isSegment = markerInfo?.mediaDisplayMode === "segment"
-            && Number.isFinite(markerEndTimeMs)
-            && markerEndTimeMs > markerTimeMs;
-        if (isSegment) {
-            if (markerEndTimeMs < viewMin || markerTimeMs > viewMax) return null;
-        } else if (markerTimeMs < viewMin || markerTimeMs > viewMax) {
-            return null;
-        }
-
-        const marker = document.createElement("button");
-        marker.type = "button";
-        const markerClasses = ["timeline-dock__media-marker"];
-        let anchorPercent = computePercent(markerTimeMs, viewMin, viewMax);
-        if (isSegment) {
-            markerClasses.push("timeline-dock__media-marker--segment");
-            if (markerTimeMs < viewMin) {
-                markerClasses.push("timeline-dock__media-marker--segment-clipped-start");
-            }
-            if (markerEndTimeMs > viewMax) {
-                markerClasses.push("timeline-dock__media-marker--segment-clipped-end");
-            }
-            const visibleStartTimeMs = Math.max(markerTimeMs, viewMin);
-            const visibleEndTimeMs = Math.min(markerEndTimeMs, viewMax);
-            anchorPercent = computePercent((visibleStartTimeMs + visibleEndTimeMs) / 2, viewMin, viewMax);
-        }
-        if (anchorPercent < 8) {
-            markerClasses.push("timeline-dock__media-marker--preview-start");
-        } else if (anchorPercent > 92) {
-            markerClasses.push("timeline-dock__media-marker--preview-end");
-        }
-        if (markerInfo?.durationEstimated) {
-            markerClasses.push("timeline-dock__media-marker--estimated");
-        }
-        if (markerInfo?.selected) {
-            markerClasses.push("timeline-dock__media-marker--selected");
-        }
-        const mediaKind = String(markerInfo?.mediaKind || "").trim();
-        if (mediaKind) {
-            markerClasses.push(`timeline-dock__media-marker--${mediaKind}`);
-        }
-        if (markerInfo?.preEphemeris || markerInfo?.postEphemeris) {
-            markerClasses.push("timeline-dock__media-marker--out-of-range");
-        }
-        if (markerInfo?.clickable === false) {
-            markerClasses.push("timeline-dock__media-marker--inactive");
-            marker.setAttribute("aria-disabled", "true");
-        }
-        marker.className = markerClasses.join(" ");
-        marker.dataset.mediaIndex = String(index);
-        if (markerInfo?.id) {
-            marker.dataset.mediaId = String(markerInfo.id);
-        }
-        marker.dataset.mediaStartTimeMs = String(markerTimeMs);
-        if (isSegment) {
-            marker.dataset.mediaEndTimeMs = String(markerEndTimeMs);
-            const visibleStartTimeMs = Math.max(markerTimeMs, viewMin);
-            const visibleEndTimeMs = Math.min(markerEndTimeMs, viewMax);
-            const leftPercent = computePercent(visibleStartTimeMs, viewMin, viewMax);
-            const rightPercent = computePercent(visibleEndTimeMs, viewMin, viewMax);
-            marker.style.left = `${leftPercent}%`;
-            marker.style.width = `${Math.max(0, rightPercent - leftPercent)}%`;
-        } else {
-            marker.style.left = `${computePercent(markerTimeMs, viewMin, viewMax)}%`;
-        }
-        const markerTitle = markerInfo?.hoverText || markerInfo?.label || "Media item";
-        marker.title = markerTitle;
-        marker.setAttribute("aria-label", markerTitle);
-        bindMediaMarkerPreviewEvents(marker, markerInfo, anchorPercent);
-        if (markerInfo?.clickable !== false) {
-            marker.addEventListener("click", (event) => {
-                handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs);
-            });
-        }
-        return marker;
-    }
-
-    function setEvents(eventInfos) {
-        const normalizedEvents = Array.isArray(eventInfos) ? eventInfos : [];
-        const signature = buildEventSignature(normalizedEvents);
-        lastEventInfos = normalizedEvents;
-        if (signature === lastEventSignature) {
-            return;
-        }
-
-        lastEventSignature = signature;
-        renderEventMarkersFromCache();
-    }
-
-    function setMediaMarkersFn(nextMediaMarkers) {
-        if (!mediaMarkers) return;
-        const normalizedMediaMarkers = Array.isArray(nextMediaMarkers) ? nextMediaMarkers : [];
-        const signature = buildMediaSignature(normalizedMediaMarkers);
-        lastMediaMarkersData = normalizedMediaMarkers;
-        if (signature === lastMediaSignature) {
-            return;
-        }
-
-        lastMediaSignature = signature;
-        renderMediaMarkersFromCache();
     }
 
     function setCrafts(craftInfos) {

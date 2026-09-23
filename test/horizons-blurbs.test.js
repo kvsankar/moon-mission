@@ -88,7 +88,7 @@ describe("HORIZONS blurb product data", () => {
             join(ROOT, "scripts", "scaffold-pending-horizons-missions.py"),
             "utf8",
         );
-        const landing = readFileSync(join(ROOT, "src", "platform", "js", "index-landing.js"), "utf8");
+        const landing = readFileSync(join(ROOT, "src", "platform", "js", "landing-brief-data.js"), "utf8");
         const build = readFileSync(join(ROOT, "scripts", "build.py"), "utf8");
 
         expect(fetcher).toContain("default=Path('assets/horizons-blurbs')");

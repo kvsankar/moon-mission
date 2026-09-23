@@ -1,29 +1,19 @@
 import { constrainMoonRenderProfile } from "../core/domain/render-device-policy.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 import {
-    MOON_RENDER_PIPELINE_PRESETS,
-    MOON_RENDER_PIPELINE_STAGE_CONTROLS,
-    MOON_PHYSICAL_RENDER_CONTROLS,
-    normalizeMoonRenderPipelineState,
-    resolveMoonRenderPipelinePresetId,
     resolveMoonRenderPipelineState,
 } from "../app/moon-render-pipeline.js";
-import { resolveMoonLightingModelStages } from "../app/moon-lighting-models.js";
+import { createMoonRenderPanelController } from "./view-settings-moon-render-panel.js";
 import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
 import {
-    bindLunarCraterControlPanel as bindSharedLunarCraterControlPanel,
     getLunarCraterControlPanelElements as getSharedLunarCraterControlPanelElements,
     readLunarCraterControlState,
     syncLunarCraterControlPanel,
 } from "./lunar-crater-control-panel.js";
-import {
-    createDefaultSurfacePointViewState,
-    normalizeSurfacePointViewState,
-    patchSurfacePointViewState,
-} from "../core/domain/surface-point-view-state.js";
+import { createAnnotationPanelController } from "./view-settings-annotation-panels.js";
 
 export const DEFAULT_ORIGIN_PILL_PAIRS = [
     ["origin-pill-earth", "origin-earth", "geo"],
@@ -66,20 +56,6 @@ export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-equatorial", "view-equatorialplane", "viewEquatorialPlane"],
 ];
 
-const SURFACE_POINT_SETTING_DEFINITIONS = Object.freeze([
-    ["viewSubSolarEarth", "view-subsolar-earth", "surface-points-subsolar-earth-toggle"],
-    ["viewSubMoonEarth", "view-submoon-earth", "surface-points-submoon-earth-toggle"],
-    ["viewSolarGlintEarth", "view-solar-glint-earth", "surface-points-solar-glint-earth-toggle"],
-    ["viewLunarGlintEarth", "view-lunar-glint-earth", "surface-points-lunar-glint-earth-toggle"],
-    ["viewSubCraftEarth", "view-subcraft-earth", "surface-points-subcraft-earth-toggle"],
-]);
-
-const MOON_RENDER_TIER_BUTTONS = Object.freeze([
-    ["low", "low", "moon-render-tier-low"],
-    ["medium", "fast", "moon-render-tier-medium"],
-    ["high", "quality", "moon-render-tier-high"],
-]);
-
 export function createViewSettingsPillController(deps = {}) {
     const documentRef = deps.documentRef || document;
     const windowRef = deps.windowRef || window;
@@ -116,8 +92,6 @@ export function createViewSettingsPillController(deps = {}) {
 
     let bound = false;
     let landingPillSyncScheduled = false;
-    let moonRenderPanelHome = null;
-    let activeMoonRenderPanelTrigger = null;
 
     function getElement(id) {
         return documentRef?.getElementById?.(id) || null;
@@ -239,553 +213,51 @@ export function createViewSettingsPillController(deps = {}) {
         }
     }
 
-    function getMoonRenderPanelElements() {
-        const panel = getElement("moon-render-pipeline-panel");
-        return {
-            pill: getElement(moonRenderPillId),
-            panel,
-            close: getElement("moon-render-pipeline-close"),
-            tierButtons: MOON_RENDER_TIER_BUTTONS
-                .map(([tier, profile, id]) => [tier, profile, getElement(id)])
-                .filter(([, , button]) => !!button),
-            physicalControls: MOON_PHYSICAL_RENDER_CONTROLS.map((control) => ({
-                ...control,
-                input: getElement(`moon-render-physical-${control.key}`),
-                value: getElement(`moon-render-physical-${control.key}-value`),
-            })).filter((control) => !!control.input),
-            presetButtons: Object.keys(MOON_RENDER_PIPELINE_PRESETS)
-                .map((presetId) => [presetId, getElement(`moon-render-preset-${presetId}`)])
-                .filter(([, button]) => !!button),
-            stageInputs: MOON_RENDER_PIPELINE_STAGE_CONTROLS
-                .map(([key]) => [key, getElement(`moon-render-stage-${key}`)])
-                .filter(([, input]) => !!input),
-        };
-    }
+    const { bindMoonRenderPanel, syncMoonRenderPanelState } = createMoonRenderPanelController({
+        documentRef,
+        windowRef,
+        getElement,
+        moonRenderPillId,
+        getActiveMoonRenderProfile,
+        getMoonRenderPipeline,
+        setMoonRenderPipeline,
+        setMoonRenderProfile,
+        syncMoonRenderProfilePillState,
+        syncPressedState,
+        syncProfileDeviceAvailability,
+    });
 
-    function prepareMoonRenderPanelHost(trigger, panel, pill) {
-        if (!panel) return false;
-        const externalTrigger = trigger && trigger !== pill && trigger.dataset?.moonRenderPanelTrigger === "true";
-        const body = documentRef?.body;
-        if (externalTrigger && body?.appendChild && panel.parentElement !== body) {
-            moonRenderPanelHome ||= {
-                parent: panel.parentElement,
-                nextSibling: panel.nextSibling,
-            };
-            body.appendChild(panel);
-            if (panel.dataset) panel.dataset.portaled = "true";
-            return true;
-        }
-        if (!externalTrigger && moonRenderPanelHome?.parent && panel.parentElement !== moonRenderPanelHome.parent) {
-            const { parent, nextSibling } = moonRenderPanelHome;
-            if (nextSibling && typeof parent.insertBefore === "function") {
-                parent.insertBefore(panel, nextSibling);
-            } else {
-                parent.appendChild?.(panel);
-            }
-            if (panel.dataset) delete panel.dataset.portaled;
-        }
-        return panel.dataset?.portaled === "true";
-    }
-
-    function positionMoonRenderPanel(trigger, panel) {
-        if (!trigger?.getBoundingClientRect || !panel?.style) return;
-        const triggerRect = trigger.getBoundingClientRect();
-        const panelWidth = panel.offsetWidth || 320;
-        const panelHeight = panel.offsetHeight || 330;
-        const viewportWidth = windowRef?.innerWidth || panelWidth;
-        const viewportHeight = windowRef?.innerHeight || panelHeight;
-        const preferredLeft = triggerRect.left + (triggerRect.width / 2) - (panelWidth / 2);
-        const nextLeft = Math.min(
-            Math.max(8, preferredLeft),
-            Math.max(8, viewportWidth - panelWidth - 8),
-        );
-        const belowTop = triggerRect.bottom + 6;
-        const aboveTop = triggerRect.top - panelHeight - 6;
-        const preferredTop = belowTop + panelHeight <= viewportHeight - 8
-            ? belowTop
-            : aboveTop;
-        const nextTop = Math.min(
-            Math.max(8, preferredTop),
-            Math.max(8, viewportHeight - panelHeight - 8),
-        );
-        panel.style.position = "fixed";
-        panel.style.left = `${nextLeft}px`;
-        panel.style.right = "auto";
-        panel.style.top = `${Math.round(nextTop)}px`;
-    }
-
-    function setMoonRenderPanelOpen(open, trigger = null) {
-        const { pill, panel } = getMoonRenderPanelElements();
-        if (!panel) return;
-        const previousTrigger = activeMoonRenderPanelTrigger;
-        const activeTrigger = trigger || previousTrigger || pill;
-        prepareMoonRenderPanelHost(activeTrigger, panel, pill);
-        panel.hidden = open !== true;
-        if (open === true) {
-            activeMoonRenderPanelTrigger = activeTrigger;
-            positionMoonRenderPanel(activeTrigger, panel);
-        }
-        [pill, activeTrigger, previousTrigger].forEach((button) => {
-            if (!button?.setAttribute) return;
-            button.classList?.toggle?.("is-open", open === true);
-            button.setAttribute("aria-expanded", open === true ? "true" : "false");
-        });
-        if (open !== true) {
-            activeMoonRenderPanelTrigger = null;
-        }
-    }
-
-    function getActiveMoonRenderPipeline() {
-        return normalizeMoonRenderPipelineState(getMoonRenderPipeline());
-    }
-
-    function syncMoonRenderPanelState() {
-        const pipeline = getActiveMoonRenderPipeline();
-        const effectivePipeline = resolveMoonLightingModelStages(pipeline);
-        const activePresetId = resolveMoonRenderPipelinePresetId(pipeline);
-        const {
-            pill,
-            tierButtons,
-            physicalControls,
-            presetButtons,
-            stageInputs,
-        } = getMoonRenderPanelElements();
-        const isCustom = activePresetId === "custom";
-        const activeProfile = getActiveMoonRenderProfile();
-        syncPressedState(pill, isCustom || activePresetId !== "full");
-
-        tierButtons.forEach(([, profile, button]) => {
-            syncPressedState(button, profile === activeProfile);
-            syncProfileDeviceAvailability(button, profile);
-        });
-        physicalControls.forEach(({ key, input, value }) => {
-            const numeric = Number(pipeline[key]);
-            input.value = String(numeric);
-            input.disabled = false;
-            if (value) value.textContent = numeric.toFixed(2);
-        });
-        presetButtons.forEach(([presetId, button]) => {
-            syncPressedState(button, presetId === activePresetId);
-            button.disabled = false;
-        });
-        stageInputs.forEach(([key, input]) => {
-            input.checked = effectivePipeline[key] === true;
-            input.disabled = false;
-        });
-    }
-
-    function commitMoonRenderPipeline(nextState) {
-        const normalized = normalizeMoonRenderPipelineState(nextState);
-        if (typeof setMoonRenderPipeline === "function") {
-            setMoonRenderPipeline(normalized);
-        }
-        syncMoonRenderPanelState();
-    }
-
-    function bindMoonRenderPanel() {
-        const {
-            pill,
-            close,
-            tierButtons,
-            physicalControls,
-            presetButtons,
-            stageInputs,
-        } = getMoonRenderPanelElements();
-        if (pill) {
-            pill.addEventListener("click", function (event) {
-                event?.stopPropagation?.();
-                const panel = getMoonRenderPanelElements().panel;
-                setMoonRenderPanelOpen(panel?.hidden !== false, pill);
-                syncMoonRenderPanelState();
-            });
-        }
-        close?.addEventListener?.("click", () => setMoonRenderPanelOpen(false));
-
-        tierButtons.forEach(([, profile, button]) => {
-            button.addEventListener("click", () => {
-                if (getActiveMoonRenderProfile() === profile) return;
-                tierButtons.forEach(([, , tierButton]) => {
-                    tierButton.disabled = true;
-                });
-                Promise.resolve(
-                    typeof setMoonRenderProfile === "function"
-                        ? setMoonRenderProfile(profile)
-                        : profile,
-                ).catch((error) => {
-                    console.error("Failed to switch Moon resource tier:", error);
-                }).finally(() => {
-                    tierButtons.forEach(([, , tierButton]) => {
-                        tierButton.disabled = false;
-                    });
-                    syncMoonRenderPanelState();
-                    syncMoonRenderProfilePillState();
-                });
-            });
-        });
-        physicalControls.forEach(({ key, input }) => {
-            input.addEventListener("input", () => {
-                commitMoonRenderPipeline({
-                    ...getActiveMoonRenderPipeline(),
-                    [key]: Number(input.value),
-                });
-            });
-        });
-        presetButtons.forEach(([presetId, button]) => {
-            button.addEventListener("click", () => {
-                const preset = MOON_RENDER_PIPELINE_PRESETS[presetId];
-                if (!preset) return;
-                commitMoonRenderPipeline({
-                    ...getActiveMoonRenderPipeline(),
-                    ...preset.state,
-                    lightingModel: getActiveMoonRenderPipeline().lightingModel,
-                });
-            });
-        });
-        stageInputs.forEach(([key, input]) => {
-            input.addEventListener("change", () => {
-                commitMoonRenderPipeline({
-                    ...getActiveMoonRenderPipeline(),
-                    [key]: input.checked === true,
-                });
-            });
-        });
-        documentRef?.addEventListener?.("moon-mission:moon-render-panel-request", (event) => {
-            const trigger = event?.detail?.trigger;
-            if (!trigger) return;
-            const panel = getMoonRenderPanelElements().panel;
-            setMoonRenderPanelOpen(panel?.hidden !== false, trigger);
-            syncMoonRenderPanelState();
-        });
-        documentRef?.addEventListener?.("moon-mission:moon-render-panel-dismiss", () => {
-            setMoonRenderPanelOpen(false);
-        });
-        documentRef?.addEventListener?.("click", (event) => {
-            const trigger = event?.target?.closest?.("[data-moon-render-panel-trigger]");
-            if (!trigger) return;
-            event?.stopPropagation?.();
-            const panel = getMoonRenderPanelElements().panel;
-            setMoonRenderPanelOpen(panel?.hidden !== false, trigger);
-            syncMoonRenderPanelState();
-        });
-    }
-
-    function getLunarGridPanelElements() {
-        return {
-            pill: getElement("toggle-pill-moon-grid"),
-            panel: getElement("lunar-grid-controls-panel"),
-            close: getElement("lunar-grid-close"),
-            gridInput: getElement("view-moon-lat-lon-grid"),
-            labelsInput: getElement("view-moon-lat-lon-labels"),
-            hoverInput: getElement("view-moon-lat-lon-hover"),
-            gridToggle: getElement("lunar-grid-lines-toggle"),
-            labelsToggle: getElement("lunar-grid-labels-toggle"),
-            hoverToggle: getElement("lunar-grid-hover-toggle"),
-        };
-    }
-
-    const GUIDE_SETTING_DEFINITIONS = Object.freeze([
-        ["viewXYZAxes", "view-xyz-axes", "guides-xyz-toggle"],
-        ["viewEarthPoles", "view-earth-poles", "guides-earth-poles-toggle"],
-        ["viewEarthPolarAxes", "view-earth-polar-axes", "guides-earth-polar-axes-toggle"],
-        ["viewEarthLatLonGrid", "view-earth-lat-lon-grid", "guides-earth-grid-toggle"],
-        ["viewEarthLatLonLabels", "view-earth-lat-lon-labels", "guides-earth-labels-toggle"],
-        ["viewEarthLatLonHover", "view-earth-lat-lon-hover", "guides-earth-hover-toggle"],
-        ["viewMoonPoles", "view-moon-poles", "guides-moon-poles-toggle"],
-        ["viewMoonPolarAxes", "view-moon-polar-axes", "guides-moon-polar-axes-toggle"],
-        ["viewMoonLatLonGrid", "view-moon-lat-lon-grid", "guides-moon-grid-toggle"],
-        ["viewMoonLatLonLabels", "view-moon-lat-lon-labels", "guides-moon-labels-toggle"],
-        ["viewMoonLatLonHover", "view-moon-lat-lon-hover", "guides-moon-hover-toggle"],
-    ]);
-
-    function getGuidesPanelElements() {
-        const settingEntries = GUIDE_SETTING_DEFINITIONS.map(([settingKey, inputId, toggleId]) => ({
-            settingKey,
-            input: getElement(inputId),
-            toggle: getElement(toggleId),
-            inputId,
-            toggleId,
-        }));
-        return {
-            pill: getElement("toggle-pill-guides"),
-            panel: getElement("guides-controls-panel"),
-            close: getElement("guides-close"),
-            settingEntries,
-        };
-    }
-
-    function getSurfacePointPanelElements() {
-        const settingEntries = SURFACE_POINT_SETTING_DEFINITIONS.map(([settingKey, inputId, toggleId]) => ({
-            settingKey,
-            input: getElement(inputId),
-            toggle: getElement(toggleId),
-            inputId,
-            toggleId,
-        }));
-        return {
-            pill: getElement("toggle-pill-surface-points"),
-            panel: getElement("surface-points-controls-panel"),
-            close: getElement("surface-points-close"),
-            settingEntries,
-        };
-    }
-
-    function getActiveSceneConfigKey() {
-        if (getElement("origin-relative")?.checked) return "relative";
-        if (getElement("origin-moon")?.checked) return "lunar";
-        return "geo";
-    }
-
-    function getActiveAnimationScene() {
-        const scenes = windowRef?.animationScenes || globalThis?.animationScenes || null;
-        return scenes?.[getActiveSceneConfigKey()] || scenes?.geo || null;
-    }
-
-    function readActiveSurfacePointViewState() {
-        const scene = getActiveAnimationScene();
-        if (!scene) {
-            const fallback = {};
-            SURFACE_POINT_SETTING_DEFINITIONS.forEach(([settingKey, inputId]) => {
-                fallback[settingKey] = getElement(inputId)?.checked === true;
-            });
-            return normalizeSurfacePointViewState(fallback);
-        }
-        scene.surfacePointViewState = normalizeSurfacePointViewState(
-            scene.surfacePointViewState || createDefaultSurfacePointViewState(),
-        );
-        return scene.surfacePointViewState;
-    }
-
-    function commitActiveSurfacePointViewPatch(patch = {}) {
-        const scene = getActiveAnimationScene();
-        const nextState = patchSurfacePointViewState(
-            scene?.surfacePointViewState || createDefaultSurfacePointViewState(),
-            patch,
-        );
-        if (scene) {
-            scene.surfacePointViewState = nextState;
-            scene.setSurfacePointMarkersVisible?.(nextState);
-        }
-        return nextState;
-    }
-
-    function positionPanelFromPill(panel, pill) {
-        if (!panel || !pill?.getBoundingClientRect || !panel?.style) return;
-        if (documentRef?.body?.classList?.contains?.("dockview-panels-enabled")) {
-            const pillRect = pill.getBoundingClientRect();
-            const panelWidth = panel.offsetWidth || (panel.classList?.contains?.("surface-points-controls-panel") ? 300 : 360);
-            const viewportWidth = windowRef?.innerWidth || panelWidth;
-            const preferredLeft = pillRect.left + (pillRect.width / 2) - (panelWidth / 2);
-            const nextLeft = Math.min(
-                Math.max(8, preferredLeft),
-                Math.max(8, viewportWidth - panelWidth - 8),
-            );
-            panel.style.position = "fixed";
-            panel.style.left = `${Math.round(nextLeft)}px`;
-            panel.style.right = "auto";
-            panel.style.top = `${Math.round(pillRect.bottom + 6)}px`;
-            return;
-        }
-        const strip = getElement("header-pill-strip") || panel.offsetParent || null;
-        const pillRect = pill.getBoundingClientRect();
-        const stripRect = strip?.getBoundingClientRect?.() || {
-            left: 0,
-            top: 0,
-            width: windowRef?.innerWidth || 0,
-        };
-        const panelWidth = panel.offsetWidth || 236;
-        const maxLeft = Math.max(8, (stripRect.width || windowRef?.innerWidth || panelWidth) - panelWidth - 8);
-        const nextLeft = Math.min(
-            Math.max(8, pillRect.left - stripRect.left),
-            maxLeft,
-        );
-        panel.style.left = `${nextLeft}px`;
-        panel.style.right = "auto";
-        panel.style.top = isMobileControlLayout()
-            ? `${(stripRect.height || 0) + 8}px`
-            : `${pillRect.bottom - stripRect.top + 4}px`;
-    }
-
-    function setLunarGridPanelOpen(open) {
-        const { pill, panel } = getLunarGridPanelElements();
-        if (!panel) return;
-        panel.hidden = open !== true;
-        if (open === true) {
-            positionPanelFromPill(panel, pill);
-        }
-        if (pill) {
-            pill.classList?.toggle?.("is-open", open === true);
-            pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
-        }
-    }
-
-    function setGuidesPanelOpen(open) {
-        const { pill, panel } = getGuidesPanelElements();
-        if (!panel) return;
-        if (open === true && isMobileControlLayout()) {
-            open = false;
-        }
-        panel.hidden = open !== true;
-        if (open === true) {
-            positionPanelFromPill(panel, pill);
-        }
-        if (pill) {
-            pill.classList?.toggle?.("is-open", open === true);
-            pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
-        }
-    }
-
-    function setSurfacePointPanelOpen(open) {
-        const { pill, panel } = getSurfacePointPanelElements();
-        if (!panel) return;
-        if (open === true && isMobileControlLayout()) {
-            open = false;
-        }
-        panel.hidden = open !== true;
-        if (open === true) {
-            positionPanelFromPill(panel, pill);
-        }
-        if (pill) {
-            pill.classList?.toggle?.("is-open", open === true);
-            pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
-        }
-    }
-
-    function closeAnnotationPanels(exceptPanelId = "") {
-        if (exceptPanelId !== "lunar-crater-controls-panel") {
-            setLunarCraterPanelOpen(false);
-        }
-        if (exceptPanelId !== "guides-controls-panel") {
-            setGuidesPanelOpen(false);
-        }
-        if (exceptPanelId !== "surface-points-controls-panel") {
-            setSurfacePointPanelOpen(false);
-        }
-    }
-
-    function syncGuidesPanelState() {
-        const { pill, settingEntries } = getGuidesPanelElements();
-        let anyActive = false;
-        settingEntries.forEach(({ settingKey, input, toggle }) => {
-            const checked = input?.checked === true;
-            if (toggle) toggle.checked = checked;
-            anyActive = anyActive || (checked && !settingKey.endsWith("LatLonLabels"));
-        });
-        syncPressedState(pill, anyActive);
-    }
-
-    function syncSurfacePointPanelState() {
-        const { pill, settingEntries } = getSurfacePointPanelElements();
-        const state = readActiveSurfacePointViewState();
-        let anyActive = false;
-        settingEntries.forEach(({ settingKey, input, toggle }) => {
-            const checked = state?.[settingKey] === true;
-            if (toggle) toggle.checked = checked;
-            if (input) input.checked = checked;
-            anyActive = anyActive || checked;
-        });
-        syncPressedState(pill, anyActive);
-    }
-
-    function syncLunarGridPanelState() {
-        const {
-            pill,
-            gridInput,
-            labelsInput,
-            hoverInput,
-            gridToggle,
-            labelsToggle,
-            hoverToggle,
-        } = getLunarGridPanelElements();
-        const gridVisible = gridInput?.checked === true;
-        if (gridToggle) gridToggle.checked = gridVisible;
-        if (labelsToggle) labelsToggle.checked = labelsInput?.checked === true;
-        if (hoverToggle) hoverToggle.checked = hoverInput?.checked === true;
-        syncPressedState(pill, gridVisible);
-    }
-
-    function commitLunarGridSetting(settingKey, value, sourceId) {
-        const inputIdBySetting = {
-            viewMoonLatLonGrid: "view-moon-lat-lon-grid",
-            viewMoonLatLonLabels: "view-moon-lat-lon-labels",
-            viewMoonLatLonHover: "view-moon-lat-lon-hover",
-        };
-        const input = getElement(inputIdBySetting[settingKey]);
-        if (input) {
-            input.checked = Boolean(value);
-        }
-        controlBackend.commitViewSetting?.(settingKey, Boolean(value), { sourceId });
-        syncTogglePillVisibility();
-        syncTogglePillState();
-        syncLunarGridPanelState();
-    }
-
-    function commitGuidesSetting(settingKey, value, sourceId) {
-        const entry = GUIDE_SETTING_DEFINITIONS.find(([candidate]) => candidate === settingKey);
-        const input = entry ? getElement(entry[1]) : null;
-        const toggle = entry ? getElement(entry[2]) : null;
-        const nextValue = Boolean(value);
-        if (input) input.checked = nextValue;
-        if (toggle) toggle.checked = nextValue;
-        controlBackend.commitViewSetting?.(settingKey, nextValue, { sourceId });
-        syncTogglePillVisibility();
-        syncTogglePillState();
-        syncGuidesPanelState();
-        syncLunarGridPanelState();
-    }
-
-    function commitSurfacePointSetting(settingKey, value, sourceId) {
-        const entry = SURFACE_POINT_SETTING_DEFINITIONS.find(([candidate]) => candidate === settingKey);
-        const input = entry ? getElement(entry[1]) : null;
-        const toggle = entry ? getElement(entry[2]) : null;
-        const nextValue = Boolean(value);
-        const nextState = commitActiveSurfacePointViewPatch({ [settingKey]: nextValue });
-        if (input) input.checked = nextValue;
-        if (toggle) toggle.checked = nextValue;
-        syncTogglePillVisibility();
-        syncTogglePillState();
-        if (entry) {
-            if (input) input.checked = nextState[settingKey] === true;
-            if (toggle) toggle.checked = nextState[settingKey] === true;
-        }
-        syncSurfacePointPanelState();
-    }
-
-    function commitLunarCraterViewPatch(patch, options = {}) {
-        controlBackend.commitViewPatch?.(patch, options);
-        syncTogglePillVisibility();
-        syncTogglePillState();
-        syncGuidesPanelState();
-        syncSurfacePointPanelState();
-        syncLunarGridPanelState();
-        syncLunarCraterPanelState();
-    }
-
-    function bindLunarCraterControlPanel() {
-        const { pill } = getCraterPanelElements();
-
-        if (pill) {
-            pill.addEventListener("click", function (event) {
-                if (pill.disabled || pill.getAttribute?.("aria-disabled") === "true") return;
-                if (isMobileControlLayout()) {
-                    closeMobileOnlyPanelsIfNeeded();
-                    return;
-                }
-                event?.stopPropagation?.();
-                const panelOpen = getCraterPanelElements().panel?.hidden === false;
-                closeAnnotationPanels(panelOpen ? "" : "lunar-crater-controls-panel");
-                setLunarCraterPanelOpen(!panelOpen);
-                syncLunarCraterPanelState();
-            });
-        }
-        bindSharedLunarCraterControlPanel({
-            elements: getCraterPanelElements(),
-            commitPatch: commitLunarCraterViewPatch,
-            sync: syncLunarCraterPanelState,
-        });
-        getCraterPanelElements().closeButton?.addEventListener?.("click", function () {
-            setLunarCraterPanelOpen(false);
-        });
-    }
+    const {
+        getLunarGridPanelElements,
+        getGuidesPanelElements,
+        getSurfacePointPanelElements,
+        positionPanelFromPill,
+        setLunarGridPanelOpen,
+        setGuidesPanelOpen,
+        setSurfacePointPanelOpen,
+        closeAnnotationPanels,
+        syncGuidesPanelState,
+        syncSurfacePointPanelState,
+        syncLunarGridPanelState,
+        commitLunarGridSetting,
+        commitGuidesSetting,
+        commitSurfacePointSetting,
+        bindLunarCraterControlPanel,
+    } = createAnnotationPanelController({
+        documentRef,
+        windowRef,
+        getElement,
+        controlBackend,
+        getCraterPanelElements,
+        setLunarCraterPanelOpen,
+        isMobileControlLayout,
+        closeMobileOnlyPanelsIfNeeded,
+        syncLunarCraterPanelState,
+        syncPressedState,
+        syncTogglePillState,
+        syncTogglePillVisibility,
+        sync,
+    });
 
     function syncTogglePillVisibility() {
         const landingToggle = getElement("landing");

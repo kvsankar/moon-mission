@@ -17,6 +17,98 @@ function asTrimmedString(value) {
     return value.trim();
 }
 
+function resolveMediaFilterIntent(intent = {}, filters = {}) {
+    const type = String(intent.type || "");
+    const value = String(intent.value || "").trim();
+    if (type === "setAudienceFilter") {
+        return { handled: true, patch: {
+            quick: "all",
+            subjects: value === "crew" ? ["crew"] : (value === "external" ? ["space"] : []),
+            cameraIds: [],
+            cameraId: "all",
+        } };
+    }
+    if (type === "setCameraFilter") {
+        return { handled: true, patch: {
+            quick: "all",
+            cameraIds: value && value !== "all" ? [value] : [],
+            cameraId: value || "all",
+        } };
+    }
+    if (type === "setQuickFilter") {
+        const mediaKinds = value === "videos"
+            ? ["videoClip"]
+            : (value === "all" ? [...MEDIA_KIND_FILTER_IDS] : undefined);
+        const subject = value === "crew" || value === "new"
+            ? "crew"
+            : (value === "exterior" || value === "external" || value === "space" ? "space" : "");
+        const subjectPatch = subject
+            ? { subjects: [subject] }
+            : (value === "all" ? { subjects: [] } : {});
+        return { handled: true, patch: {
+            quick: value === "space" || subject ? value : "all",
+            cameraIds: [],
+            cameraId: "all",
+            ...(mediaKinds ? { mediaKinds } : {}),
+            ...subjectPatch,
+        } };
+    }
+    if (type === "toggleSubject") {
+        if (value === "all") return { handled: true, patch: { quick: "all", subjects: [] } };
+        if (!MEDIA_SUBJECT_FILTER_IDS.includes(value)) return { handled: true };
+        const active = new Set(filters.subjects || []);
+        if (active.has(value)) active.delete(value);
+        else active.add(value);
+        return { handled: true, patch: {
+            quick: "all",
+            subjects: MEDIA_SUBJECT_FILTER_IDS.filter((subjectId) => active.has(subjectId)),
+        } };
+    }
+    if (type === "toggleMediaKind") {
+        if (value === "all") return { handled: true, patch: {
+            quick: "all",
+            kind: "all",
+            mediaKinds: [...MEDIA_KIND_FILTER_IDS],
+        } };
+        if (!MEDIA_KIND_FILTER_IDS.includes(value)) return { handled: true };
+        const active = new Set(filters.mediaKinds || MEDIA_KIND_FILTER_IDS);
+        const unrestricted = MEDIA_KIND_FILTER_IDS.every((kindId) => active.has(kindId));
+        if (unrestricted) {
+            active.clear();
+            active.add(value);
+        } else if (active.has(value)) active.delete(value);
+        else active.add(value);
+        const selected = MEDIA_KIND_FILTER_IDS.filter((kindId) => active.has(kindId));
+        const mediaKinds = selected.length === 0 || selected.length === MEDIA_KIND_FILTER_IDS.length
+            ? [...MEDIA_KIND_FILTER_IDS]
+            : selected;
+        return { handled: true, patch: {
+            quick: filters.quick === "videos" ? "all" : filters.quick,
+            kind: "all",
+            mediaKinds,
+        }, stopAudioIfExcluded: !mediaKinds.includes("audioClip") };
+    }
+    if (type === "toggleCameraFilter") {
+        if (!value) return { handled: true };
+        if (value === "all") return { handled: true, patch: {
+            quick: "all", cameraIds: [], cameraId: "all",
+        } };
+        const active = new Set(filters.cameraIds || []);
+        if (active.has(value)) active.delete(value);
+        else active.add(value);
+        const cameraIds = [...active];
+        return { handled: true, patch: {
+            quick: "all",
+            cameraIds,
+            cameraId: cameraIds.length === 1 ? cameraIds[0] : "all",
+        } };
+    }
+    if (type === "setSearchQuery") {
+        return { handled: true, patch: { query: value } };
+    }
+    return { handled: false };
+}
+
 function normalizeMediaAudienceFilter(value) {
     const normalized = asTrimmedString(value);
     return MEDIA_AUDIENCE_VALUES.has(normalized) ? normalized : "all";
@@ -370,6 +462,7 @@ function buildMediaFilterModel(items, filterState) {
 }
 
 export {
+    resolveMediaFilterIntent,
     buildMediaFilterModel,
     createDefaultMediaFilterState,
     filterMediaItems,

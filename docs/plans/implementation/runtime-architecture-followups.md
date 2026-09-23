@@ -9,6 +9,48 @@ Design:
 Review evidence:
 [Runtime Architecture Reconciliation](../../evidence/reviews/runtime-architecture-reconciliation-2026-09-03.md)
 
+Current structure evidence:
+[Source Structure And Runtime Architecture Review](../../evidence/reviews/source-structure-architecture-review-2026-09-23.md)
+
+## Structural Integrity Follow-Ups — 2026-09-23
+
+The auxiliary-camera split completed the file-size target, but the manager
+still composes nine prototype method objects and routes broad mutable state
+through a shared hub. The source-structure check prevents new size, syntax,
+cycle and core-layer regressions while the following changes are delivered
+in bounded slices. Cross-workstream priority remains in the [roadmap](../roadmap.md).
+The first construction slice is
+[Auxiliary Camera Panel Construction Ownership](auxiliary-camera-panel-ownership.md).
+The media schema slice is
+[Media Manifest Normalization Ownership](media-manifest-normalization-ownership.md).
+The lunar feature calculation slice is
+[Lunar Crater Planning Ownership](lunar-crater-planning-ownership.md).
+The control-surface slice is
+[View Settings Pill Ownership](view-settings-pill-ownership.md).
+Its test-fixture follow-up is
+[View Settings Pill Test Fixture Ownership](view-settings-pill-test-fixture.md).
+The auxiliary manager test split is
+[Auxiliary Camera Manager Test Ownership](auxiliary-camera-manager-test-ownership.md).
+The scene-effect slice is
+[Animation Scene Effect Ownership](animation-scene-effect-ownership.md).
+
+| ID | Outcome and acceptance evidence |
+| --- | --- |
+| STR-01 | Replace one auxiliary-camera prototype mixin group at a time with a named owner. Its construction, lifetime, effect dependencies and disposal are explicit; the manager public API and focused/browser behavior remain stable. |
+| STR-02 | Split the shared re-export/dependency hub by real ownership. Composer controls, timeline, panel lifecycle and rendering consume narrow inputs instead of the whole manager or broad dependency bags. Record the remaining `panelState` contract before moving fields. |
+| STR-03 | Plan oversized-module work around a real owner/boundary and reduce the largest resulting piece by at least 30% of the original physical lines. Record all pieces and verification using the [structural refactor template](../templates/structural-refactor.md). Update the baseline only for a qualifying structural split; treat static catalogs separately and split tests by behavior. |
+| STR-04 | Move reusable burn metadata inward, remove the core-to-app import and delete its exact exception from `source-structure-baseline.json`. |
+| STR-05 | Determine why the production build omits runtime module syntax failures; add a real mission-route startup gate appropriate to the current static-script arrangement. |
+| STR-06 | Move auxiliary-camera DOM, event and Three.js effects out of the application-service boundary as named shell owners are introduced. Verify dependency direction with the import guard and behavior with focused/browser tests. |
+
+For each slice, record the before/after dependency shape and run focused
+behavior tests plus a real mission route when startup or panel effects change.
+If `auxiliary-camera-shared.js` (977 lines), `auxiliary-camera-panel-factory.js`
+(969), or `auxiliary-camera-panel-content.js` (945) is refactored as its own
+delivery unit, its largest resulting piece must be no more than 683, 678, or
+661 lines respectively, using the current counts as the before state. Recount
+at the start of the slice if intervening work changes a file.
+
 ## Reconciliation Outcome
 
 The May 2026 assessment described most structural work as essentially complete.

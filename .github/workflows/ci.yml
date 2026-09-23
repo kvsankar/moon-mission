@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
 
       - name: Checkout mission data repository
         uses: actions/checkout@v5
@@ -50,6 +52,9 @@ jobs:
 
       - name: Verify config.json sync and time_scale annotations
         run: npm run configs:lint
+
+      - name: Verify source structure and module syntax
+        run: npm run structure:check
 
       - name: Run unit tests
         run: npm run test:unit

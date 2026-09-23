@@ -7,4 +7,7 @@ npm run -s configs:compile
 # Stage any generated config.json updates for this commit.
 git add assets/*/data/config.json 2>/dev/null || true
 
+echo "[pre-commit] checking staged JavaScript structure..."
+npm run -s structure:check:staged
+
 echo "[pre-commit] done"
